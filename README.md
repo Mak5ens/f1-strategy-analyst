@@ -55,16 +55,16 @@ Quality is tested like code. Each pull request shows the scores and **fails belo
 Not runnable yet. Target:
 
 ```bash
-make up     # local services (Qdrant, PostgreSQL) and the agent
-make test   # unit tests and evaluation suite
-make down
+just up     # local services (Qdrant, PostgreSQL) and the agent
+just test   # unit tests and evaluation suite
+just down
 ```
 
-To contribute today, install the git hooks (requires [pre-commit](https://pre-commit.com/)):
+To contribute today, install the git hooks (requires [just](https://just.systems/) and [pre-commit](https://pre-commit.com/)):
 
 ```bash
-make hooks
-make lint
+just hooks
+just lint
 ```
 
 ## Roadmap
