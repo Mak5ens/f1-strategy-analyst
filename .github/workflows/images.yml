@@ -1,0 +1,57 @@
+name: Images
+
+# Releases and image of the app, as in llmops-gateway (ADR-023 in llmops-platform).
+#
+# On main, release-please keeps a release PR open from the Conventional Commits merged since the last release (fix:
+# patch, feat: minor, feat!: major), with the version and CHANGELOG.md. Merging that PR tags vX.Y.Z and creates the
+# GitHub release.
+#
+# The image is built by llmops-platform's shared workflow (ADR-022 there): Trivy scan that blocks critical CVEs with a
+# fix, then from main, publication to GHCR as sha-<7 characters>, and X.Y.Z for a release, SBOM (Syft) and keyless
+# signature (cosign). Renovate, on llmops-platform, follows the X.Y.Z tags and opens the PR that deploys a release.
+#
+# The workflow is pinned to a commit of llmops-platform's main branch: a commit of another branch can no longer be
+# called once that branch is deleted. Renovate proposes the updates.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    # One run at a time: two runs in parallel can build the release PR from the files of an older commit.
+    concurrency:
+      group: release-please
+      cancel-in-progress: false
+    permissions:
+      contents: write
+      pull-requests: write
+    outputs:
+      version: ${{ steps.release.outputs.release_created && steps.release.outputs.version || '' }}
+    steps:
+      - id: release
+        uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
+        with:
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+  # API of the app (Dockerfile at the root).
+  api:
+    needs: release
+    # Also on pull requests, where the release job is skipped: build and scan, without publishing.
+    if: ${{ !failure() && !cancelled() }}
+    uses: Mak5ens/llmops-platform/.github/workflows/build-image.yml@f8edb94ba2638e2f2e1dc40f6725a83cfd8548c9
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+    with:
+      image: ghcr.io/mak5ens/f1-strategy-analyst/api
+      context: .
+      version: ${{ needs.release.outputs.version }}
+      push: ${{ github.event_name == 'push' }}
