@@ -3,3 +3,6 @@ config:
   MD013: false
   # Allow inline HTML for centered badges and <details>.
   MD033: false
+# Written by release-please, in its own format (a "Features" heading in every release).
+ignores:
+  - CHANGELOG.md
