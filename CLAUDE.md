@@ -19,20 +19,22 @@ Planning lives in Linear (team key `LAB`, project "Plateforme IA · Analyste str
 
 - `src/core/`: the reusable foundation; `src/f1/`: the theme. `core` never imports `f1` and holds no F1 vocabulary (ADR-011); `tests/unit/test_architecture.py` enforces the import rule.
 - `core.gateway.gateway_client()` is the only way to reach a model. Settings come from `GATEWAY_URL` and `GATEWAY_API_KEY` (the team's virtual key, never the master key).
-- `compose.yaml` only runs Qdrant and PostgreSQL. The gateway runs from `../llmops-gateway` (`just gateway-up` there), and the app runs on the host with `uv run` during development.
+- Race data (LAB-143): `src/f1/data/` ingests FastF1, OpenF1 and Jolpica-F1 into Parquet files on S3 (`core.lake.Lake`, SeaweedFS locally), queried with DuckDB through `f1.data.connect()`. Tools read the lake, never the APIs. Schema in `src/f1/data/schema.py`, documented in `docs/data-schema.md`: bump `SCHEMA_VERSION` on a breaking change. A round is written then marked by `_manifest/<season>/<round>.json`; reruns skip marked rounds.
+- `compose.yaml` only runs Qdrant, PostgreSQL and the S3 store (SeaweedFS on port 8334, since llmops-gateway's Langfuse holds 8333). The gateway runs from `../llmops-gateway` (`just gateway-up` there), and the app runs on the host with `uv run` during development.
 - The front end will be Next.js in `web/` (LAB-187), with an API client generated from FastAPI's OpenAPI.
 
 ## Commands
 
 Tasks run with [just](https://just.systems/) (`justfile`, which loads `.env`); there is no Makefile. Run `just` to list recipes.
 
-- `just up`: start Qdrant and PostgreSQL, wait until healthy, then run `just smoke`. Creates `.env` from `.env.example` if missing.
-- `just smoke`: `tests/integration/`, against the stack and the running gateway (chat, embeddings, model list of the `f1` key, Qdrant).
+- `just up`: start Qdrant, PostgreSQL and the S3 store, wait until healthy, then run `just smoke`. Creates `.env` from `.env.example` if missing.
+- `just smoke`: `tests/integration/`, against the stack and the running gateway (chat, embeddings, model list of the `f1` key, Qdrant, S3), plus the real data sources: the 2025 Italian GP checked against official results and Jolpica-F1 (needs the network).
+- `just ingest 2025` (or `2024 2025 2026`, `--round 16`, `--force`): race data into the lake; `just sql "<query>"` queries it.
 - `just test-unit`: unit tests, no stack, under a second. `just test` runs everything, with pytest arguments passed through.
 - `just api`: the FastAPI app with auto-reload.
 - `just image`: build the Docker image as the CI does.
 - `just lint`: every pre-commit hook (whitespace, YAML, Markdown, gitleaks, ruff, mypy strict on `src` and `tests`).
-- `just down`: stop the services; `just down --volumes` also deletes the Qdrant index and the database.
+- `just down`: stop the services; `just down --volumes` also deletes the Qdrant index, the database and the lake.
 
 ## CI and releases
 

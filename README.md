@@ -5,7 +5,7 @@
 
 **An AI agent that writes sourced Formula 1 race strategy debriefs from timing data and FIA regulations, pauses for a human analyst before publishing, and is gated by an evaluation CI.**
 
-> Status: under construction. The repo skeleton is in place; milestone 4.1 (data and FIA corpus ingestion) is in progress. See the [roadmap](#roadmap).
+> Status: under construction. Race data for 2024 to 2026 is ingested; the FIA corpus and the tools come next (milestone 4.1). See the [roadmap](#roadmap).
 
 ## Why
 
@@ -44,7 +44,8 @@ Quality is tested like code. Each pull request shows the scores and **fails belo
 | Function | Tool |
 | -- | -- |
 | Agent | LangGraph, PostgreSQL checkpointer |
-| Data | FastF1 (timing, stints, tyres, telemetry since 2018), OpenF1 (race control messages), Jolpica-F1 (history since 1950) |
+| Data | FastF1 (timing, stints, tyres, race control, weather), OpenF1 (pit stop stationary times), Jolpica-F1 (standings) |
+| Data storage | Parquet in S3 (SeaweedFS locally), queried with DuckDB ([schema](docs/data-schema.md)) |
 | Ingestion and RAG | LlamaIndex, Qdrant (dense and sparse vectors), reranker behind the gateway |
 | Evaluation | promptfoo, Ragas, LLM judge, Langfuse Datasets |
 | API and UI | FastAPI, Next.js |
@@ -55,9 +56,11 @@ Quality is tested like code. Each pull request shows the scores and **fails belo
 Requires [just](https://just.systems/), [uv](https://docs.astral.sh/uv/) and Docker. The app calls every model through [llmops-gateway](https://github.com/Mak5ens/llmops-gateway), so start it first (`just gateway-up` in that repo).
 
 ```bash
-just up         # Qdrant and PostgreSQL, then a check of the gateway with the f1 team's key
-just test-unit  # unit tests, no stack needed
-just api        # the API on http://localhost:8000
+just up           # Qdrant, PostgreSQL and the S3 store, then a check of the gateway and the data sources
+just ingest 2025  # race data of a season into the lake (a few minutes; reruns skip what is stored)
+just sql "SELECT driver, lap, pit_lane_time_s FROM pit_stops WHERE season = 2025 AND round = 16"
+just test-unit    # unit tests, no stack needed
+just api          # the API on http://localhost:8000
 just down
 ```
 
@@ -68,10 +71,11 @@ just down
 | Path | Content |
 | -- | -- |
 | `src/core/` | Reusable foundation: gateway client, then retrieval, evaluation and agent graph. Never imports `f1` ([ADR-011](docs/adr/011-core-and-theme-separation.md)) |
-| `src/f1/` | The Formula 1 theme: data, deterministic tools, prompts, API |
+| `src/f1/` | The Formula 1 theme: race data ingestion (`f1/data/`), deterministic tools, prompts, API |
 | `tests/unit/`, `tests/integration/` | Tests without the stack, and against it (`just smoke`) |
 | `evals/` | Test set and evaluation harness (milestone 4.2) |
 | `docs/adr/` | Architecture decision records of this repo |
+| `docs/data-schema.md` | Tables of the race data lake, their sources and conventions |
 
 ## Roadmap
 

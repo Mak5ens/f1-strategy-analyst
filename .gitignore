@@ -216,3 +216,6 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Local lake (LAKE_URI as a folder) and the FastF1 HTTP cache (.cache/ above).
+/data/
