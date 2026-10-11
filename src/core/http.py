@@ -26,11 +26,14 @@ class RateLimitedClient:
         max_retries: int = 5,
         backoff: float = 2.0,
         timeout: float = 30.0,
+        headers: dict[str, str] | None = None,
         transport: httpx.BaseTransport | None = None,
         sleep: Callable[[float], None] = time.sleep,
         clock: Callable[[], float] = time.monotonic,
     ) -> None:
-        self._client = httpx.Client(base_url=base_url, timeout=timeout, transport=transport)
+        self._client = httpx.Client(
+            base_url=base_url, timeout=timeout, headers=headers, transport=transport, follow_redirects=True
+        )
         self._min_interval = min_interval
         self._max_retries = max_retries
         self._backoff = backoff
@@ -40,10 +43,15 @@ class RateLimitedClient:
 
     def get_json(self, path: str, params: dict[str, Any] | None = None, *, missing_ok: bool = False) -> Any:
         """Return the decoded body. With `missing_ok`, a 404 returns None instead of raising."""
+        response = self.request("GET", path, params=params, missing_ok=missing_ok)
+        return None if response is None else response.json()
+
+    def request(self, method: str, path: str, *, missing_ok: bool = False, **options: Any) -> httpx.Response | None:
+        """Any call, with the same spacing and retries. With `missing_ok`, a 404 returns None instead of raising."""
         for attempt in range(self._max_retries + 1):
             self._wait_turn()
             try:
-                response = self._client.get(path, params=params)
+                response = self._client.request(method, path, **options)
             except httpx.TransportError:
                 if attempt == self._max_retries:
                     raise
@@ -55,7 +63,7 @@ class RateLimitedClient:
                 self._sleep(self._retry_delay(response, attempt))
                 continue
             response.raise_for_status()
-            return response.json()
+            return response
         raise AssertionError("unreachable: the last attempt returns or raises")
 
     def close(self) -> None:

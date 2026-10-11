@@ -21,6 +21,7 @@ Planning lives in Linear (team key `LAB`, project "Plateforme IA · Analyste str
 - `core.gateway.gateway_client()` is the only way to reach a model. Settings come from `GATEWAY_URL` and `GATEWAY_API_KEY` (the team's virtual key, never the master key).
 - Race data (LAB-143): `src/f1/data/` ingests FastF1, OpenF1 and Jolpica-F1 into Parquet files on S3 (`core.lake.Lake`, SeaweedFS locally), queried with DuckDB through `f1.data.connect()`. Tools read the lake, never the APIs. Schema in `src/f1/data/schema.py`, documented in `docs/data-schema.md`: bump `SCHEMA_VERSION` on a breaking change. A round is written then marked by `_manifest/<season>/<round>.json`; reruns skip marked rounds.
 - Tools (LAB-144): `src/f1/tools/`, one module per tool, each a `core.tools.Tool` (Pydantic input and output, JSON schema for tool calling), bound to the lake by `f1.tools.catalog(RaceData(connect()))`. A request the data cannot answer raises `core.tools.ToolError`, never a guessed number. Assumptions and limits in `docs/tools.md`; reference races in `tests/integration/test_tools_reference.py`.
+- FIA corpus (LAB-145): `src/f1/corpus/` downloads the sporting regulations (last issue per season) and the stewards' decisions from fia.com (10 s between requests, as its robots.txt asks; cache in `.cache/fia/`, never committed), parses them by structure (article or section -> paragraphs; decision -> summary and reasons) and syncs them into Qdrant through `core.retrieval.index.HybridIndex` (`fia_chunks` with `dense` and `bm25` vectors, `fia_parents`). Only chunks whose content hash changed are embedded. Details and limits in `docs/corpus.md`.
 - `compose.yaml` only runs Qdrant, PostgreSQL and the S3 store (SeaweedFS on port 8334, since llmops-gateway's Langfuse holds 8333). The gateway runs from `../llmops-gateway` (`just gateway-up` there), and the app runs on the host with `uv run` during development.
 - The front end will be Next.js in `web/` (LAB-187), with an API client generated from FastAPI's OpenAPI.
 
@@ -30,6 +31,7 @@ Tasks run with [just](https://just.systems/) (`justfile`, which loads `.env`); t
 
 - `just up`: start Qdrant, PostgreSQL and the S3 store, wait until healthy, then run `just smoke`. Creates `.env` from `.env.example` if missing.
 - `just smoke`: `tests/integration/`, against the stack and the running gateway (chat, embeddings, model list of the `f1` key, Qdrant, S3), plus the real data sources: the 2025 Italian GP checked against official results and Jolpica-F1 (needs the network).
+- `just corpus 2025` (or `2024 2025 2026`, `--regulations-only`, `--decisions-only`, `--refresh`): FIA corpus into Qdrant; needs the gateway for embeddings.
 - `just ingest 2025` (or `2024 2025 2026`, `--round 16`, `--force`): race data into the lake; `just sql "<query>"` queries it.
 - `just test-unit`: unit tests, no stack, under a second. `just test` runs everything, with pytest arguments passed through.
 - `just api`: the FastAPI app with auto-reload.
