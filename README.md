@@ -5,7 +5,7 @@
 
 **An AI agent that writes sourced Formula 1 race strategy debriefs from timing data and FIA regulations, pauses for a human analyst before publishing, and is gated by an evaluation CI.**
 
-> Status: under construction. Work starts with milestone 4.1 (data and FIA corpus ingestion). See the [roadmap](#roadmap).
+> Status: under construction. The repo skeleton is in place; milestone 4.1 (data and FIA corpus ingestion) is in progress. See the [roadmap](#roadmap).
 
 ## Why
 
@@ -20,7 +20,7 @@ This is the **first tenant** of the [internal AI platform](#part-of-an-internal-
 flowchart LR
     q["Question or<br/>'debrief this race'"] --> data["Fetch timing data<br/>FastF1 · OpenF1 · Jolpica"]
     data --> calc["Deterministic tools<br/>gaps, stint degradation,<br/>pit loss, undercut gain"]
-    calc --> rag["RAG over FIA regulations<br/>and stewards' decisions<br/>(LlamaIndex + Qdrant)"]
+    calc --> rag["RAG over FIA regulations<br/>and stewards' decisions<br/>(rewrite, hybrid search, rerank)"]
     rag --> draft["Draft sourced debrief"]
     draft --> hitl{"Human analyst<br/>approve · edit · reject"}
     hitl --> pub["Published debrief"]
@@ -45,27 +45,33 @@ Quality is tested like code. Each pull request shows the scores and **fails belo
 | -- | -- |
 | Agent | LangGraph, PostgreSQL checkpointer |
 | Data | FastF1 (timing, stints, tyres, telemetry since 2018), OpenF1 (race control messages), Jolpica-F1 (history since 1950) |
-| Ingestion and RAG | LlamaIndex, Qdrant |
+| Ingestion and RAG | LlamaIndex, Qdrant (dense and sparse vectors), reranker behind the gateway |
 | Evaluation | promptfoo, Ragas, LLM judge, Langfuse Datasets |
-| Validation UI | FastAPI and a single page |
+| API and UI | FastAPI, Next.js |
 | LLM access | [llmops-gateway](https://github.com/Mak5ens/llmops-gateway) |
 
 ## Quick start
 
-Not runnable yet. Target:
+Requires [just](https://just.systems/), [uv](https://docs.astral.sh/uv/) and Docker. The app calls every model through [llmops-gateway](https://github.com/Mak5ens/llmops-gateway), so start it first (`just gateway-up` in that repo).
 
 ```bash
-just up     # local services (Qdrant, PostgreSQL) and the agent
-just test   # unit tests and evaluation suite
+just up         # Qdrant and PostgreSQL, then a check of the gateway with the f1 team's key
+just test-unit  # unit tests, no stack needed
+just api        # the API on http://localhost:8000
 just down
 ```
 
-To contribute today, install the git hooks (requires [just](https://just.systems/) and [pre-commit](https://pre-commit.com/)):
+`just up` creates `.env` from `.env.example` on first run. Run `just` for every recipe, and `just hooks` once to install the git hooks (ruff, mypy, gitleaks, Conventional Commits).
 
-```bash
-just hooks
-just lint
-```
+## Repository layout
+
+| Path | Content |
+| -- | -- |
+| `src/core/` | Reusable foundation: gateway client, then retrieval, evaluation and agent graph. Never imports `f1` ([ADR-011](docs/adr/011-core-and-theme-separation.md)) |
+| `src/f1/` | The Formula 1 theme: data, deterministic tools, prompts, API |
+| `tests/unit/`, `tests/integration/` | Tests without the stack, and against it (`just smoke`) |
+| `evals/` | Test set and evaluation harness (milestone 4.2) |
+| `docs/adr/` | Architecture decision records of this repo |
 
 ## Roadmap
 
@@ -78,6 +84,10 @@ just lint
 
 - [ ] **5.1 LangGraph agent and human validation**: data → computation → RAG → drafting → interrupt; validation UI; deployed on the cluster behind the gateway.
 - [ ] **5.2 Demo and measurements**: 2-minute video, full trace in Langfuse, agent vs plain RAG scores, share of points accepted without edits, 2 or 3 models compared on score, latency and cost per 1,000 questions. Article 5.
+
+### Milestone 6: product front end
+
+- [ ] **6 Visual identity and product polish**: a design system of its own, interactive race charts (gaps, positions, tyre strategy, timeline), live view of the agent's steps, public debrief pages, authentication and production hardening.
 
 ## Part of an internal AI platform
 

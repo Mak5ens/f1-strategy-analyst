@@ -1,0 +1,62 @@
+# Two packages in one distribution (ADR-011):
+# - core: the reusable foundation (gateway client, and later retrieval, evaluation, agent graph). Never imports f1.
+# - f1: the Formula 1 theme (data, tools, prompts, API). Imports core.
+# `uv sync` installs both in .venv from uv.lock; versions are pinned there.
+
+[project]
+name = "f1-strategy-analyst"
+version = "0.1.0"
+description = "An AI agent that writes sourced Formula 1 race strategy debriefs, validated by a human analyst."
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.143.0",
+    "openai>=3.28.0",
+    "pydantic-settings>=2.15.0",
+    "uvicorn>=0.54.0",
+]
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28.1",
+    "mypy>=2.4.0",
+    "pytest>=9.1.1",
+    "ruff>=0.17.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/core", "src/f1"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v -ra"
+markers = [
+    "integration: needs the local stack (just up) and the gateway of llmops-gateway",
+]
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = [
+    "E", "W", "F",  # pycodestyle, pyflakes
+    "I",            # import order
+    "B",            # bugbear
+    "UP",           # pyupgrade
+    "SIM",          # simplifications
+    "RUF",          # ruff-specific
+]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+mypy_path = "src"
+files = ["src", "tests"]
+plugins = ["pydantic.mypy"]

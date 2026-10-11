@@ -1,0 +1,28 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "description": "Version updates of the app: images of compose.yaml and the Dockerfile, Python dependencies (uv.lock), GitHub Actions and the shared workflow of llmops-platform (pinned to commit SHAs), pre-commit hooks.",
+  "extends": ["config:recommended", "helpers:pinGitHubActionDigests", ":semanticCommits"],
+  "labels": ["dependencies"],
+  "prConcurrentLimit": 5,
+  "dependencyDashboard": true,
+  "pre-commit": {
+    "enabled": true
+  },
+  "packageRules": [
+    {
+      "description": "ruff: the Python package and the pre-commit hook on the same version",
+      "matchPackageNames": ["ruff", "astral-sh/ruff-pre-commit"],
+      "groupName": "ruff"
+    },
+    {
+      "description": "Python: the build and runtime stages of the Dockerfile, and .python-version, on the same version",
+      "matchPackageNames": ["python"],
+      "groupName": "Python"
+    },
+    {
+      "description": "Major versions need a reading of their upgrade notes",
+      "matchUpdateTypes": ["major"],
+      "dependencyDashboardApproval": true
+    }
+  ]
+}
