@@ -39,6 +39,7 @@ def lap(
         "Sector2Time": seconds(None),
         "Sector3Time": seconds(27),
         "LapStartTime": seconds(3000 + 80 * lap_number),
+        "Time": seconds(3080 + 80 * lap_number),
         "Position": 1.0,
         "Stint": float(stint),
         "Compound": compound,

@@ -62,6 +62,7 @@ _LAP_COLUMNS = {
     "Sector2Time": "sector2_s",
     "Sector3Time": "sector3_s",
     "LapStartTime": "lap_start_session_s",
+    "Time": "lap_end_session_s",
     "Position": "position",
     "Stint": "stint",
     "Compound": "compound",
@@ -82,6 +83,7 @@ _LAP_DURATIONS = [
     "sector2_s",
     "sector3_s",
     "lap_start_session_s",
+    "lap_end_session_s",
     "pit_in_session_s",
     "pit_out_session_s",
 ]

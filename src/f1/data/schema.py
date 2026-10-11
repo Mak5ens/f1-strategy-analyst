@@ -8,7 +8,7 @@ an older version.
 
 import pyarrow as pa
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2  # 2: laps.lap_end_session_s
 
 UTC_TIMESTAMP = pa.timestamp("us", tz="UTC")
 
@@ -50,6 +50,7 @@ LAPS = pa.schema(
         pa.field("sector2_s", pa.float64()),
         pa.field("sector3_s", pa.float64()),
         pa.field("lap_start_session_s", pa.float64()),  # session time when the lap started
+        pa.field("lap_end_session_s", pa.float64()),  # session time when the lap ended: gaps come from it
         pa.field("position", pa.int16()),  # at the end of the lap
         pa.field("stint", pa.int16()),
         pa.field("compound", pa.string()),

@@ -48,8 +48,8 @@ markers = [
     "integration: needs the local stack (just up), the gateway of llmops-gateway, and the network for the race data",
 ]
 filterwarnings = [
-    # FastF1 builds NaT timedeltas without a unit; numpy warns, nothing to fix on our side.
-    "ignore:The 'generic' unit for NumPy timedelta is deprecated:DeprecationWarning:fastf1",
+    # FastF1 builds NaT timedeltas without a unit (numpy warns from FastF1 or from pandas); nothing to fix here.
+    "ignore:The 'generic' unit for NumPy timedelta is deprecated:DeprecationWarning",
 ]
 
 [tool.ruff]

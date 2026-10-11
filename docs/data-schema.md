@@ -69,7 +69,7 @@ One row per lap and driver, from FastF1.
 | Column | Meaning |
 | -- | -- |
 | `lap_number`, `lap_time_s`, `sector1_s` to `sector3_s` | Null when the timing missed it (often lap 1, in and out laps) |
-| `lap_start_session_s` | Session time when the lap started |
+| `lap_start_session_s`, `lap_end_session_s` | Session time when the lap started and ended. The gap between two drivers at the end of lap n is the difference of their `lap_end_session_s`: it stays right when a lap time is missing |
 | `position` | Position at the end of the lap |
 | `stint`, `compound`, `tyre_life`, `fresh_tyre` | Tyres: `tyre_life` counts the laps on this set, this lap included, earlier sessions too |
 | `pit_in_session_s`, `pit_out_session_s` | Set on the in-lap and the out-lap |
