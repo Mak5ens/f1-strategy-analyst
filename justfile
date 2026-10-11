@@ -15,14 +15,23 @@ hooks:
 lint:
     uvx pre-commit run --all-files
 
-# Start Qdrant and PostgreSQL, wait until they are healthy, then check the gateway with the f1 key
+# Start Qdrant, PostgreSQL and the S3 store, wait until they are healthy, then check the gateway with the f1 key
 up: _env
     docker compose up --detach --wait
     @just smoke
 
-# Stop the local services (pass --volumes to also delete the Qdrant index and the database)
+# Stop the local services (pass --volumes to also delete the Qdrant index, the database and the race data)
 down *args:
     docker compose down "$@"
+
+# Ingest race data into the lake, e.g. `just ingest 2025`, `just ingest 2024 2025 2026`, `just ingest 2025 --round 16`.
+# Rounds already stored are skipped; add --force to rewrite them
+ingest *args: _env
+    uv run f1-ingest "$@"
+
+# Query the lake with DuckDB SQL, e.g. `just sql "SELECT * FROM results WHERE season = 2025 AND round = 16"`
+sql query: _env
+    uv run python -c 'import sys; from f1.data import connect; connect().sql(sys.argv[1]).show(max_rows=100)' "$1"
 
 # Follow the logs of the local services
 logs:
