@@ -29,6 +29,11 @@ down *args:
 ingest *args: _env
     uv run f1-ingest "$@"
 
+# Index the FIA corpus in Qdrant, e.g. `just corpus 2025` or `just corpus 2024 2025 2026 --regulations-only`.
+# The first run downloads every document (10 s apart, as fia.com asks); reruns only embed what changed
+corpus *args: _env
+    uv run f1-corpus "$@"
+
 # Query the lake with DuckDB SQL, e.g. `just sql "SELECT * FROM results WHERE season = 2025 AND round = 16"`
 sql query: _env
     uv run python -c 'import sys; from f1.data import connect; connect().sql(sys.argv[1]).show(max_rows=100)' "$1"

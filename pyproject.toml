@@ -2,6 +2,7 @@
 # - core: the reusable foundation (gateway client, and later retrieval, evaluation, agent graph). Never imports f1.
 # - f1: the Formula 1 theme (data, tools, prompts, API). Imports core.
 # `f1-ingest` (`just ingest`) loads race data into the lake (f1.data.ingest).
+# `f1-corpus` (`just corpus`) indexes the FIA regulations and stewards' decisions in Qdrant (f1.corpus.ingest).
 # `uv sync` installs both in .venv from uv.lock; versions are pinned there.
 
 [project]
@@ -14,17 +15,21 @@ requires-python = ">=3.12"
 dependencies = [
     "duckdb>=1.5.6",
     "fastapi>=0.143.0",
+    "fastembed>=0.9.0",
     "fastf1>=3.8.3",
     "httpx>=0.28.1",
     "openai>=3.28.0",
     "pandas>=2.3.3",
     "pyarrow>=26.0.0",
     "pydantic-settings>=2.15.0",
+    "pypdf>=6.20.0",
+    "qdrant-client>=1.19.1",
     "uvicorn>=0.54.0",
 ]
 
 [project.scripts]
 f1-ingest = "f1.data.ingest:main"
+f1-corpus = "f1.corpus.ingest:main"
 
 [dependency-groups]
 dev = [
@@ -50,6 +55,8 @@ markers = [
 filterwarnings = [
     # FastF1 builds NaT timedeltas without a unit (numpy warns from FastF1 or from pandas); nothing to fix here.
     "ignore:The 'generic' unit for NumPy timedelta is deprecated:DeprecationWarning",
+    # The unit tests run Qdrant in memory, which has no payload indexes; the real server has them.
+    "ignore:Payload indexes have no effect in the local Qdrant:UserWarning",
 ]
 
 [tool.ruff]
@@ -67,6 +74,10 @@ select = [
     "RUF",          # ruff-specific
 ]
 
+[tool.ruff.lint.per-file-ignores]
+# The FIA's PDFs have non-breaking spaces and typographic apostrophes: the tests reproduce them on purpose.
+"tests/unit/test_corpus_parsing.py" = ["RUF001"]
+
 [tool.mypy]
 python_version = "3.12"
 strict = true
@@ -76,5 +87,5 @@ plugins = ["pydantic.mypy"]
 
 [[tool.mypy.overrides]]
 # No type information shipped by these packages.
-module = ["fastf1.*", "pyarrow.*"]
+module = ["fastf1.*", "pyarrow.*", "fastembed.*"]
 ignore_missing_imports = true
