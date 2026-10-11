@@ -75,7 +75,7 @@ Rerunning `just corpus` without change computes no embedding.
 ## Choices and limits
 
 - **No LlamaIndex.** The structure comes from the FIA's numbering, which a generic PDF reader does not know, and the index needs control over ids, hashes and named vectors for the incremental sync and for the ablation study of LAB-186. pypdf extracts the text; the rest is about 400 lines of code, tested.
-- **One issue per season.** The last issue is the rulebook as it stood at the end of the season; a change during the season (2024: seven issues) is not visible. Indexing every issue with its validity dates is possible on the same structure (filter on the issue in force on the race date).
+- **One issue per season.** The last issue is the rulebook as it stood at the end of the season; a change during the season (2024: seven issues) is not visible. Indexing every issue with its validity dates, and filtering on the issue in force on the race date, is planned in LAB-193.
 - **The International Sporting Code** and the Race Director's event notes are cited by decisions but not indexed.
 - **Tables** of the regulations (component allocations) come out of the PDF as loose cells: searchable by their words, not readable as tables.
 - The list of a Grand Prix's documents is cached: run with `--refresh` after a race weekend to pick up the latest decisions.
