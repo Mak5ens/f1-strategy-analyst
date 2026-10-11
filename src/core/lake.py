@@ -80,6 +80,7 @@ class Lake:
     def connect(self, tables: Iterable[str]) -> duckdb.DuckDBPyConnection:
         """An in-memory DuckDB with one view per table that has files, reading `<table>/**/*.parquet`."""
         connection = duckdb.connect()
+        connection.execute("SET TimeZone = 'UTC'")  # timestamps come back in UTC, whatever the host's zone
         if self._is_s3:
             self._configure_s3(connection)
         for table in tables:

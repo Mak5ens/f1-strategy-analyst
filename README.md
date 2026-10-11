@@ -5,7 +5,7 @@
 
 **An AI agent that writes sourced Formula 1 race strategy debriefs from timing data and FIA regulations, pauses for a human analyst before publishing, and is gated by an evaluation CI.**
 
-> Status: under construction. Race data for 2024 to 2026 is ingested; the FIA corpus and the tools come next (milestone 4.1). See the [roadmap](#roadmap).
+> Status: under construction. Race data for 2024 to 2026 is ingested and the deterministic tools are in place; the FIA corpus comes next (milestone 4.1). See the [roadmap](#roadmap).
 
 ## Why
 
@@ -27,7 +27,7 @@ flowchart LR
     draft -. "LLM calls" .-> gw["llmops-gateway<br/>(F1 team key)"]
 ```
 
-- **Numbers never come from the LLM.** Lap gaps, degradation, pit loss and undercut gains are computed by deterministic, unit-tested tools. The LLM explains them.
+- **Numbers never come from the LLM.** Lap gaps, degradation, pit loss, undercut gains and safety car periods are computed by deterministic, tested tools ([docs](docs/tools.md)). The LLM explains them.
 - **Every claim is sourced**: a data point or a regulation article.
 - **The agent knows when to stop.** A LangGraph interrupt pauses before publication; a PostgreSQL checkpointer lets a pending debrief resume later.
 
@@ -71,11 +71,12 @@ just down
 | Path | Content |
 | -- | -- |
 | `src/core/` | Reusable foundation: gateway client, then retrieval, evaluation and agent graph. Never imports `f1` ([ADR-011](docs/adr/011-core-and-theme-separation.md)) |
-| `src/f1/` | The Formula 1 theme: race data ingestion (`f1/data/`), deterministic tools, prompts, API |
+| `src/f1/` | The Formula 1 theme: race data ingestion (`f1/data/`), deterministic tools (`f1/tools/`), prompts, API |
 | `tests/unit/`, `tests/integration/` | Tests without the stack, and against it (`just smoke`) |
 | `evals/` | Test set and evaluation harness (milestone 4.2) |
 | `docs/adr/` | Architecture decision records of this repo |
 | `docs/data-schema.md` | Tables of the race data lake, their sources and conventions |
+| `docs/tools.md` | The race analysis tools: inputs, outputs, assumptions, limits |
 
 ## Roadmap
 
