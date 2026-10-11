@@ -28,9 +28,11 @@ _REGULATION = re.compile(
 )
 _EVENT_LINK = re.compile(r'<a href="/decision-document-list/nojs/(\d+)"[^>]*>\s*([^<]+?)\s*</a>')
 _SEASON_LINK = re.compile(r"/season/season-(\d{4})-(\d+)")
-_DECISION_LINK = re.compile(r'href="(/system/files/decision-document/[^"]+\.pdf)"')
+# 2025 on: /system/files/decision-document/2025_italian_grand_prix_-_infringement_-_car_14_-_....pdf
+# 2024: /sites/default/files/decision-document/2024 Monaco Grand Prix - Infringement - Car 31 - ....pdf
+_DECISION_LINK = re.compile(r'href="(/(?:system|sites/default)/files/decision-document/[^"]+\.pdf)"')
 # Stewards' decisions and infringements; the deleted lap times are lists, not decisions.
-_IS_DECISION = re.compile(r"_-_(?:decision|infringement)_-_(?!.*deleted_lap_times)")
+_IS_DECISION = re.compile(r"(?:_-_| - )(?:decision|infringement)(?:_-_| - )(?!.*deleted.lap.times)", re.IGNORECASE)
 
 
 @dataclass(frozen=True)

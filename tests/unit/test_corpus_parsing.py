@@ -3,7 +3,7 @@
 import pytest
 
 from f1.corpus import regulations
-from f1.corpus.decisions import cited_articles, parse_decision
+from f1.corpus.decisions import _title, cited_articles, parse_decision
 from f1.corpus.regulations import parse_regulations
 
 
@@ -158,6 +158,15 @@ def test_a_decision_in_another_form_is_kept_as_text() -> None:
     )
     assert [chunk.key for chunk in document.chunks] == ["reason#1"]
     assert "SC2-SC1 times are confirmed" in document.chunks[0].text
+
+
+def test_titles_of_both_file_name_formats() -> None:
+    assert _title("2025_italian_grand_prix_-_infringement_-_car_14_-_failing_to_follow.pdf") == (
+        "Infringement - Car 14 - Failing to follow"
+    )
+    assert _title("2024 Monaco Grand Prix - Infringement - Car 31 - Causing a collision.pdf") == (
+        "Infringement - Car 31 - Causing a collision"
+    )
 
 
 def test_cited_articles() -> None:

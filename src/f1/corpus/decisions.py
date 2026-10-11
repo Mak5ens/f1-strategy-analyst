@@ -131,9 +131,10 @@ def _pieces(text: str) -> list[str]:
 
 
 def _title(file_name: str) -> str:
-    """`2025_italian_grand_prix_-_infringement_-_car_14_-_x.pdf` -> `Infringement - Car 14 - X`."""
+    """`2025_italian_grand_prix_-_infringement_-_car_14_-_x.pdf` or `2024 Monaco Grand Prix - Infringement - Car 31 -
+    X.pdf` -> `Infringement - Car 14 - X`."""
     stem = re.sub(r"\.pdf$", "", file_name)
-    parts = stem.split("_-_")[1:] or [stem]
+    parts = re.split(r"_-_| - ", stem)[1:] or [stem]  # 2025 on: underscores; 2024: spaces
     return " - ".join(part.replace("_", " ").strip().capitalize() for part in parts)
 
 

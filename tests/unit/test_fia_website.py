@@ -29,6 +29,9 @@ MONZA_DOCUMENTS = [
     "/system/files/decision-document/2025_italian_grand_prix_-_infringement_-_race_deleted_lap_times.pdf",
     "/system/files/decision-document/2025_italian_grand_prix_-_final_race_classification.pdf",
     "/system/files/decision-document/2025_italian_grand_prix_-_summons_-_car_14.pdf",
+    # 2024 documents: another folder, spaces and capitals
+    "/sites/default/files/decision-document/2024 Monaco Grand Prix - Infringement - Car 31 - Causing a collision.pdf",
+    "/sites/default/files/decision-document/2024 Monaco Grand Prix - Race Deleted Lap Times.pdf",
 ]
 
 
@@ -71,6 +74,7 @@ def test_decisions_are_only_stewards_decisions_of_grands_prix(site: tuple[FiaWeb
     website, calls = site
     decisions = website.decisions(2025)
     assert [decision.file_name for decision in decisions] == [
+        "2024 Monaco Grand Prix - Infringement - Car 31 - Causing a collision.pdf",
         "2025_italian_grand_prix_-_decision_-_car_5_overtook_car_30.pdf",
         "2025_italian_grand_prix_-_infringement_-_car_14_-_failing_to_follow.pdf",
     ]
