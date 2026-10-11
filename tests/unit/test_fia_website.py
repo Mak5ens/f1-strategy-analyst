@@ -32,6 +32,7 @@ MONZA_DOCUMENTS = [
     # 2024 documents: another folder, spaces and capitals
     "/sites/default/files/decision-document/2024 Monaco Grand Prix - Infringement - Car 31 - Causing a collision.pdf",
     "/sites/default/files/decision-document/2024 Monaco Grand Prix - Race Deleted Lap Times.pdf",
+    "/sites/default/files/decision-document/2024 Monaco Grand Prix - Decision - Car 2 - 107% Time.pdf",
 ]
 
 
@@ -74,11 +75,15 @@ def test_decisions_are_only_stewards_decisions_of_grands_prix(site: tuple[FiaWeb
     website, calls = site
     decisions = website.decisions(2025)
     assert [decision.file_name for decision in decisions] == [
+        "2024 Monaco Grand Prix - Decision - Car 2 - 107% Time.pdf",
         "2024 Monaco Grand Prix - Infringement - Car 31 - Causing a collision.pdf",
         "2025_italian_grand_prix_-_decision_-_car_5_overtook_car_30.pdf",
         "2025_italian_grand_prix_-_infringement_-_car_14_-_failing_to_follow.pdf",
     ]
     assert {decision.event for decision in decisions} == {"Italian Grand Prix"}
+    assert decisions[0].url.endswith(
+        "/2024%20Monaco%20Grand%20Prix%20-%20Decision%20-%20Car%202%20-%20107%25%20Time.pdf"
+    )
     assert "POST /decision-document-list/ajax/55323" not in calls  # tests skipped
 
 

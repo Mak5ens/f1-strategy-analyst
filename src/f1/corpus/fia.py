@@ -10,7 +10,7 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
-from urllib.parse import unquote, urlparse
+from urllib.parse import quote, unquote, urlparse
 
 from core.http import RateLimitedClient
 
@@ -89,7 +89,8 @@ class FiaWebsite:
                 continue
             for path in self._event_documents(season, event_id, refresh=refresh):
                 if _IS_DECISION.search(path):
-                    documents.append(DecisionDocument(season, name.strip(), BASE_URL + path))
+                    # 2024 names hold spaces and "%" ("107% Time"): encode them, once.
+                    documents.append(DecisionDocument(season, name.strip(), BASE_URL + quote(unquote(path))))
         return documents
 
     def download(self, url: str) -> Path:
