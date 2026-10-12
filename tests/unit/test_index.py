@@ -123,3 +123,34 @@ def test_inconsistent_documents_are_refused(index: tuple[HybridIndex, FakeEmbedd
         hybrid.sync(Document(document.doc_id, [*document.chunks, document.chunks[0]], document.parents))
     with pytest.raises(ValueError, match="missing parents"):
         hybrid.sync(Document(document.doc_id, document.chunks, document.parents[:1]))
+
+
+def test_several_queries_and_one_kind_of_vector(index: tuple[HybridIndex, FakeEmbedder]) -> None:
+    hybrid, _ = index
+    hybrid.sync(regulations(2025))
+    # Variants of one question are fused: each finds its own paragraph.
+    keys = {hit.payload["key"] for hit in hybrid.search(["red flag tyres", "vsc pit lane"], limit=2)}
+    assert keys == {"57.1", "55.2"}
+    # Ablation: each kind of vector alone still ranks.
+    assert hybrid.search("red flag tyres", sparse=False)[0].payload["key"] == "57.1"
+    assert hybrid.search("red flag tyres", dense=False)[0].payload["key"] == "57.1"
+    with pytest.raises(ValueError, match="one kind of vector"):
+        hybrid.search("red flag", dense=False, sparse=False)
+
+
+def test_lookup_finds_by_metadata_without_vectors(index: tuple[HybridIndex, FakeEmbedder]) -> None:
+    hybrid, embedder = index
+    hybrid.sync(regulations(2025))
+    embedder.embedded.clear()
+    article = models.Filter(must=[models.FieldCondition(key="article", match=models.MatchValue(value="55.2"))])
+    [hit] = hybrid.lookup(article)
+    assert hit.payload["key"] == "55.2"
+    assert embedder.embedded == []
+    assert hybrid.parent_by_id(hit.payload["parent_id"]) == hybrid.parent(hit.payload["doc_id"], "55")
+
+
+def test_values_of_a_field(index: tuple[HybridIndex, FakeEmbedder]) -> None:
+    hybrid, _ = index
+    hybrid.sync(regulations(2025))
+    hybrid.sync(regulations(2026))
+    assert hybrid.values("season") == [2025, 2026]

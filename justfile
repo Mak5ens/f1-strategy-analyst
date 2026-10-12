@@ -34,6 +34,16 @@ ingest *args: _env
 corpus *args: _env
     uv run f1-corpus "$@"
 
+# Ask a question on the FIA rules, in French: `just ask "Peut-on changer de pneus sous drapeau rouge ?"`.
+# Needs the corpus (`just corpus`) and the gateway; the trace goes to the f1 project in Langfuse
+ask question: _env
+    uv run f1-ask "$1"
+
+# Measure the retrieval pipeline stage by stage on evals/rag/dev.jsonl and calibrate the abstention threshold
+# (about 20 minutes; `just rag-eval --only "+ rerank"` for one configuration). Report in evals/rag/reports/
+rag-eval *args: _env
+    uv run f1-rag-eval "$@"
+
 # Query the lake with DuckDB SQL, e.g. `just sql "SELECT * FROM results WHERE season = 2025 AND round = 16"`
 sql query: _env
     uv run python -c 'import sys; from f1.data import connect; connect().sql(sys.argv[1]).show(max_rows=100)' "$1"

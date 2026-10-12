@@ -1,0 +1,36 @@
+{"question": "Quelles pénalités les commissaires peuvent-ils infliger à un pilote en 2025 ?", "expected": [{"season": 2025, "doc_type": "sporting_regulations", "parent_article": "54"}]}
+{"question": "En 2025, combien de points sont attribués si la course est arrêtée avant 75 % de la distance ?", "expected": [{"season": 2025, "doc_type": "sporting_regulations", "parent_article": "6"}]}
+{"question": "Que risque une équipe en cas de libération dangereuse d'une voiture au stand en 2025 ?", "expected": [{"season": 2025, "doc_type": "sporting_regulations", "parent_article": "34"}]}
+{"question": "En 2025, les voitures retardataires peuvent-elles se dédoubler derrière la voiture de sécurité ?", "expected": [{"season": 2025, "doc_type": "sporting_regulations", "parent_article": "55"}]}
+{"question": "Que se passe-t-il quand un pilote reçoit sa cinquième réprimande de la saison 2025 ?", "expected": [{"season": 2025, "doc_type": "sporting_regulations", "parent_article": "18"}]}
+{"question": "En 2025, comment une pénalité en temps est-elle purgée pendant l'arrêt au stand ?", "expected": [{"season": 2025, "doc_type": "sporting_regulations", "parent_article": "54"}]}
+{"question": "Un pilote peut-il dépasser une autre voiture sous voiture de sécurité en 2025 ?", "expected": [{"season": 2025, "doc_type": "sporting_regulations", "parent_article": "55"}]}
+{"question": "Quand un pilote est-il considéré comme ayant quitté la piste en 2025 ?", "expected": [{"season": 2025, "doc_type": "sporting_regulations", "parent_article": "33"}]}
+{"question": "Quand la voiture de sécurité virtuelle est-elle utilisée en 2025 ?", "expected": [{"season": 2025, "doc_type": "sporting_regulations", "parent_article": "56"}]}
+{"question": "Combien de jeux de pneus intermédiaires supplémentaires après le sprint en 2025 ?", "expected": [{"season": 2025, "doc_type": "sporting_regulations", "parent_article": "30"}]}
+{"question": "En 2025, que se passe-t-il si deux pilotes finissent le championnat à égalité de points ?", "expected": [{"season": 2025, "doc_type": "sporting_regulations", "parent_article": "7"}]}
+{"question": "Quelle est la vitesse maximale autorisée dans la voie des stands en 2025 ?", "expected": [{"season": 2025, "doc_type": "sporting_regulations", "parent_article": "34"}]}
+{"question": "En 2025, une équipe peut-elle changer les pneus pendant que la course est suspendue au drapeau rouge ?", "expected": [{"season": 2025, "doc_type": "sporting_regulations", "parent_article": "57"}]}
+{"question": "Comment la course reprend-elle après une suspension au drapeau rouge en 2025 ?", "expected": [{"season": 2025, "doc_type": "sporting_regulations", "parent_article": "58"}]}
+{"question": "En 2025, que se passe-t-il si un pilote bouge avant l'extinction des feux ?", "expected": [{"season": 2025, "doc_type": "sporting_regulations", "parent_article": "48"}, {"season": 2025, "doc_type": "sporting_regulations", "parent_article": "54"}]}
+{"question": "Combien d'unités de puissance un pilote peut-il utiliser sur la saison 2025 sans pénalité ?", "expected": [{"season": 2025, "doc_type": "sporting_regulations", "parent_article": "28"}]}
+{"question": "Quelle est la règle des 107 % en qualifications en 2025 ?", "expected": [{"season": 2025, "doc_type": "sporting_regulations", "parent_article": "39"}]}
+{"question": "En 2025, les mécaniciens ont-ils le droit de travailler sur le circuit pendant la nuit avant la course ?", "expected": [{"season": 2025, "doc_type": "sporting_regulations", "parent_article": "23"}]}
+{"question": "En 2025, quand le DRS peut-il être activé pendant la course ?", "expected": [{"season": 2025, "doc_type": "sporting_regulations", "parent_article": "22"}]}
+{"question": "Une équipe peut-elle utiliser une voiture de réserve pendant un week-end de course en 2025 ?", "expected": [{"season": 2025, "doc_type": "sporting_regulations", "parent_article": "27"}]}
+{"question": "En 2025, comment se déroule la pesée des voitures pendant les qualifications ?", "expected": [{"season": 2025, "doc_type": "sporting_regulations", "parent_article": "35"}]}
+{"question": "Le meilleur tour en course rapportait-il un point en 2024 ?", "expected": [{"season": 2024, "doc_type": "sporting_regulations", "parent_article": "6"}]}
+{"question": "En 2026, les voitures retardataires peuvent-elles se dédoubler sous safety car ?", "expected": [{"season": 2026, "doc_type": "sporting_regulations", "parent_article": "B5.13"}]}
+{"question": "En 2026, quand la direction de course déclenche-t-elle la voiture de sécurité virtuelle ?", "expected": [{"season": 2026, "doc_type": "sporting_regulations", "parent_article": "B5.12"}]}
+{"question": "En 2026, que se passe-t-il en cas de départ avorté ?", "expected": [{"season": 2026, "doc_type": "sporting_regulations", "parent_article": "B5.8"}]}
+{"question": "Que se passe-t-il en 2026 quand la course est suspendue au drapeau rouge ?", "expected": [{"season": 2026, "doc_type": "sporting_regulations", "parent_article": "B5.14"}]}
+{"question": "Pourquoi Hamilton a-t-il été pénalisé en qualifications au GP de Hongrie 2026 ?", "expected": [{"season": 2026, "grand_prix": "Hungarian Grand Prix", "document_title": "Infringement - Car 44 - Unnecessarily impeding of car 81"}]}
+{"question": "Quelle décision les commissaires ont-ils prise pour la voiture 5 qui a dépassé sous drapeau jaune au GP d'Italie 2025 ?", "expected": [{"season": 2025, "grand_prix": "Italian Grand Prix", "document_title": "Decision - Car 5 overtook car 30 in a yellow flag zone"}]}
+{"question": "Au GP de São Paulo 2025, pourquoi la voiture 22 a-t-elle été sanctionnée pour une pénalité mal purgée ?", "expected": [{"season": 2025, "grand_prix": "São Paulo Grand Prix", "document_title": "Infringement - Car 22 - Failure to serve a time penalty during a pit stop"}]}
+{"question": "Quelle amende Williams a-t-elle reçue au GP de Bahreïn 2025 pour avoir gêné la voiture 46 ?", "expected": [{"season": 2025, "grand_prix": "Bahrain Grand Prix", "document_title": "Infringement - Car 23 - Impeding of car 46"}]}
+{"question": "Quel est le plafond budgétaire des équipes de F1 en 2025 ?", "expected": []}
+{"question": "Qui a gagné le championnat du monde des pilotes 2024 ?", "expected": []}
+{"question": "Quelle est la meilleure stratégie de pneus à Monza ?", "expected": []}
+{"question": "Combien coûte un billet pour le Grand Prix de Monaco ?", "expected": []}
+{"question": "Quelle est la règle du hors-jeu au football ?", "expected": []}
+{"question": "Comment fonctionne le barème de points en MotoGP ?", "expected": []}

@@ -146,32 +146,79 @@ class HybridIndex:
         self._sync_parents(document)
         return SyncReport(document.doc_id, embedded=len(to_embed), unchanged=len(unchanged), deleted=len(stale))
 
-    def search(self, query: str, *, query_filter: models.Filter | None = None, limit: int = 10) -> list[Hit]:
-        """Plain hybrid search: dense and BM25 candidates fused by reciprocal rank. The production pipeline
-        (query rewriting, reranking, abstention) builds on top of it."""
-        sparse = self._embedder.sparse_query(query)
-        (dense,) = self._embedder.dense([query])
-        response = self._client.query_points(
-            self.chunks_collection,
-            prefetch=[
-                models.Prefetch(query=dense, using=DENSE, filter=query_filter, limit=limit * 5),
-                models.Prefetch(
-                    query=models.SparseVector(indices=sparse.indices, values=sparse.values),
-                    using=SPARSE,
-                    filter=query_filter,
-                    limit=limit * 5,
-                ),
-            ],
-            query=models.FusionQuery(fusion=models.Fusion.RRF),
-            query_filter=query_filter,
-            limit=limit,
-            with_payload=True,
-        )
+    def search(
+        self,
+        queries: str | Sequence[str],
+        *,
+        query_filter: models.Filter | None = None,
+        limit: int = 10,
+        dense: bool = True,
+        sparse: bool = True,
+    ) -> list[Hit]:
+        """Hybrid search in one Qdrant call: for each query, dense and BM25 candidates (`limit` each), all fused by
+        reciprocal rank (RRF). Several queries are the variants of one question (multi-query). `dense` or `sparse`
+        set to False leaves that vector out, for the ablation study; with a single list left, its ranking is kept.
+        """
+        queries = [queries] if isinstance(queries, str) else list(queries)
+        if not queries or not (dense or sparse):
+            raise ValueError("search needs at least one query and one kind of vector")
+        prefetch: list[models.Prefetch] = []
+        if dense:
+            for dense_vector in self._embedder.dense(queries):
+                prefetch.append(models.Prefetch(query=dense_vector, using=DENSE, filter=query_filter, limit=limit))
+        if sparse:
+            for query in queries:
+                sparse_vector = self._embedder.sparse_query(query)
+                prefetch.append(
+                    models.Prefetch(
+                        query=models.SparseVector(indices=sparse_vector.indices, values=sparse_vector.values),
+                        using=SPARSE,
+                        filter=query_filter,
+                        limit=limit,
+                    )
+                )
+        if len(prefetch) == 1:  # one ranking, nothing to fuse
+            (single,) = prefetch
+            response = self._client.query_points(
+                self.chunks_collection,
+                query=single.query,
+                using=single.using,
+                query_filter=query_filter,
+                limit=limit,
+                with_payload=True,
+            )
+        else:
+            response = self._client.query_points(
+                self.chunks_collection,
+                prefetch=prefetch,
+                query=models.FusionQuery(fusion=models.Fusion.RRF),
+                query_filter=query_filter,
+                limit=limit,
+                with_payload=True,
+            )
         return [Hit(str(point.id), point.score, point.payload or {}) for point in response.points]
 
+    def lookup(self, query_filter: models.Filter, *, limit: int = 20) -> list[Hit]:
+        """Chunks matching a filter, without any vector: an explicit reference ("article 55.1") is found by its
+        metadata, not by meaning. Ordered by key, score 1."""
+        points, _ = self._client.scroll(
+            self.chunks_collection, scroll_filter=query_filter, limit=limit, with_payload=True, with_vectors=False
+        )
+        hits = [Hit(str(point.id), 1.0, point.payload or {}) for point in points]
+        return sorted(hits, key=lambda hit: str(hit.payload.get("key", "")))
+
     def parent(self, doc_id: str, key: str) -> dict[str, Any] | None:
-        points = self._client.retrieve(self.parents_collection, [point_id(doc_id, key)], with_payload=True)
+        return self.parent_by_id(point_id(doc_id, key))
+
+    def parent_by_id(self, parent_id: str) -> dict[str, Any] | None:
+        """The parent a chunk points to (its payload's `parent_id`)."""
+        points = self._client.retrieve(self.parents_collection, [parent_id], with_payload=True)
         return dict(points[0].payload or {}) if points else None
+
+    def values(self, field_name: str, *, limit: int = 1000) -> list[Any]:
+        """Distinct values of an indexed payload field over the chunks (a facet), e.g. the seasons indexed."""
+        hits = self._client.facet(self.chunks_collection, key=field_name, limit=limit, exact=True).hits
+        return sorted(hit.value for hit in hits)
 
     def count(self) -> int:
         return self._client.count(self.chunks_collection).count
