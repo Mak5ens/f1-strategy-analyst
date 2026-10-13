@@ -1,7 +1,7 @@
 # FIA corpus
 
 The retrieval pipeline answers rulebook questions ("could this penalty be served at the pit stop?") from two kinds of FIA documents, indexed in Qdrant by `just corpus`.
-This page covers the ingestion (LAB-145); the search on top of it (query rewriting, reranking, abstention) is LAB-186.
+This page covers the ingestion (LAB-145); the search on top of it (query rewriting, reranking, abstention) is in [rag.md](rag.md).
 
 ```bash
 just corpus 2025                              # regulations and stewards' decisions of a season

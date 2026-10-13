@@ -5,7 +5,7 @@
 
 **An AI agent that writes sourced Formula 1 race strategy debriefs from timing data and FIA regulations, pauses for a human analyst before publishing, and is gated by an evaluation CI.**
 
-> Status: under construction. Race data and the FIA corpus (regulations and stewards' decisions, 2024 to 2026) are ingested, and the deterministic tools are in place; the production retrieval pipeline comes next (milestone 4.1). See the [roadmap](#roadmap).
+> Status: under construction. Race data and the FIA corpus (regulations and stewards' decisions, 2024 to 2026) are ingested, the deterministic tools are in place, and questions on the rules get sourced answers in French through the production retrieval pipeline (milestone 4.1). See the [roadmap](#roadmap).
 
 ## Why
 
@@ -46,8 +46,8 @@ Quality is tested like code. Each pull request shows the scores and **fails belo
 | Agent | LangGraph, PostgreSQL checkpointer |
 | Data | FastF1 (timing, stints, tyres, race control, weather), OpenF1 (pit stop stationary times), Jolpica-F1 (standings) |
 | Data storage | Parquet in S3 (SeaweedFS locally), queried with DuckDB ([schema](docs/data-schema.md)) |
-| FIA corpus and RAG | pypdf, structure-aware parent/child chunking, Qdrant (dense vectors through the gateway, BM25 sparse vectors with fastembed), reranker behind the gateway ([corpus](docs/corpus.md)) |
-| Evaluation | promptfoo, Ragas, LLM judge, Langfuse Datasets |
+| FIA corpus and RAG | pypdf, structure-aware parent/child chunking, Qdrant (dense vectors through the gateway, BM25 sparse vectors with fastembed); query rewriting, multi-query, RRF fusion, a cross-encoder reranker behind the gateway, an abstention threshold and a check of every citation ([corpus](docs/corpus.md), [pipeline](docs/rag.md), [ADR-024](docs/adr/024-production-rag-pipeline.md)) |
+| Evaluation | promptfoo, Ragas, LLM judge, Langfuse Datasets; Langfuse traces and scores per question |
 | API and UI | FastAPI, Next.js |
 | LLM access | [llmops-gateway](https://github.com/Mak5ens/llmops-gateway) |
 
@@ -60,6 +60,7 @@ just up           # Qdrant, PostgreSQL and the S3 store, then a check of the gat
 just ingest 2025  # race data of a season into the lake (a few minutes; reruns skip what is stored)
 just sql "SELECT driver, lap, pit_lane_time_s FROM pit_stops WHERE season = 2025 AND round = 16"
 just corpus 2025  # FIA regulations and stewards' decisions into Qdrant (the first run downloads for a while)
+just ask "Les retardataires peuvent-ils se dédoubler sous safety car en 2025 ?"
 just test-unit    # unit tests, no stack needed
 just api          # the API on http://localhost:8000
 just down
@@ -71,14 +72,15 @@ just down
 
 | Path | Content |
 | -- | -- |
-| `src/core/` | Reusable foundation: gateway client, then retrieval, evaluation and agent graph. Never imports `f1` ([ADR-011](docs/adr/011-core-and-theme-separation.md)) |
-| `src/f1/` | The Formula 1 theme: race data ingestion (`f1/data/`), deterministic tools (`f1/tools/`), FIA corpus (`f1/corpus/`), prompts, API |
+| `src/core/` | Reusable foundation: gateway client, tools, hybrid index, retrieval pipeline and its evaluation, Langfuse tracing; then the agent graph. Never imports `f1` ([ADR-011](docs/adr/011-core-and-theme-separation.md)) |
+| `src/f1/` | The Formula 1 theme: race data ingestion (`f1/data/`), deterministic tools (`f1/tools/`), FIA corpus (`f1/corpus/`), questions on the rules (`f1/rag/`), API |
 | `tests/unit/`, `tests/integration/` | Tests without the stack, and against it (`just smoke`) |
-| `evals/` | Test set and evaluation harness (milestone 4.2) |
+| `evals/` | Development set of the retrieval pipeline and its reports (`evals/rag/`); test set and evaluation harness (milestone 4.2) |
 | `docs/adr/` | Architecture decision records of this repo |
 | `docs/data-schema.md` | Tables of the race data lake, their sources and conventions |
 | `docs/tools.md` | The race analysis tools: inputs, outputs, assumptions, limits |
 | `docs/corpus.md` | The FIA corpus: sources, chunking, metadata, incremental index |
+| `docs/rag.md` | The retrieval pipeline: six steps, abstention, traces and scores, evaluation |
 
 ## Roadmap
 

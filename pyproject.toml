@@ -18,6 +18,8 @@ dependencies = [
     "fastembed>=0.9.0",
     "fastf1>=3.8.3",
     "httpx>=0.28.1",
+    "httpx2>=2.13.1",
+    "langfuse>=4.9.1",
     "openai>=3.28.0",
     "pandas>=2.3.3",
     "pyarrow>=26.0.0",
@@ -30,6 +32,8 @@ dependencies = [
 [project.scripts]
 f1-ingest = "f1.data.ingest:main"
 f1-corpus = "f1.corpus.ingest:main"
+f1-ask = "f1.rag.ask:main"
+f1-rag-eval = "f1.rag.evaluate:main"
 
 [dependency-groups]
 dev = [
