@@ -20,6 +20,8 @@ just rag-eval                    # ablation and threshold calibration on evals/r
 | 5. `generate` | Answers from the parents (whole articles, whole decisions) of the best passages scoring over the threshold, at most 5, as claims citing `S1`, `S2`... The model may answer "not found" | `chat-pro` | |
 | 6. `verify` | Code: every cited id was given. Model: every claim is supported by what it cites. On failure, one more attempt with the problems listed, then abstention | `chat-pro` | `RAG_VERIFY=false` |
 
+On llmops-platform's k3d cluster, `chat-medium` is served by `qwen2.5:0.5b` (16 GB runners, no GPU), which fails the JSON rewrite: anything running there sets `RAG_REWRITE_MODEL=chat-pro`.
+
 `RetrievalPipeline.answer()` runs the six; `retrieve()` stops after the gate, which is what the evaluation measures.
 Each step is a method that can be called alone (`understand`, `search`, `rerank`, `gate`, `sources`, `generate`, `verify`), and is tested alone in `tests/unit/test_pipeline.py`.
 
@@ -57,6 +59,12 @@ Scores on each trace, to follow in Langfuse's dashboards:
 | `supported_claim_rate` | Share of claims the check found supported |
 
 Without Langfuse keys, tracing is off and the pipeline runs the same.
+
+Every gateway call of the pipeline carries `user: f1-rag`: the gateway's Prometheus metrics (Grafana dashboard "Inference") count the cost per end user, which tells the RAG's spend from the agent's and the jobs' on the same f1 key.
+
+## Rate limit
+
+The f1 key allows 60 requests and 100,000 tokens a minute, and a question makes 4 to 6 calls (rewrite, embeddings, rerank, answer, one check per claim). A 429 is back-pressure, not a failure: `core.gateway.GatewayTransport` holds the call until the limit resets (LiteLLM's `reset_at` header, else `retry-after`, at most 60 s a time and 5 minutes a call), then sends it again without spending the client's retries. `just rag-eval` also spaces its questions by 3 s, so that waits do not count in the latency it measures.
 
 ## Evaluation
 

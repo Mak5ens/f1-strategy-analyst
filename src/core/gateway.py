@@ -5,7 +5,12 @@ The app never talks to a model provider directly. The gateway decides which mode
 """
 
 import json
+import random
+import time
+from collections.abc import Callable
+from datetime import UTC, datetime
 
+import httpx2
 from openai import OpenAI
 from openai.types.chat import ChatCompletionMessageParam
 from pydantic import BaseModel, SecretStr, ValidationError
@@ -25,15 +30,107 @@ class GatewaySettings(BaseSettings):
     max_retries: int = 2
 
 
-def gateway_client(settings: GatewaySettings | None = None) -> OpenAI:
-    """OpenAI client pointed at the gateway: chat, embeddings and the model list use the usual SDK calls."""
+def gateway_client(
+    settings: GatewaySettings | None = None,
+    *,
+    end_user: str | None = None,
+    transport: httpx2.BaseTransport | None = None,
+) -> OpenAI:
+    """OpenAI client pointed at the gateway: chat, embeddings, reranking and the model list.
+
+    `end_user` names the app in the gateway's cost metrics, and rate limits are waited out (`GatewayTransport`).
+    `transport` replaces the network, for tests.
+    """
     settings = settings or GatewaySettings()  # api_key comes from the environment
     return OpenAI(
         base_url=settings.url,
         api_key=settings.api_key.get_secret_value(),
         timeout=settings.timeout_seconds,
         max_retries=settings.max_retries,
+        http_client=httpx2.Client(
+            transport=GatewayTransport(end_user=end_user, transport=transport), timeout=settings.timeout_seconds
+        ),
     )
+
+
+# Longest wait for one rate-limited call: LiteLLM's limiter counts by the minute, so a few windows at most.
+MAX_RATE_LIMIT_WAIT = 300.0
+
+
+class GatewayTransport(httpx2.BaseTransport):
+    """Transport of every call to the gateway: waits out its rate limit, and names the end user.
+
+    The team's key is limited (60 requests and 100,000 tokens a minute for f1), and a question makes 4 to 6 calls,
+    so an evaluation run reaches the limit. A 429 is back-pressure, not a failure: the call waits until the limit
+    resets, as LiteLLM tells it in its `reset_at` header, else its `retry-after`, and is sent again, without spending
+    the client's retries, until `max_wait` seconds have been spent waiting. Then the 429 goes back to the caller, and
+    the SDK's own retries. (The OpenAI SDK runs on `httpx2`, hence its types here.)
+
+    `end_user` is added as the `user` field of JSON calls that have none: the gateway counts cost per end user in
+    its Prometheus metrics, which tells the spend of one app (the RAG, the agent) from the others sharing the key.
+    """
+
+    def __init__(
+        self,
+        *,
+        end_user: str | None = None,
+        max_wait: float = MAX_RATE_LIMIT_WAIT,
+        transport: httpx2.BaseTransport | None = None,
+        sleep: Callable[[float], None] = time.sleep,
+        now: Callable[[], datetime] = lambda: datetime.now(UTC),
+    ) -> None:
+        self._end_user = end_user
+        self._max_wait = max_wait
+        self._transport = transport or httpx2.HTTPTransport()
+        self._sleep = sleep
+        self._now = now
+
+    def handle_request(self, request: httpx2.Request) -> httpx2.Response:
+        request = self._with_end_user(request)
+        waited = 0.0
+        while True:
+            response = self._transport.handle_request(request)
+            if response.status_code != 429 or waited >= self._max_wait:
+                return response
+            wait = min(rate_limit_wait(response.headers, self._now()), self._max_wait - waited)
+            response.read()
+            response.close()
+            self._sleep(wait)
+            waited += wait
+
+    def close(self) -> None:
+        self._transport.close()
+
+    def _with_end_user(self, request: httpx2.Request) -> httpx2.Request:
+        if not self._end_user or request.headers.get("content-type", "").split(";")[0] != "application/json":
+            return request
+        body = json.loads(request.read() or b"null")
+        if not isinstance(body, dict) or "user" in body:
+            return request
+        headers = httpx2.Headers(request.headers)
+        del headers["content-length"]
+        return httpx2.Request(
+            request.method,
+            request.url,
+            headers=headers,
+            content=json.dumps({**body, "user": self._end_user}).encode(),
+            extensions=request.extensions,
+        )
+
+
+def rate_limit_wait(headers: httpx2.Headers, now: datetime) -> float:
+    """Seconds until the gateway's rate limit resets: its `reset_at` (2026-10-13 22:15:17 UTC), else its
+    `retry-after`, else 10 s; between 1 and 60 s, plus up to a second so parallel callers do not come back together."""
+    try:
+        wait = (
+            datetime.strptime(headers["reset_at"], "%Y-%m-%d %H:%M:%S UTC").replace(tzinfo=UTC) - now
+        ).total_seconds()
+    except (KeyError, ValueError):
+        try:
+            wait = float(headers.get("retry-after", 10))
+        except ValueError:
+            wait = 10.0
+    return min(max(wait, 1.0), 60.0) + random.uniform(0, 1)
 
 
 class StructuredOutputError(RuntimeError):

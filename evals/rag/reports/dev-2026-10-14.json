@@ -1,0 +1,325 @@
+{
+  "date": "2026-10-14",
+  "cases": "evals/rag/dev.jsonl",
+  "configurations": {
+    "dense": {
+      "switches": {
+        "rewrite": false,
+        "references": false,
+        "sparse": false,
+        "rerank": false
+      },
+      "metrics": {
+        "recall@1": 0.8333333333333334,
+        "recall@5": 0.8666666666666667,
+        "mrr@10": 0.85,
+        "false_abstention": 0.0,
+        "correct_abstention": 0.0,
+        "median_seconds": 0.04678049349968205
+      }
+    },
+    "+ bm25 (hybrid, RRF)": {
+      "switches": {
+        "rewrite": false,
+        "references": false,
+        "rerank": false
+      },
+      "metrics": {
+        "recall@1": 0.6333333333333333,
+        "recall@5": 0.8666666666666667,
+        "mrr@10": 0.7416666666666667,
+        "false_abstention": 0.0,
+        "correct_abstention": 0.0,
+        "median_seconds": 0.04024932600077591
+      }
+    },
+    "+ rewrite (English query)": {
+      "switches": {
+        "multi_query": false,
+        "references": false,
+        "rerank": false
+      },
+      "metrics": {
+        "recall@1": 0.7666666666666667,
+        "recall@5": 0.9,
+        "mrr@10": 0.8236111111111111,
+        "false_abstention": 0.0,
+        "correct_abstention": 0.0,
+        "median_seconds": 1.210010610997415
+      }
+    },
+    "+ multi-query": {
+      "switches": {
+        "references": false,
+        "rerank": false
+      },
+      "metrics": {
+        "recall@1": 0.8,
+        "recall@5": 0.9,
+        "mrr@10": 0.8513888888888889,
+        "false_abstention": 0.0,
+        "correct_abstention": 0.0,
+        "median_seconds": 1.2276370024992502
+      }
+    },
+    "+ references": {
+      "switches": {
+        "rerank": false
+      },
+      "metrics": {
+        "recall@1": 0.8333333333333334,
+        "recall@5": 0.9,
+        "mrr@10": 0.8680555555555556,
+        "false_abstention": 0.0,
+        "correct_abstention": 0.0,
+        "median_seconds": 1.184040266998636
+      }
+    },
+    "+ rerank": {
+      "switches": {},
+      "metrics": {
+        "recall@1": 0.7333333333333333,
+        "recall@5": 1.0,
+        "mrr@10": 0.8455555555555555,
+        "false_abstention": 0.0,
+        "correct_abstention": 0.0,
+        "median_seconds": 1.3152067525006714
+      }
+    },
+    "all but bm25": {
+      "switches": {
+        "sparse": false
+      },
+      "metrics": {
+        "recall@1": 0.7666666666666667,
+        "recall@5": 0.9666666666666667,
+        "mrr@10": 0.8555555555555555,
+        "false_abstention": 0.0,
+        "correct_abstention": 0.0,
+        "median_seconds": 1.310666872497677
+      }
+    },
+    "all but rewrite": {
+      "switches": {
+        "rewrite": false
+      },
+      "metrics": {
+        "recall@1": 0.7,
+        "recall@5": 0.8666666666666667,
+        "mrr@10": 0.7722222222222223,
+        "false_abstention": 0.0,
+        "correct_abstention": 0.0,
+        "median_seconds": 0.4114797259971965
+      }
+    },
+    "all but multi-query": {
+      "switches": {
+        "multi_query": false
+      },
+      "metrics": {
+        "recall@1": 0.7666666666666667,
+        "recall@5": 0.9666666666666667,
+        "mrr@10": 0.8511111111111112,
+        "false_abstention": 0.0,
+        "correct_abstention": 0.0,
+        "median_seconds": 1.245315609005047
+      }
+    }
+  },
+  "calibration": {
+    "threshold": 0.143166793,
+    "accuracy": 0.9722222222222222,
+    "answered_in_corpus": 1.0,
+    "abstained_out_of_corpus": 0.8333333333333334,
+    "metrics": {
+      "recall@1": 0.7333333333333333,
+      "recall@5": 1.0,
+      "mrr@10": 0.8455555555555555,
+      "false_abstention": 0.0,
+      "correct_abstention": 0.8333333333333334,
+      "median_seconds": 1.3152067525006714
+    }
+  },
+  "cases_detail": [
+    {
+      "question": "Quelles pénalités les commissaires peuvent-ils infliger à un pilote en 2025 ?",
+      "rank": 1,
+      "top_score": 0.9730877
+    },
+    {
+      "question": "En 2025, combien de points sont attribués si la course est arrêtée avant 75 % de la distance ?",
+      "rank": 2,
+      "top_score": 0.6361271
+    },
+    {
+      "question": "Que risque une équipe en cas de libération dangereuse d'une voiture au stand en 2025 ?",
+      "rank": 5,
+      "top_score": 0.9650533
+    },
+    {
+      "question": "En 2025, les voitures retardataires peuvent-elles se dédoubler derrière la voiture de sécurité ?",
+      "rank": 3,
+      "top_score": 0.8095773
+    },
+    {
+      "question": "Que se passe-t-il quand un pilote reçoit sa cinquième réprimande de la saison 2025 ?",
+      "rank": 1,
+      "top_score": 0.9745319
+    },
+    {
+      "question": "En 2025, comment une pénalité en temps est-elle purgée pendant l'arrêt au stand ?",
+      "rank": 2,
+      "top_score": 0.7932662
+    },
+    {
+      "question": "Un pilote peut-il dépasser une autre voiture sous voiture de sécurité en 2025 ?",
+      "rank": 1,
+      "top_score": 0.99304235
+    },
+    {
+      "question": "Quand un pilote est-il considéré comme ayant quitté la piste en 2025 ?",
+      "rank": 1,
+      "top_score": 0.98469365
+    },
+    {
+      "question": "Quand la voiture de sécurité virtuelle est-elle utilisée en 2025 ?",
+      "rank": 1,
+      "top_score": 0.66519314
+    },
+    {
+      "question": "Combien de jeux de pneus intermédiaires supplémentaires après le sprint en 2025 ?",
+      "rank": 1,
+      "top_score": 0.96391606
+    },
+    {
+      "question": "En 2025, que se passe-t-il si deux pilotes finissent le championnat à égalité de points ?",
+      "rank": 1,
+      "top_score": 0.9724148
+    },
+    {
+      "question": "Quelle est la vitesse maximale autorisée dans la voie des stands en 2025 ?",
+      "rank": 1,
+      "top_score": 0.9697281
+    },
+    {
+      "question": "En 2025, une équipe peut-elle changer les pneus pendant que la course est suspendue au drapeau rouge ?",
+      "rank": 3,
+      "top_score": 0.2024432
+    },
+    {
+      "question": "Comment la course reprend-elle après une suspension au drapeau rouge en 2025 ?",
+      "rank": 1,
+      "top_score": 0.6630147
+    },
+    {
+      "question": "En 2025, que se passe-t-il si un pilote bouge avant l'extinction des feux ?",
+      "rank": 2,
+      "top_score": 0.5643986
+    },
+    {
+      "question": "Combien d'unités de puissance un pilote peut-il utiliser sur la saison 2025 sans pénalité ?",
+      "rank": 1,
+      "top_score": 0.6924341
+    },
+    {
+      "question": "Quelle est la règle des 107 % en qualifications en 2025 ?",
+      "rank": 2,
+      "top_score": 0.78695047
+    },
+    {
+      "question": "En 2025, les mécaniciens ont-ils le droit de travailler sur le circuit pendant la nuit avant la course ?",
+      "rank": 1,
+      "top_score": 0.6502452
+    },
+    {
+      "question": "En 2025, quand le DRS peut-il être activé pendant la course ?",
+      "rank": 1,
+      "top_score": 0.7251623
+    },
+    {
+      "question": "Une équipe peut-elle utiliser une voiture de réserve pendant un week-end de course en 2025 ?",
+      "rank": 1,
+      "top_score": 0.7796576
+    },
+    {
+      "question": "En 2025, comment se déroule la pesée des voitures pendant les qualifications ?",
+      "rank": 1,
+      "top_score": 0.9951137
+    },
+    {
+      "question": "Le meilleur tour en course rapportait-il un point en 2024 ?",
+      "rank": 1,
+      "top_score": 0.88582915
+    },
+    {
+      "question": "En 2026, les voitures retardataires peuvent-elles se dédoubler sous safety car ?",
+      "rank": 2,
+      "top_score": 0.8559716
+    },
+    {
+      "question": "En 2026, quand la direction de course déclenche-t-elle la voiture de sécurité virtuelle ?",
+      "rank": 1,
+      "top_score": 0.5476757
+    },
+    {
+      "question": "En 2026, que se passe-t-il en cas de départ avorté ?",
+      "rank": 1,
+      "top_score": 0.9012275
+    },
+    {
+      "question": "Que se passe-t-il en 2026 quand la course est suspendue au drapeau rouge ?",
+      "rank": 1,
+      "top_score": 0.9281487
+    },
+    {
+      "question": "Pourquoi Hamilton a-t-il été pénalisé en qualifications au GP de Hongrie 2026 ?",
+      "rank": 1,
+      "top_score": 0.93686515
+    },
+    {
+      "question": "Quelle décision les commissaires ont-ils prise pour la voiture 5 qui a dépassé sous drapeau jaune au GP d'Italie 2025 ?",
+      "rank": 1,
+      "top_score": 0.9981178
+    },
+    {
+      "question": "Au GP de São Paulo 2025, pourquoi la voiture 22 a-t-elle été sanctionnée pour une pénalité mal purgée ?",
+      "rank": 1,
+      "top_score": 0.96323055
+    },
+    {
+      "question": "Quelle amende Williams a-t-elle reçue au GP de Bahreïn 2025 pour avoir gêné la voiture 46 ?",
+      "rank": 1,
+      "top_score": 0.9966365
+    },
+    {
+      "question": "Quel est le plafond budgétaire des équipes de F1 en 2025 ?",
+      "rank": null,
+      "top_score": 0.03963884
+    },
+    {
+      "question": "Qui a gagné le championnat du monde des pilotes 2024 ?",
+      "rank": null,
+      "top_score": 0.8996516
+    },
+    {
+      "question": "Quelle est la meilleure stratégie de pneus à Monza ?",
+      "rank": null,
+      "top_score": 0.083890386
+    },
+    {
+      "question": "Combien coûte un billet pour le Grand Prix de Monaco ?",
+      "rank": null,
+      "top_score": 0.012920474
+    },
+    {
+      "question": "Quelle est la règle du hors-jeu au football ?",
+      "rank": null,
+      "top_score": 0.004433765
+    },
+    {
+      "question": "Comment fonctionne le barème de points en MotoGP ?",
+      "rank": null,
+      "top_score": 0.0051196762
+    }
+  ]
+}

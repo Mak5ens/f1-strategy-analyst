@@ -23,6 +23,7 @@ from f1.rag import rag_pipeline
 DEV_SET = Path("evals/rag/dev.jsonl")
 REPORTS = Path("evals/rag/reports")
 # A question makes up to three gateway calls (rewrite, embeddings, rerank), and the f1 key allows 60 per minute.
+# The gateway client would wait out the limit anyway, but the wait would count in the latency measured.
 SECONDS_PER_QUESTION = 3.0
 OFF: dict[str, Any] = {"abstain": False}  # the gate is applied afterwards, at each threshold
 # Each configuration adds one stage to the one before.
