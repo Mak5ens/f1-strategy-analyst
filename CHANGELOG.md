@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.0](https://github.com/Mak5ens/f1-strategy-analyst/compare/v0.2.0...v0.3.0) (2026-10-14)
+
+
+### Features
+
+* add the naive reference system with tools and checked numbers (LAB-147) ([#12](https://github.com/Mak5ens/f1-strategy-analyst/issues/12)) ([f300517](https://github.com/Mak5ens/f1-strategy-analyst/commit/f3005173bd64343a9832ee4ff41943290c08126f))
+* build the evaluation dataset, 411 cases in seven families with their origin (LAB-146) ([#10](https://github.com/Mak5ens/f1-strategy-analyst/issues/10)) ([7582556](https://github.com/Mak5ens/f1-strategy-analyst/commit/75825560b8e4e5af400fe66c556ce1b43a3daa81))
+
 ## [0.2.0](https://github.com/Mak5ens/f1-strategy-analyst/compare/v0.1.0...v0.2.0) (2026-10-14)
 
 
