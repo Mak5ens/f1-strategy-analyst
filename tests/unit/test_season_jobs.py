@@ -73,7 +73,8 @@ def db(tmp_path_factory: pytest.TempPathFactory) -> duckdb.DuckDBPyConnection:
             "laps": (race_laps, schema.LAPS),
             "results": (race_results(), schema.RESULTS),
             "stints": (
-                [{"driver": "VER", "stint": 1, "compound": "MEDIUM"}, {"driver": "VER", "stint": 2, "compound": "HARD"}],
+                [{"driver": "VER", "stint": 1, "compound": "MEDIUM"},
+                 {"driver": "VER", "stint": 2, "compound": "HARD"}],
                 schema.STINTS,
             ),
             "pit_stops": ([{"driver": "VER", "stop_number": 1, "lap": 1, "red_flag": False}], schema.PIT_STOPS),
