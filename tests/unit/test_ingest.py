@@ -60,6 +60,8 @@ class FakeSources:
         self.session_calls: list[tuple[int, int, str]] = []
         self.failures: list[BaseException] = []  # raised by the next session() calls, in order
         self.without_laps = False
+        self.cancelled: set[str] = set()  # sessions without lap data
+        self.pit_calls: list[int] = []
 
     def schedule(self, season: int) -> list[EventInfo]:
         return [event for event in self.events if event.season == season]
@@ -69,9 +71,10 @@ class FakeSources:
         if self.failures:
             raise self.failures.pop(0)
         data = session_data(9000 + round_number)
-        return replace(data, laps=pd.DataFrame()) if self.without_laps else data
+        return replace(data, laps=pd.DataFrame()) if self.without_laps or code in self.cancelled else data
 
     def pit_stops(self, session_key: int) -> list[dict[str, Any]]:
+        self.pit_calls.append(session_key)
         return [{"driver_number": 16, "lap_number": 1, "lane_duration": 24.0, "stop_duration": 2.4}]
 
     def driver_standings(self, season: int, round_number: int) -> list[dict[str, Any]]:
@@ -178,6 +181,42 @@ def test_sprint_weekends_store_both_sessions(lake: Lake) -> None:
     assert statuses(list(run.ingest_season(2025))) == {19: "ingested"}
     assert sources.session_calls == [(2025, 19, "S"), (2025, 19, "R")]
     assert lake.keys("laps") == ["laps/2025/19-R.parquet", "laps/2025/19-S.parquet"]
+
+
+ZANDVOORT = EventInfo(
+    2025,
+    15,
+    "Dutch Grand Prix",
+    {
+        "FP1": datetime(2025, 8, 29, 10, 30, tzinfo=UTC),
+        "FP2": datetime(2025, 8, 29, 14, tzinfo=UTC),
+        "FP3": datetime(2025, 8, 30, 9, 30, tzinfo=UTC),
+        "Q": datetime(2025, 8, 30, 13, tzinfo=UTC),
+        "R": datetime(2025, 8, 31, 13, tzinfo=UTC),
+    },
+)
+
+
+def test_every_session_of_the_weekend_is_stored_in_order(lake: Lake) -> None:
+    sources = FakeSources([ZANDVOORT])
+    assert statuses(list(ingester(lake, sources).ingest_season(2025))) == {15: "ingested"}
+    assert [code for _, _, code in sources.session_calls] == ["FP1", "FP2", "FP3", "Q", "R"]
+    assert len(lake.keys("laps")) == 5
+
+
+def test_pit_stops_are_only_for_sessions_that_race(lake: Lake) -> None:
+    sources = FakeSources([ZANDVOORT])
+    list(ingester(lake, sources).ingest_season(2025))
+    assert len(sources.pit_calls) == 1  # OpenF1 is asked for the race only
+    sessions = connect(lake).sql("SELECT DISTINCT session FROM pit_stops").fetchall()
+    assert sessions == [("R",)]  # a practice's trips to the garage are runs, not stops
+
+
+def test_a_cancelled_practice_is_skipped_not_failed(lake: Lake) -> None:
+    sources = FakeSources([ZANDVOORT])
+    sources.cancelled = {"FP3"}
+    assert statuses(list(ingester(lake, sources).ingest_season(2025))) == {15: "ingested"}
+    assert "laps/2025/15-FP3.parquet" not in lake.keys("laps")
 
 
 def test_only_the_requested_rounds(lake: Lake) -> None:

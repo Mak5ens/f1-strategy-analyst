@@ -8,7 +8,7 @@ an older version.
 
 import pyarrow as pa
 
-SCHEMA_VERSION = 2  # 2: laps.lap_end_session_s
+SCHEMA_VERSION = 3  # 2: laps.lap_end_session_s; 3: practice and qualifying sessions, results.q1_s to q3_s
 
 UTC_TIMESTAMP = pa.timestamp("us", tz="UTC")
 
@@ -16,7 +16,8 @@ ROUND_KEY = [
     pa.field("season", pa.int16(), nullable=False),
     pa.field("round", pa.int16(), nullable=False),
 ]
-SESSION_KEY = [*ROUND_KEY, pa.field("session", pa.string(), nullable=False)]  # "R" race, "S" sprint
+# "FP1" to "FP3" practice, "SQ" sprint qualifying, "Q" qualifying, "S" sprint, "R" race
+SESSION_KEY = [*ROUND_KEY, pa.field("session", pa.string(), nullable=False)]
 
 SESSIONS = pa.schema(
     [
@@ -141,6 +142,9 @@ RESULTS = pa.schema(
         pa.field("laps", pa.int16()),
         pa.field("race_time_s", pa.float64()),  # the winner only
         pa.field("gap_to_winner_s", pa.float64()),  # finishers on the lead lap only
+        pa.field("q1_s", pa.float64()),  # qualifying: best lap of each part, null when the driver was out
+        pa.field("q2_s", pa.float64()),
+        pa.field("q3_s", pa.float64()),
     ]
 )
 

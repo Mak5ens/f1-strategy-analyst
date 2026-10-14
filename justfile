@@ -44,6 +44,11 @@ ask question: _env
 rag-eval *args: _env
     uv run f1-rag-eval "$@"
 
+# Summarize every session of a season through the platform's job queue, e.g. `just season-jobs 2025 --simulate`
+# (needs llmops-gateway's stack: RabbitMQ and the worker)
+season-jobs season *args: _env
+    uv run f1-season-jobs "$@"
+
 # Query the lake with DuckDB SQL, e.g. `just sql "SELECT * FROM results WHERE season = 2025 AND round = 16"`
 sql query: _env
     uv run python -c 'import sys; from f1.data import connect; connect().sql(sys.argv[1]).show(max_rows=100)' "$1"

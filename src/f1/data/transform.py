@@ -206,7 +206,8 @@ def weather(raw: pd.DataFrame) -> pd.DataFrame:
 
 
 def results(raw: pd.DataFrame) -> pd.DataFrame:
-    """FastF1 gives the winner's race time and, for the others, a gap that only means something on the lead lap."""
+    """FastF1 gives the winner's race time and, for the others, a gap that only means something on the lead lap.
+    In qualifying, the best lap of each part; in practice, no position: the order is the lap times'."""
     frame = pd.DataFrame(raw).rename(
         columns={
             "Abbreviation": "driver",
@@ -228,6 +229,8 @@ def results(raw: pd.DataFrame) -> pd.DataFrame:
     on_lead_lap = frame["status"] == "Finished"
     frame["race_time_s"] = time_s.where(is_winner)
     frame["gap_to_winner_s"] = time_s.where(on_lead_lap & ~is_winner)
+    for part in ("Q1", "Q2", "Q3"):  # qualifying only; null elsewhere
+        frame[f"{part.lower()}_s"] = _seconds(frame[part]) if part in frame else None
     return frame.sort_values("position").reset_index(drop=True)
 
 
