@@ -43,7 +43,11 @@ def test_each_job_is_answered_or_found_dead_with_its_reason() -> None:
 
 def test_a_session_summary_is_stored_with_its_facts_and_checked() -> None:
     lake = Lake()
-    if not connect(lake).execute("SELECT 1 FROM sessions WHERE season = 2025 AND round = 16 AND session = 'Q'").fetchall():
+    if (
+        not connect(lake)
+        .execute("SELECT 1 FROM sessions WHERE season = 2025 AND round = 16 AND session = 'Q'")
+        .fetchall()
+    ):
         pytest.skip("2025 not in the lake: run `just ingest 2025`")
     jobs, facts = build_jobs(lake, 2025, [16])
     [qualifying] = [job for job in jobs if job.id == "2025-r16-Q"]

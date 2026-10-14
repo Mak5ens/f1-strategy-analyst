@@ -91,7 +91,10 @@ def db(tmp_path_factory: pytest.TempPathFactory) -> duckdb.DuckDBPyConnection:
     for code, tables in sessions.items():
         key: dict[str, int | str] = {"season": 2025, "round": 16, "session": code}
         tables.setdefault("race_control_messages", ([], schema.RACE_CONTROL_MESSAGES))
-        tables["sessions"] = ([{"event_name": "Italian Grand Prix", "location": "Monza", "total_laps": 53}], schema.SESSIONS)
+        tables["sessions"] = (
+            [{"event_name": "Italian Grand Prix", "location": "Monza", "total_laps": 53}],
+            schema.SESSIONS,
+        )
         tables["weather"] = ([{"air_temp_c": 24.1, "track_temp_c": 40.0}, {"air_temp_c": 27.3, "track_temp_c": 45.5}],
                              schema.WEATHER)  # fmt: skip
         for table in ("stints", "pit_stops"):
@@ -240,4 +243,3 @@ def test_each_job_has_its_span_in_the_batch_trace() -> None:
     first, second = traceparent(trace), traceparent(trace)
     assert first.startswith(f"00-{trace}-") and first.endswith("-01")
     assert first != second
-

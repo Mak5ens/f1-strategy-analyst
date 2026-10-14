@@ -98,7 +98,11 @@ def account(report: Report, unverified: dict[str, list[str]]) -> dict[str, Any]:
         "tokens": report.tokens,
         "counts": {status: report.count(status) for status in ("done", "dead", "refused", "missing")},
         "jobs": {
-            result.id: {"status": result.status, "reason": result.reason or None, "unverified": unverified.get(result.id)}
+            result.id: {
+                "status": result.status,
+                "reason": result.reason or None,
+                "unverified": unverified.get(result.id),
+            }
             for result in report.results.values()
         },
     }

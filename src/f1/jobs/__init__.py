@@ -95,8 +95,38 @@ _NAME = re.compile(r"\b[A-ZÀ-Ý][\w'-]*(?:\s+[A-ZÀ-Ý][\w'-]*)+")
 
 # French words that start a sentence before a name, with their capital.
 _SENTENCE_WORDS = frozenset(
-    "Le La Les L Un Une Des Deux Trois Au Aux Du De En Sur Pour Avec Après Avant Devant Derrière Chez Dans Puis Mais "
-    "Et Seul Seuls Quant Côté".split()
+    [
+        "Le",
+        "La",
+        "Les",
+        "L",
+        "Un",
+        "Une",
+        "Des",
+        "Deux",
+        "Trois",
+        "Au",
+        "Aux",
+        "Du",
+        "De",
+        "En",
+        "Sur",
+        "Pour",
+        "Avec",
+        "Après",
+        "Avant",
+        "Devant",
+        "Derrière",
+        "Chez",
+        "Dans",
+        "Puis",
+        "Mais",
+        "Et",
+        "Seul",
+        "Seuls",
+        "Quant",
+        "Côté",
+    ]
 )
 
 
