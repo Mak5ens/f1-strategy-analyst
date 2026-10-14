@@ -55,7 +55,8 @@ class PipelineConfig(BaseSettings):
     sources: int = 5  # parents given to the model
     # Lowest rerank score of the best passage for the pipeline to answer. Calibrated on the development set
     # (`just rag-eval --calibrate`), never on the test set.
-    threshold: float = 0.14  # evals/rag/reports/: calibrated at 0.143 on the development set
+    # evals/rag/reports/dev-2026-10-14-lab146.json: mean of three calibrations on the development set (0.41 to 0.48)
+    threshold: float = 0.43
     max_source_chars: int = 6000  # a longer parent is replaced by its matching paragraphs
 
     # Gateway aliases. The local chat-medium (7B) rewrites well, but answered "not found" from sources that held the

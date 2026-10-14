@@ -57,6 +57,16 @@ def evaluate(pipeline: RetrievalPipeline, cases_path: Path) -> list[Outcome]:
     return run(cases, retrieve)
 
 
+def _report_path(stem: str) -> Path:
+    """evals/rag/reports/dev-2026-10-14.json, or -2, -3... when a report of that day exists: never overwrite one."""
+    path = REPORTS / f"{stem}-{date.today().isoformat()}.json"
+    number = 2
+    while path.exists():
+        path = REPORTS / f"{stem}-{date.today().isoformat()}-{number}.json"
+        number += 1
+    return path
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="f1-rag-eval", description=__doc__.splitlines()[0] if __doc__ else None)
     parser.add_argument("--cases", type=Path, default=DEV_SET)
@@ -112,7 +122,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
         print("Set RAG_THRESHOLD in .env, or change PipelineConfig.threshold, to apply it.")
     REPORTS.mkdir(parents=True, exist_ok=True)
-    path = REPORTS / f"{args.cases.stem}-{date.today().isoformat()}.json"
+    path = _report_path(args.cases.stem)
     path.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n")
     print(f"Report: {path}")
     return 0
