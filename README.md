@@ -61,6 +61,7 @@ just ingest 2025  # race data of a season into the lake (a few minutes; reruns s
 just sql "SELECT driver, lap, pit_lane_time_s FROM pit_stops WHERE season = 2025 AND round = 16"
 just corpus 2025  # FIA regulations and stewards' decisions into Qdrant (the first run downloads for a while)
 just ask "Les retardataires peuvent-ils se dédoubler sous safety car en 2025 ?"
+just season-jobs 2025 --simulate  # one job per session through the platform's job queue (drop --simulate for real summaries)
 just test-unit    # unit tests, no stack needed
 just api          # the API on http://localhost:8000
 just down
@@ -72,8 +73,8 @@ just down
 
 | Path | Content |
 | -- | -- |
-| `src/core/` | Reusable foundation: gateway client, tools, hybrid index, retrieval pipeline and its evaluation, Langfuse tracing; then the agent graph. Never imports `f1` ([ADR-011](docs/adr/011-core-and-theme-separation.md)) |
-| `src/f1/` | The Formula 1 theme: race data ingestion (`f1/data/`), deterministic tools (`f1/tools/`), FIA corpus (`f1/corpus/`), questions on the rules (`f1/rag/`), API |
+| `src/core/` | Reusable foundation: gateway client, tools, hybrid index, retrieval pipeline and its evaluation, Langfuse tracing, batches on the job queue; then the agent graph. Never imports `f1` ([ADR-011](docs/adr/011-core-and-theme-separation.md)) |
+| `src/f1/` | The Formula 1 theme: race data ingestion (`f1/data/`), deterministic tools (`f1/tools/`), FIA corpus (`f1/corpus/`), questions on the rules (`f1/rag/`), session summary jobs (`f1/jobs/`), API |
 | `tests/unit/`, `tests/integration/` | Tests without the stack, and against it (`just smoke`) |
 | `evals/` | Development set of the retrieval pipeline and its reports (`evals/rag/`); test set and evaluation harness (milestone 4.2) |
 | `docs/adr/` | Architecture decision records of this repo |
@@ -81,6 +82,7 @@ just down
 | `docs/tools.md` | The race analysis tools: inputs, outputs, assumptions, limits |
 | `docs/corpus.md` | The FIA corpus: sources, chunking, metadata, incremental index |
 | `docs/rag.md` | The retrieval pipeline: six steps, abstention, traces and scores, evaluation |
+| `docs/jobs.md` | Session summaries as asynchronous jobs on the platform's queue, and the check of their numbers and names |
 
 ## Roadmap
 

@@ -18,6 +18,7 @@ from fastf1.exceptions import RateLimitExceededError
 from core.http import RateLimitedClient
 
 __all__ = [
+    "RACE_SESSIONS",
     "SESSION_CODES",
     "EventInfo",
     "FastF1Source",
@@ -27,8 +28,20 @@ __all__ = [
     "SessionData",
 ]
 
-# FastF1 session name -> code used in the lake. Only the sessions a strategy debrief needs.
-SESSION_CODES = {"Sprint": "S", "Race": "R"}
+# FastF1 session name -> code used in the lake: every session of a weekend. A conventional weekend has three
+# practices, qualifying and the race; a sprint weekend one practice, sprint qualifying, the sprint, qualifying and
+# the race.
+SESSION_CODES = {
+    "Practice 1": "FP1",
+    "Practice 2": "FP2",
+    "Practice 3": "FP3",
+    "Sprint Qualifying": "SQ",
+    "Qualifying": "Q",
+    "Sprint": "S",
+    "Race": "R",
+}
+# Sessions that race: pit stops mean something there, and a session without laps is an error.
+RACE_SESSIONS = frozenset({"S", "R"})
 
 
 @dataclass(frozen=True)

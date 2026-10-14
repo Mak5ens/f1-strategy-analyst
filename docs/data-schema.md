@@ -12,7 +12,7 @@ The Arrow schemas in [`src/f1/data/schema.py`](../src/f1/data/schema.py) are the
 | [OpenF1](https://openf1.org/) | Stationary time of each pit stop; pit stops FastF1 missed | Free tier, a few calls per second; the client spaces calls by 0.5 s |
 | [Jolpica-F1](https://github.com/jolpica/jolpica-f1) (successor of Ergast) | Championship standings after each round | 4 calls per second, 500 per hour |
 
-Scope: seasons 2024 to 2026, races and sprints.
+Scope: seasons 2024 to 2026, every session of a weekend: practices, sprint qualifying, qualifying, sprint and race.
 2026 opens a new technical regulation, which makes it a good test of whether the tools generalize.
 
 ## Storage
@@ -51,7 +51,7 @@ Bump `SCHEMA_VERSION` on any change that breaks a reader: the next `just ingest`
 
 ## Conventions
 
-- Every table starts with its key: `season`, `round`, and `session` (`R` race, `S` sprint) for session tables.
+- Every table starts with its key: `season`, `round`, and `session` for session tables: `FP1` to `FP3` practice, `SQ` sprint qualifying, `Q` qualifying, `S` sprint, `R` race. Filter on it: the laps of a race and of its practices share the table.
 - `driver` is the three-letter code (`LEC`); `driver_number` is a string, as in the sources; `driver_id` is Jolpica's (`leclerc`) and joins the standings.
 - Durations are float seconds (`_s`), times within a session are seconds since the session clock started (`_session_s`), and times of day are UTC timestamps (`_utc`).
 - A missing value is null, never 0 or an empty string.
@@ -84,7 +84,7 @@ One row per stint and driver, derived from the laps: `compound`, `fresh_tyre`, `
 
 ### pit_stops
 
-One row per stop: an in-lap followed by an out-lap.
+One row per stop of a race or sprint: an in-lap followed by an out-lap. In practice and qualifying, a driver goes in and out of the garage: those are runs, not stops, and the table has none.
 A pit lane start and a retirement into the pits are not stops.
 
 | Column | Meaning |
@@ -111,6 +111,8 @@ One row per minute: `session_time_s`, `air_temp_c`, `track_temp_c`, `humidity_pc
 
 Classification of the session: `position`, `classified_position` (a number, or `R` retired, `D` disqualified, `E` excluded, `W` withdrawn, `F` failed to qualify, `N` not classified), `grid_position` (0 for a pit lane start), `status`, `points`, `laps`, `driver_id`, `full_name`, `team_id`.
 `race_time_s` is set for the winner only, and `gap_to_winner_s` for the other finishers on the lead lap only: for lapped cars, FastF1's time is not a gap.
+`q1_s`, `q2_s`, `q3_s`: in qualifying, the best lap of each part, null for a part the driver did not reach.
+In practice, `position` is null: the order is the one of the lap times.
 
 ### driver_standings, constructor_standings
 

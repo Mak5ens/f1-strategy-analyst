@@ -13,6 +13,7 @@ readme = "README.md"
 license = "MIT"
 requires-python = ">=3.12"
 dependencies = [
+    "aio-pika>=10.1",
     "duckdb>=1.5.6",
     "fastapi>=0.143.0",
     "fastembed>=0.9.0",
@@ -34,6 +35,7 @@ f1-ingest = "f1.data.ingest:main"
 f1-corpus = "f1.corpus.ingest:main"
 f1-ask = "f1.rag.ask:main"
 f1-rag-eval = "f1.rag.evaluate:main"
+f1-season-jobs = "f1.jobs.season:main"
 
 [dependency-groups]
 dev = [

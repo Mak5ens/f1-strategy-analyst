@@ -156,6 +156,24 @@ def test_results_split_race_time_and_gap() -> None:
     assert results[["race_time_s", "gap_to_winner_s"]].iloc[2:].isna().all().all()  # a lapped car's "gap" is noise
 
 
+def test_results_of_qualifying_keep_each_part() -> None:
+    raw = pd.DataFrame(
+        {
+            "Abbreviation": ["VER", "COL"],
+            "Position": [1.0, 20.0],
+            "Status": ["", ""],
+            "Q1": [seconds(79.455), seconds(80.3)],
+            "Q2": [seconds(79.14), seconds(None)],
+            "Q3": [seconds(78.792), seconds(None)],
+            "Time": [seconds(None)] * 2,
+        }
+    )
+    results = transform.results(raw)
+    assert results[["q1_s", "q2_s", "q3_s"]].iloc[0].tolist() == pytest.approx([79.455, 79.14, 78.792])
+    assert results[["q2_s", "q3_s"]].iloc[1].isna().all()  # out in Q1
+    assert results["race_time_s"].isna().all()
+
+
 def test_to_table_coerces_to_the_schema() -> None:
     frame = pd.DataFrame(
         {

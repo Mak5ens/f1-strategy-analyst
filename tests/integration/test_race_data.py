@@ -32,7 +32,8 @@ def monza(tmp_path_factory: pytest.TempPathFactory) -> duckdb.DuckDBPyConnection
 
 def test_official_results(monza: duckdb.DuckDBPyConnection) -> None:
     podium = monza.sql(
-        "SELECT driver, grid_position, laps, race_time_s, gap_to_winner_s FROM results ORDER BY position LIMIT 4"
+        "SELECT driver, grid_position, laps, race_time_s, gap_to_winner_s FROM results WHERE session = 'R' "
+        "ORDER BY position LIMIT 4"
     ).fetchall()
     assert podium == [
         ("VER", 1, 53, pytest.approx(4404.325), None),  # 1:13:24.325
@@ -43,25 +44,35 @@ def test_official_results(monza: duckdb.DuckDBPyConnection) -> None:
 
 
 def test_fastest_lap(monza: duckdb.DuckDBPyConnection) -> None:
-    fastest = monza.sql("SELECT driver, lap_time_s FROM laps ORDER BY lap_time_s LIMIT 1").fetchone()
+    fastest = monza.sql(
+        "SELECT driver, lap_time_s FROM laps WHERE session = 'R' ORDER BY lap_time_s LIMIT 1"
+    ).fetchone()
     assert fastest == ("NOR", pytest.approx(80.901))  # 1:20.901
 
 
 def test_strategies(monza: duckdb.DuckDBPyConnection) -> None:
     stints = monza.sql(
         "SELECT driver, list(compound ORDER BY stint), list(end_lap ORDER BY stint) FROM stints "
-        "WHERE driver IN ('VER', 'LEC') GROUP BY driver ORDER BY driver"
+        "WHERE session = 'R' AND driver IN ('VER', 'LEC') GROUP BY driver ORDER BY driver"
     ).fetchall()
     assert stints == [("LEC", ["MEDIUM", "HARD"], [33, 53]), ("VER", ["MEDIUM", "HARD"], [37, 53])]
     norris = monza.sql("SELECT lap, pit_lane_time_s, stationary_time_s FROM pit_stops WHERE driver = 'NOR'").fetchall()
     assert norris == [(46, pytest.approx(27.454), pytest.approx(5.9))]  # the slow stop that swapped the McLarens
 
 
+def test_every_session_of_the_weekend(monza: duckdb.DuckDBPyConnection) -> None:
+    sessions = monza.sql("SELECT session FROM sessions ORDER BY start_utc").fetchall()
+    assert [code for (code,) in sessions] == ["FP1", "FP2", "FP3", "Q", "R"]
+    pole = monza.sql("SELECT driver, q3_s FROM results WHERE session = 'Q' ORDER BY position LIMIT 1").fetchone()
+    assert pole == ("VER", pytest.approx(78.792))  # 1:18.792, the fastest lap in F1 history
+    assert monza.sql("SELECT DISTINCT session FROM pit_stops").fetchall() == [("R",)]
+
+
 def test_pit_stops_match_jolpica(monza: duckdb.DuckDBPyConnection) -> None:
     with JolpicaClient() as jolpica:
         data = jolpica.get(f"/{SEASON}/{ROUND}/pitstops/", {"limit": 100})
     stops = data["MRData"]["RaceTable"]["Races"][0]["PitStops"]
-    driver_codes = dict(monza.sql("SELECT driver_id, driver FROM results").fetchall())
+    driver_codes = dict(monza.sql("SELECT driver_id, driver FROM results WHERE session = 'R'").fetchall())
     expected = Counter((driver_codes[stop["driverId"]], int(stop["lap"])) for stop in stops)
     ours = Counter(monza.sql("SELECT driver, lap FROM pit_stops WHERE NOT red_flag").fetchall())
     assert ours == expected
@@ -74,7 +85,7 @@ def test_lap_times_match_jolpica(monza: duckdb.DuckDBPyConnection) -> None:
     for jolpica_lap in data["MRData"]["RaceTable"]["Races"][0]["Laps"]:
         minutes, seconds = jolpica_lap["Timings"][0]["time"].split(":")
         expected[int(jolpica_lap["number"])] = int(minutes) * 60 + float(seconds)
-    ours = dict(monza.sql("SELECT lap_number, lap_time_s FROM laps WHERE driver = 'LEC'").fetchall())
+    ours = dict(monza.sql("SELECT lap_number, lap_time_s FROM laps WHERE session = 'R' AND driver = 'LEC'").fetchall())
     assert len(ours) == len(expected) == 53
     for number, lap_time in expected.items():
         assert ours[number] == pytest.approx(lap_time, abs=0.001), number

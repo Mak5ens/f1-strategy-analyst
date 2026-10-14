@@ -1,9 +1,9 @@
 """Ingest race data into the lake, one round at a time: `just ingest 2025`, or `f1-ingest 2024 2025 --round 3`.
 
-A round is the unit of work: its sessions (sprint and race) and the standings after it. Its tables are written
-first, then a manifest under `_manifest/`. A round with a manifest of the current schema version is skipped, so
-a rerun only fetches what is missing, and an interrupted round is rewritten whole: files are overwritten by key,
-never appended, so nothing is duplicated.
+A round is the unit of work: its sessions (practice, qualifying, sprint and race) and the standings after it.
+Its tables are written first, then a manifest under `_manifest/`. A round with a manifest of the current schema
+version is skipped, so a rerun only fetches what is missing, and an interrupted round is rewritten whole: files are
+overwritten by key, never appended, so nothing is duplicated.
 """
 
 import argparse
@@ -23,6 +23,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from core.lake import Lake
 from f1.data import schema, transform
 from f1.data.sources import (
+    RACE_SESSIONS,
     EventInfo,
     FastF1Source,
     JolpicaClient,
@@ -121,7 +122,7 @@ class Ingester:
         if not force and manifest and manifest.get("schema_version") == schema.SCHEMA_VERSION:
             return outcome("up_to_date")
         if not event.sessions:
-            return outcome("not_ready", "no sprint or race in the schedule")
+            return outcome("not_ready", "no session in the schedule")
         ready_at = max(event.sessions.values()) + timedelta(hours=self._settings.availability_delay_hours)
         if self._now() < ready_at:
             return outcome("not_ready", f"data expected after {ready_at:%Y-%m-%d %H:%M} UTC")
@@ -159,7 +160,11 @@ class Ingester:
         so the next run rewrites the round."""
         tables: dict[str, pa.Table] = {}
         for code in sorted(event.sessions, key=lambda code: event.sessions[code]):
-            for name, table in self._session_tables(event, code).items():
+            session_tables = self._session_tables(event, code)
+            if session_tables is None:
+                log.warning("%s %s: no lap data for session %s, skipped", event.season, event.event_name, code)
+                continue
+            for name, table in session_tables.items():
                 tables[table_key(name, event.season, event.round, code)] = table
         key = {"season": event.season, "round": event.round}
         drivers = transform.driver_standings_rows(self._standings.driver_standings(event.season, event.round))
@@ -178,20 +183,26 @@ class Ingester:
             rows.setdefault(file_name.removesuffix(".parquet"), {})[name] = table.num_rows
         return rows
 
-    def _session_tables(self, event: EventInfo, code: str) -> dict[str, pa.Table]:
+    def _session_tables(self, event: EventInfo, code: str) -> dict[str, pa.Table] | None:
+        """The tables of a session; None for a practice or qualifying without laps (cancelled, as rain can do)."""
         data = self._race.session(event.season, event.round, code)
         laps = transform.laps(data.laps)
+        race = code in RACE_SESSIONS
         if laps.empty:
+            if not race:
+                return None
             raise IngestError(f"no lap data for session {code}: not published yet, or the session did not run")
+        # Outside a race, a driver goes in and out of the garage: those are runs, not pit stops.
         session_key = data.info.get("session_key")
-        openf1_pits = self._pits.pit_stops(int(session_key)) if session_key else []
+        openf1_pits = self._pits.pit_stops(int(session_key)) if race and session_key else []
+        stops = transform.pit_stops(laps, openf1_pits) if race else pd.DataFrame()
 
         key: dict[str, int | str] = {"season": event.season, "round": event.round, "session": code}
         frames: dict[str, tuple[pd.DataFrame, pa.Schema]] = {
             "sessions": (pd.DataFrame([data.info]), schema.SESSIONS),
             "laps": (laps, schema.LAPS),
             "stints": (transform.stints(laps), schema.STINTS),
-            "pit_stops": (transform.pit_stops(laps, openf1_pits), schema.PIT_STOPS),
+            "pit_stops": (stops, schema.PIT_STOPS),
             "race_control_messages": (
                 transform.race_control_messages(data.race_control_messages),
                 schema.RACE_CONTROL_MESSAGES,
