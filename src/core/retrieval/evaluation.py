@@ -46,12 +46,19 @@ class Report:
     metrics: Mapping[str, float] = field(default_factory=dict)
 
 
+# The families of the evaluation dataset (core.evals.dataset) that retrieval is measured on: questions on the rules
+# with their expected sources, and questions whose answer is in no document.
+RETRIEVAL_FAMILIES = frozenset({"retrieval", "regulation", "out_of_corpus"})
+
+
 def load_cases(path: Path) -> list[Case]:
+    """The retrieval cases of a dataset file: its rule questions with their sources, and its out-of-corpus ones."""
     cases = []
     for line in path.read_text().splitlines():
         if line.strip():
             row = json.loads(line)
-            cases.append(Case(row["question"], row["expected"]))
+            if row.get("family") in RETRIEVAL_FAMILIES:
+                cases.append(Case(row["question"], row.get("sources", [])))
     return cases
 
 

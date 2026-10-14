@@ -9,7 +9,7 @@ The app answers questions on the FIA rules for a strategy analyst, in French, fr
 A wrong rule stated with confidence is worse than no answer: an analyst would build a strategy call on it. So the pipeline must cite every claim, and say "not found" rather than guess.
 The plan of 2026-10-10 asked for a production pipeline, every stage justified by a measure, as opposed to the "embeddings, top 5, answer" baseline that LAB-147 keeps as a reference.
 
-Facts measured while building it, on the development set of 36 French questions (`evals/rag/dev.jsonl`: 30 with expected sources, 6 outside the corpus):
+Facts measured while building it, on the development set of 36 French questions (then `evals/rag/dev.jsonl`, now in the development set of `evals/datasets/`: 30 with expected sources, 6 outside the corpus):
 
 - The gateway's small models cannot do the job: asked to rewrite a question as JSON, `qwen2.5:0.5b` repeated an array item until the timeout, and `qwen2.5:1.5b` copied the example of its prompt ("Italian Grand Prix") into the filters of a question about no race. LAB-185 added `chat-medium` (qwen2.5:7b, local GPU) and `chat-pro` (Mistral Small 3.2, Scaleway).
 - `chat-medium` rewrites well, but answered "not found" on two of three questions whose sources held the answer; `chat-pro` answered them, each claim cited.
@@ -72,3 +72,7 @@ Latency of a question answered end to end, from the Langfuse spans: about 5 s (m
 - The development set is small (one question moves a recall by 3 points) and was written by the developer of the pipeline, who also tuned the rewrite prompt on it: its scores are optimistic. The test set and the harness that gates pull requests (LAB-146, LAB-148) give the numbers to quote.
 - Questions spanning several seasons, or comparing two, get only the seasons they name; questions about the International Sporting Code or the technical regulations are out of the corpus and abstain.
 - To revisit: when the test set shows a stage that brings nothing, it goes; when `chat-medium` answers as well as `chat-pro` on the test set, answers go local.
+
+## Update of 2026-10-14: the threshold on a larger development set
+
+The evaluation dataset of LAB-146 grew the development set from 36 to 69 retrieval questions (30 of LAB-186, 25 regulation questions drafted from stewards' decisions, 14 out of the corpus). Three runs of the whole pipeline calibrated the threshold at 0.475, 0.411 and 0.411: it is now their mean, **0.43** (`evals/rag/reports/dev-2026-10-14-lab146.json`). At 0.43 the gate refuses 79 % of the out-of-corpus questions, against 57 % at 0.14, and still answers 98 % of the questions whose source is in the top 5; the one it now refuses had its article at rank 3 with a score of 0.20. On this set, Recall@5 is 0.95 with the whole pipeline (dense only: 0.89; without the rewrite: 0.89), and the reranker no longer adds to Recall@5 (0.95 before and after it), while it lowers Recall@1 (0.78 to 0.71): its use is the calibrated score the gate decides on. LAB-148 measures it again on the test set.
