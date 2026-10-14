@@ -4,6 +4,7 @@
     just eval --sample 8               # at most 8 cases per family: a quick look, within the rate limit
     just eval --split dev --push       # the development set, and the run in Langfuse
     just eval --check                  # fail when a family falls under its threshold (evals/thresholds.json)
+    just eval --run-name <run> --resume   # go on with an interrupted run: only the missing or failed cases
     just eval judge-sheet              # 30 strategy answers graded by the judge, for a person to grade too
     just eval agreement                # how the judge agrees with the person's grades
     just eval thresholds --from evals/reports/<run>.json   # initial thresholds from a reference run
@@ -27,6 +28,7 @@ from core.baseline import Baseline
 from core.evals.dataset import Case, read_cases
 from core.evals.harness import (
     Record,
+    append_record,
     case_scores,
     check_thresholds,
     family_scores,
@@ -47,7 +49,8 @@ log = logging.getLogger("f1.eval")
 WORK = Path(".cache/evals")
 REPORTS = Path("evals/reports")
 THRESHOLDS = Path("evals/thresholds.json")
-CALIBRATION = Path("evals/judge/calibration.jsonl")
+CALIBRATION = Path("evals/judge/calibration.jsonl")  # what the person grades: no judge grade in sight
+JUDGE_GRADES = Path("evals/judge/judge-grades.json")
 SEED = 148
 END_USER = "f1-evals"  # the judge's calls, apart from the system's
 
@@ -110,14 +113,26 @@ def evaluate(args: argparse.Namespace) -> int:
         records = read_records(Path(args.records))
         cases = [case for case in cases if case.id in {record.id for record in records}]
     else:
-        log.info("%s on %d cases of the %s set", args.system, len(cases), args.split)
+        # Every record is appended as soon as its case is done. With --resume, the cases already answered without
+        # an error are kept, and only the others run: an interrupted run (a restart, a gateway down) goes on.
+        kept = (
+            {r.id: r for r in read_records(records_path) if not r.error}
+            if args.resume and records_path.exists()
+            else {}
+        )
+        todo = [case for case in cases if case.id not in kept]
+        log.info("%s on %d cases of the %s set (%d kept from before)", args.system, len(todo), args.split, len(kept))
+        if records_path.exists():
+            write_records(records_path, kept.values())
         done: list[Record] = []
 
         def progress(record: Record) -> None:
             done.append(record)
-            log.info("[%d/%d] %s %s", len(done), len(cases), record.id, "ok" if not record.error else record.error)
+            append_record(records_path, record)
+            log.info("[%d/%d] %s %s", len(done), len(todo), record.id, "ok" if not record.error else record.error)
 
-        records = run_system(SYSTEMS[args.system](), cases, workers=args.workers, on_record=progress)
+        fresh = {r.id: r for r in run_system(SYSTEMS[args.system](), todo, workers=args.workers, on_record=progress)}
+        records = [kept.get(case.id) or fresh[case.id] for case in cases]
         write_records(records_path, records)
 
     promptfoo = promptfoo_scores(cases, records, workdir)
@@ -177,19 +192,26 @@ def judge_sheet(args: argparse.Namespace) -> int:
             "question": case.question,
             "reference": case.answer,
             "answer": record.answer if record.answered else "(pas de réponse)",
-            "judge": grades[case.id]["score"],
-            "judge_reason": grades[case.id]["reason"],
         }
         for case, record in zip(strategy, records, strict=True)
     ]
     calibration_sheet(CALIBRATION, rows)
+    JUDGE_GRADES.write_text(
+        json.dumps(
+            {case_id: {"judge": grade["score"], "reason": grade["reason"]} for case_id, grade in grades.items()},
+            ensure_ascii=False,
+            indent=1,
+        )
+        + "\n"
+    )
     print(f"{len(rows)} answers in {CALIBRATION}: set `human` (1 to 5) on each line, then `just eval agreement`")
     return 0
 
 
 def judge_agreement(args: argparse.Namespace) -> int:
     rows = [json.loads(line) for line in CALIBRATION.read_text().splitlines() if line.strip()]
-    pairs = [(int(row["judge"]), int(row["human"])) for row in rows if row.get("human") is not None]
+    judge = json.loads(JUDGE_GRADES.read_text())
+    pairs = [(int(judge[row["id"]]["judge"]), int(row["human"])) for row in rows if row.get("human") is not None]
     result = agreement(pairs)
     (CALIBRATION.parent / "agreement.json").write_text(json.dumps(result, indent=1) + "\n")
     for key, value in result.items():
@@ -207,21 +229,29 @@ GATED = {
     "out_of_corpus": ["abstention"],
     "safety": ["safe"],
 }
-MARGIN = 0.05  # under the reference's score by more than this, a change made things worse
+# Under the reference's score by more than this, a change made things worse: 0.05, or two cases of the family when
+# that is more, so that one case answered differently by the model (noise, at temperature 0 too) fails no one.
+MARGIN = 0.05
+NOISE_CASES = 2
 
 
 def thresholds(args: argparse.Namespace) -> int:
     """Initial thresholds from a reference run: its score on each gated metric, less the margin, rounded down."""
+    margins: dict[str, float] = {}
     report = json.loads(Path(args.from_report).read_text())
     limits: dict[str, dict[str, float]] = {}
     for family, metrics in GATED.items():
         scores = report["families"].get(family, {})
+        if not scores:
+            continue
+        margin = max(MARGIN, NOISE_CASES / scores["cases"])
+        margins[family] = round(margin, 3)
         for metric in metrics:
             if metric in scores:
                 scale = 5.0 if metric == "grade/5" else 1.0
-                value = max(0.0, scores[metric] - MARGIN * scale)
+                value = max(0.0, scores[metric] - margin * scale)
                 limits.setdefault(family, {})[metric] = math.floor(value * 100) / 100
-    THRESHOLDS.write_text(json.dumps({"from": report["run"], "margin": MARGIN, "families": limits}, indent=1) + "\n")
+    THRESHOLDS.write_text(json.dumps({"from": report["run"], "margins": margins, "families": limits}, indent=1) + "\n")
     print(json.dumps(limits, indent=1))
     return 0
 
@@ -236,6 +266,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--workers", type=int, default=4, help="cases run at once (the rate limit sets the pace)")
     parser.add_argument("--records", help="score this records.jsonl instead of running the system")
     parser.add_argument("--run-name")
+    parser.add_argument("--resume", action="store_true", help="keep the cases a run of that name already answered")
     parser.add_argument("--no-ragas", action="store_true")
     parser.add_argument("--no-judge", action="store_true")
     parser.add_argument("--push", action="store_true", help="link the run to the Langfuse dataset, with its scores")

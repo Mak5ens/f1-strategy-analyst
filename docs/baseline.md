@@ -16,7 +16,7 @@ Trace Langfuse : c441d062…
 2. **Tools**, up to 3 calls: at each round the model names a tool of the catalog and its arguments, or none, in JSON validated by code. Invalid arguments, an unknown tool or a `ToolError` ("No driver LEC...") go back to the model as the tool's result; the same call twice ends the loop.
 3. **Answer** (`chat-pro`): JSON with the answer, the numbers it uses and the ids of its sources.
 
-Tools are chosen in JSON rather than by native tool calling: the gateway's `chat-pro` drops `tools` without an error (LAB-199), and the agent's nodes work this way anyway (LAB-151).
+Tools are chosen in JSON rather than by native tool calling. Until LAB-199, the gateway's `chat-pro` dropped `tools` without an error, and a model told to call a tool answered from memory ("round 14" for the 16th); native tool calling works since. JSON stays, for two reasons: it works on every alias, and the agent's nodes work this way (LAB-151), so the comparison measures the orchestration.
 
 Two checks are kept even in a naive system, since a comparison would otherwise measure invented numbers:
 

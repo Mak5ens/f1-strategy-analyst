@@ -31,11 +31,42 @@ Every family also shows `answered` (share of answers given) and `median_s`.
 
 promptfoo and Ragas run apart: promptfoo with `npx` (pinned, `promptfoo@0.123.1`), on a provider that replays the recorded answers (`evals/promptfoo/recorded.py`) and checks written once in `evals/promptfoo/assertions.js`; Ragas in its own environment (`evals/ragas/`, its own lock), since it needs `openai` < 3 and the app `openai` 3.
 
+## The baseline on the test set
+
+`just eval --split test --push` on 2026-10-14, the baseline of LAB-147 (`evals/reports/baseline-test-2026-10-14.json`, dataset run `baseline-test-2026-10-14` in Langfuse):
+
+| Family | Cases | Score | Answered |
+| -- | -- | -- | -- |
+| data | 66 | accuracy 0.79 | 0.82 |
+| computation | 63 | accuracy 0.81 | 0.94 |
+| strategy | 37 | grade 2.24 / 5, 24 % graded 4 or more | 0.68 |
+| regulation | 46 | Recall@5 0.76, MRR@10 0.68, nDCG@5 0.77; faithfulness 0.91, context recall 0.60 | 0.83 |
+| out_of_corpus | 16 | abstention 0.81 | |
+| safety | 20 | safe 0.60 | 0.35 |
+
+- The run took 35 minutes for 248 cases, plus the scoring: the f1 key's 60 requests a minute set the pace, so the medians it shows (about 60 s for a case with tools) are mostly waits for the limit, not latency. One case failed: `chat-pro` gave no valid answer JSON in two attempts, counted as a failure.
+- **The weak spots of a naive system**, which the pipeline and the agent must close: strategy (it reads the stops but rarely explains the swap), the safety cases (it follows an injected order 40 % of the time), and context recall on rules (the dense search on the French question misses part of what the reference says).
+- Faithfulness is high (0.91): when it answers a rule question, it sticks to what it read; what it read is often incomplete.
+- The test set holds no `retrieval` case (the 30 of LAB-186 are all in the development set): retrieval on the test set is measured on the `regulation` questions.
+
+## Thresholds
+
+`evals/thresholds.json` holds, for each family, the metrics that say whether it works, at the baseline's score less a margin: 0.05, or two cases of the family when that is more (so that one case answered differently, noise even at temperature 0, fails no one). `just eval thresholds --from <report>` sets them again from another reference run; `just eval --check` exits 1 when a family is under its threshold, which the evaluation CI (LAB-149) gates pull requests on.
+
+| Family | Gated on | Threshold |
+| -- | -- | -- |
+| data | accuracy | 0.73 |
+| computation | accuracy | 0.75 |
+| strategy | grade / 5 | 1.97 |
+| regulation | Recall@5, faithfulness | 0.71, 0.85 |
+| out_of_corpus | abstention | 0.68 |
+| safety | safe | 0.50 |
+
 ## The judge
 
 The `strategy` family asks why a driver lost a place: no assertion checks that. A judge (`core.evals.judge`, `chat-pro`) grades the answer against the reference cause on a rubric of five levels, in JSON validated by code: 5, the main cause with its supporting facts and nothing false; 4, the main cause with partial facts; 3, the cause mentioned but not as the main one, or a false detail; 2, another cause; 1, wrong, invented or no answer.
 
-A judge is only trusted once it agrees with a person. `just eval judge-sheet` answers 30 strategy cases with the system and has the judge grade them, in `evals/judge/calibration.jsonl`; a person sets `human` on each line, grading the answer before reading the judge's grade, then `just eval agreement` measures exact agreement, agreement within one point, agreement on "4 or more", Cohen's quadratic weighted kappa and Spearman's correlation (`evals/judge/agreement.json`). The rubric is adjusted until the agreement is good enough to rely on (a weighted kappa of 0.6 or more is a common bar).
+A judge is only trusted once it agrees with a person. `just eval judge-sheet` answers 30 strategy cases with the system and has the judge grade them: the answers go to `evals/judge/calibration.jsonl`, the judge's grades apart to `evals/judge/judge-grades.json`, so that a person sets `human` on each line without seeing them; then `just eval agreement` measures exact agreement, agreement within one point, agreement on "4 or more", Cohen's quadratic weighted kappa and Spearman's correlation (`evals/judge/agreement.json`). The rubric is adjusted until the agreement is good enough to rely on (a weighted kappa of 0.6 or more is a common bar).
 
 ## Limits
 

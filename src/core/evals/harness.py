@@ -117,6 +117,13 @@ def write_records(path: Path, records: Iterable[Record]) -> None:
     path.write_text("".join(json.dumps(asdict(record), ensure_ascii=False) + "\n" for record in records))
 
 
+def append_record(path: Path, record: Record) -> None:
+    """One more line, written as soon as the case is done: an interrupted run keeps what it paid for."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8") as file:
+        file.write(json.dumps(asdict(record), ensure_ascii=False) + "\n")
+
+
 def read_records(path: Path) -> list[Record]:
     return [Record(**json.loads(line)) for line in path.read_text().splitlines() if line.strip()]
 
