@@ -10,6 +10,7 @@ the pipeline cannot keep on new questions.
 """
 
 import json
+import math
 import statistics
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
@@ -95,7 +96,8 @@ def with_threshold(outcomes: Sequence[Outcome], threshold: float) -> list[Outcom
 
 
 def metrics(outcomes: Sequence[Outcome], k: int = 5) -> dict[str, float]:
-    """Over the answerable cases: recall at 1 and k, and MRR at 10 (rank of the first expected source). Over all:
+    """Over the answerable cases: recall at 1 and k, MRR at 10 and nDCG at k (rank of the first expected source:
+    with one source to find, nDCG@k is 1 / log2(rank + 1) within the top k). Over all:
     correct abstentions (abstained exactly on the out-of-corpus cases), and the median latency."""
     answerable = [o for o in outcomes if o.case.answerable]
     out = [o for o in outcomes if not o.case.answerable]
@@ -104,6 +106,9 @@ def metrics(outcomes: Sequence[Outcome], k: int = 5) -> dict[str, float]:
         result["recall@1"] = sum(o.rank == 1 for o in answerable) / len(answerable)
         result[f"recall@{k}"] = sum(o.rank is not None and o.rank <= k for o in answerable) / len(answerable)
         result["mrr@10"] = statistics.mean(1 / o.rank if o.rank and o.rank <= 10 else 0 for o in answerable)
+        result[f"ndcg@{k}"] = statistics.mean(
+            1 / math.log2(o.rank + 1) if o.rank and o.rank <= k else 0 for o in answerable
+        )
         result["false_abstention"] = sum(o.abstained for o in answerable) / len(answerable)
     if out:
         result["correct_abstention"] = sum(o.abstained for o in out) / len(out)

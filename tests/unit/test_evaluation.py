@@ -1,5 +1,7 @@
 """Retrieval metrics and the calibration of the abstention threshold, on hand-made outcomes."""
 
+import math
+
 import pytest
 
 from core.retrieval.evaluation import Case, Outcome, calibrate, metrics, source_rank, with_threshold
@@ -31,6 +33,7 @@ def test_metrics() -> None:
     assert result["recall@1"] == pytest.approx(1 / 3)
     assert result["recall@5"] == pytest.approx(2 / 3)
     assert result["mrr@10"] == pytest.approx((1 + 1 / 4) / 3)
+    assert result["ndcg@5"] == pytest.approx((1 + 1 / math.log2(5)) / 3)  # ranks 1 and 4, one source each
 
 
 def test_the_threshold_falls_between_the_scores_to_answer_and_to_abstain() -> None:

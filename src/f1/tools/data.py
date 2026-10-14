@@ -58,6 +58,9 @@ def integer(value: object) -> int | None:
 
 
 class RaceData:
+    """Each query runs on its own cursor: a DuckDB connection is not safe across threads, and the evaluation
+    harness runs cases in parallel."""
+
     def __init__(self, connection: duckdb.DuckDBPyConnection) -> None:
         self._db = connection
 
@@ -126,7 +129,7 @@ class RaceData:
 
     def _query(self, query: str, parameters: list[Any], *, table: str) -> list[dict[str, Any]]:
         try:
-            frame = self._db.execute(query, parameters).df()
+            frame = self._db.cursor().execute(query, parameters).df()
         except duckdb.CatalogException as error:
             raise ToolError(f"No {table} data in the lake: run `just ingest`.") from error
         rows: list[dict[str, Any]] = frame.to_dict("records")  # type: ignore[assignment]
@@ -135,7 +138,7 @@ class RaceData:
     def _rows(self, table: str, ref: SessionRef, *, order: str) -> list[dict[str, Any]]:
         query = f"SELECT * FROM {table} WHERE season = ? AND round = ? AND session = ? ORDER BY {order}"
         try:
-            frame = self._db.execute(query, [ref.season, ref.round, ref.session]).df()
+            frame = self._db.cursor().execute(query, [ref.season, ref.round, ref.session]).df()
         except duckdb.CatalogException as error:
             raise ToolError(f"No {table} data in the lake: run `just ingest {ref.season}`.") from error
         rows: list[dict[str, Any]] = frame.to_dict("records")  # type: ignore[assignment]
