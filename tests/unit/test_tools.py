@@ -102,7 +102,17 @@ def tools(tmp_path_factory: pytest.TempPathFactory) -> dict[str, Any]:
         "laps": (race_laps(), schema.LAPS),
         "pit_stops": (race_pit_stops(), schema.PIT_STOPS),
         "race_control_messages": (pd.DataFrame(MESSAGES), schema.RACE_CONTROL_MESSAGES),
-    }
+        "sessions": (
+            pd.DataFrame([{"event_name": "Australian Grand Prix", "location": "Melbourne", "country": "Australia",
+                           "start_utc": T0}]),
+            schema.SESSIONS,
+        ),
+        "results": (
+            pd.DataFrame([{"driver": "VER", "full_name": "Max Verstappen", "team": "Red Bull Racing", "position": 1},
+                          {"driver": "LEC", "full_name": "Charles Leclerc", "team": "Ferrari", "position": 2}]),
+            schema.RESULTS,
+        ),
+    }  # fmt: skip
     for name, (frame, table_schema) in tables.items():
         lake.write_parquet(f"{name}/2025/01-R.parquet", transform.to_table(frame, table_schema, **KEY))
     return {tool.name: tool for tool in catalog(RaceData(connect(lake)))}
@@ -230,10 +240,52 @@ def test_invalid_arguments_are_refused_before_computing(tools: dict[str, Any]) -
 
 
 def test_catalog_for_tool_calling(tools: dict[str, Any]) -> None:
-    assert list(tools) == ["gap_between_drivers", "stint_degradation", "pit_stop_loss", "pit_cycle", "neutralizations"]
+    assert list(tools) == [
+        "find_race",
+        "session_result",
+        "gap_between_drivers",
+        "stint_degradation",
+        "pit_stop_loss",
+        "pit_cycle",
+        "neutralizations",
+    ]
     for tool in tools.values():
         spec = tool.openai_schema()
         assert spec["function"]["name"] == tool.name
         parameters = spec["function"]["parameters"]
+        if tool.name == "find_race":  # names a race: the others take the round it gives
+            assert set(parameters["required"]) == {"season", "grand_prix"}
+            continue
+        if tool.name == "session_result":  # qualifying too
+            assert parameters["properties"]["session"]["enum"] == ["R", "S", "Q", "SQ"]
+            continue
         assert {"season", "round"} <= set(parameters["required"])
         assert parameters["properties"]["session"]["enum"] == ["R", "S"]
+
+
+@pytest.mark.parametrize("name", ["Australian Grand Prix", "Australie", "Grand Prix d'Australie", "Melbourne"])
+def test_find_race_reads_the_round_and_the_drivers(tools: dict[str, Any], name: str) -> None:
+    result = tools["find_race"].run({"season": 2025, "grand_prix": name}).model_dump()
+    assert (result["round"], result["event"], result["sessions"]) == (1, "Australian Grand Prix", ["R"])
+    assert result["drivers"][0] == {"code": "VER", "name": "Max Verstappen", "team": "Red Bull Racing"}
+
+
+def test_find_race_lists_the_grands_prix_when_it_finds_none(tools: dict[str, Any]) -> None:
+    with pytest.raises(ToolError, match="Grands Prix: Australian Grand Prix"):
+        tools["find_race"].run({"season": 2025, "grand_prix": "Lune"})
+    with pytest.raises(ToolError, match="No race of 2024"):
+        tools["find_race"].run({"season": 2024, "grand_prix": "Australie"})
+
+
+def test_session_result_reads_the_classification_and_the_fastest_lap(tools: dict[str, Any]) -> None:
+    result = run(tools, "session_result")
+    first, second = result["classification"]
+    assert (first["driver"], first["name"], first["position"]) == ("VER", "Max Verstappen", "1")
+    assert (second["driver"], second["q3_s"]) == ("LEC", None)
+    # The fastest lap of the synthetic race: LEC's 89.5 s on lap 7, the first of his four.
+    assert result["fastest_lap"] == {"driver": "LEC", "name": "Charles Leclerc", "lap": 7, "lap_time_s": 89.5}
+
+
+def test_session_result_of_a_session_not_ingested(tools: dict[str, Any]) -> None:
+    with pytest.raises(ToolError, match="find_race lists the sessions"):
+        run(tools, "session_result", session="Q")

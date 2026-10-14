@@ -12,12 +12,30 @@ from f1.tools.gaps import GapInput, GapOutput, gap_between_drivers
 from f1.tools.neutralizations import NeutralizationsInput, NeutralizationsOutput, neutralizations
 from f1.tools.pit_cycle import PitCycleInput, PitCycleOutput, pit_cycle
 from f1.tools.pit_loss import PitLossInput, PitLossOutput, pit_stop_loss
+from f1.tools.races import FindRaceInput, FindRaceOutput, find_race
+from f1.tools.results import ResultInput, ResultOutput, session_result
 
 __all__ = ["RaceData", "catalog"]
 
 
 def catalog(data: RaceData) -> list[Tool[Any, Any]]:
     return [
+        Tool(
+            "find_race",
+            "Round, sessions and drivers (codes, names, teams) of a Grand Prix of a season. Call it first: the other "
+            "tools take the round and the drivers' three-letter codes.",
+            FindRaceInput,
+            FindRaceOutput,
+            lambda request: find_race(data, request),
+        ),
+        Tool(
+            "session_result",
+            "Official classification of a race, sprint or qualifying: positions, grid, status, gaps, qualifying "
+            "times (Q1-Q3), and the fastest lap. Times in seconds.",
+            ResultInput,
+            ResultOutput,
+            lambda request: session_result(data, request),
+        ),
         Tool(
             "gap_between_drivers",
             "Gap between two drivers at the end of each lap, and how it changed lap by lap.",

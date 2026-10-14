@@ -82,6 +82,56 @@ class RaceData:
     def race_control_messages(self, ref: SessionRef) -> list[dict[str, Any]]:
         return self._rows("race_control_messages", ref, order="time_utc")
 
+    def events(self, season: int) -> list[dict[str, Any]]:
+        """The race weekends of a season in the data, with their name, place and country."""
+        return self._query(
+            "SELECT DISTINCT round, event_name, location, country FROM sessions WHERE season = ? ORDER BY round",
+            [season],
+            table="sessions",
+        )
+
+    def session_codes(self, season: int, round_number: int) -> list[str]:
+        rows = self._query(
+            "SELECT session FROM sessions WHERE season = ? AND round = ? ORDER BY start_utc",
+            [season, round_number],
+            table="sessions",
+        )
+        return [str(row["session"]) for row in rows]
+
+    def drivers(self, season: int, round_number: int) -> list[dict[str, Any]]:
+        """Code, name and team of the drivers of the race, in finishing order."""
+        rows = self._query(
+            "SELECT driver AS code, coalesce(full_name, driver) AS name, team FROM results "
+            "WHERE season = ? AND round = ? AND session = 'R' ORDER BY position NULLS LAST",
+            [season, round_number],
+            table="results",
+        )
+        return [{**row, "team": None if _missing(row["team"]) else row["team"]} for row in rows]
+
+    def results(self, season: int, round_number: int, session: str) -> list[dict[str, Any]]:
+        return self._query(
+            "SELECT * FROM results WHERE season = ? AND round = ? AND session = ? ORDER BY position NULLS LAST",
+            [season, round_number, session],
+            table="results",
+        )
+
+    def fastest_lap(self, season: int, round_number: int, session: str) -> dict[str, Any] | None:
+        rows = self._query(
+            "SELECT driver, lap_number, lap_time_s FROM laps WHERE season = ? AND round = ? AND session = ? "
+            "AND lap_time_s IS NOT NULL AND NOT coalesce(deleted, false) ORDER BY lap_time_s LIMIT 1",
+            [season, round_number, session],
+            table="laps",
+        )
+        return rows[0] if rows else None
+
+    def _query(self, query: str, parameters: list[Any], *, table: str) -> list[dict[str, Any]]:
+        try:
+            frame = self._db.execute(query, parameters).df()
+        except duckdb.CatalogException as error:
+            raise ToolError(f"No {table} data in the lake: run `just ingest`.") from error
+        rows: list[dict[str, Any]] = frame.to_dict("records")  # type: ignore[assignment]
+        return rows
+
     def _rows(self, table: str, ref: SessionRef, *, order: str) -> list[dict[str, Any]]:
         query = f"SELECT * FROM {table} WHERE season = ? AND round = ? AND session = ? ORDER BY {order}"
         try:

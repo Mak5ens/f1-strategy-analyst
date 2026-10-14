@@ -216,7 +216,7 @@ def _fastest_lap(db: duckdb.DuckDBPyConnection, race: Race, rng: random.Random) 
     return Case(
         id=f"data-fastest-{race.key}",
         family="data",
-        question=f"Qui a réalisé le meilleur tour en course au {race.label} ?",
+        question=f"Qui a réalisé le meilleur tour en course au {race.label}, et en quel temps ?",
         answer=f"{name}, en {time} au tour {int(row[1])}.",
         value=[_last_name(name), str(time)],
         origin=_origin(race, "laps", table="laps", fastest=True),

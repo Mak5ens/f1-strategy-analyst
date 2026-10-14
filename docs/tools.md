@@ -22,6 +22,14 @@ Times are seconds, rounded to the millisecond.
 - **Clean lap**: green flag for the whole lap (`track_status` exactly `1`), not lap 1, not an in- or out-lap, not deleted, with a lap time. Only clean laps say something about pace.
 - **Neutralized lap**: a safety car (`4`), red flag (`5`) or VSC (`6`, `7`) at some point of the lap.
 
+## find_race
+
+The round, the sessions in the data and the drivers (code, name, team, in finishing order) of a Grand Prix of a season, named in English or French ("Italian Grand Prix", "Italie", "Monza"). The other tools take a round and three-letter codes, a question gives names: a model asked for the round of the 2025 Italian Grand Prix answered 14, for the 16th. A name it does not know gets the list of the season's Grands Prix.
+
+## session_result
+
+The official classification of a race, sprint, qualifying or sprint qualifying (`session` `R`, `S`, `Q`, `SQ`): position (a number, or `R` retired...), driver, name, team, grid (races), status, gap to the winner (lead lap only), the winner's race time, laps, Q1 to Q3 times (qualifying); and the fastest lap not deleted by the stewards. It reads the `results` table: no computation, but the numbers a debrief quotes most.
+
 ## gap_between_drivers
 
 Gap between `driver` and `reference_driver` at the end of each lap both completed, between `from_lap` and `to_lap` (optional).

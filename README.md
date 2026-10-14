@@ -61,6 +61,7 @@ just ingest 2025  # race data of a season into the lake (a few minutes; reruns s
 just sql "SELECT driver, lap, pit_lane_time_s FROM pit_stops WHERE season = 2025 AND round = 16"
 just corpus 2025  # FIA regulations and stewards' decisions into Qdrant (the first run downloads for a while)
 just ask "Les retardataires peuvent-ils se dédoubler sous safety car en 2025 ?"
+just baseline "Combien de temps Lando Norris a-t-il perdu lors de son 1er arrêt au Grand Prix d'Italie 2025 ?"
 just season-jobs 2025 --simulate  # one job per session through the platform's job queue (drop --simulate for real summaries)
 just test-unit    # unit tests, no stack needed
 just api          # the API on http://localhost:8000
@@ -82,6 +83,7 @@ just down
 | `docs/tools.md` | The race analysis tools: inputs, outputs, assumptions, limits |
 | `docs/corpus.md` | The FIA corpus: sources, chunking, metadata, incremental index |
 | `docs/rag.md` | The retrieval pipeline: six steps, abstention, traces and scores, evaluation |
+| `docs/baseline.md` | The reference system: dense search, tools chosen in JSON, an answer whose numbers are checked |
 | `docs/jobs.md` | Session summaries as asynchronous jobs on the platform's queue, and the check of their numbers and names |
 
 ## Roadmap

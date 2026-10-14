@@ -44,6 +44,10 @@ ask question: _env
 rag-eval *args: _env
     uv run f1-rag-eval "$@"
 
+# The reference system (LAB-147): dense search, tools, answer, e.g. `just baseline "Combien de temps Norris a-t-il perdu à son arrêt à Monza en 2025 ?"`
+baseline question: _env
+    uv run f1-baseline "$1"
+
 # Build the evaluation dataset (evals/datasets/): `just eval-dataset`, `check`, `push` (Langfuse), `draft-regulation`
 eval-dataset *args: _env
     uv run f1-eval-dataset "$@"

@@ -11,8 +11,9 @@ import pytest
 
 from core.jobs import Job, Ledger, dead_letter_reason, traceparent
 from core.lake import Lake, LakeSettings
+from core.numbers import numbers, unverified_numbers
 from f1.data import connect, schema, transform
-from f1.jobs import ALIAS, MAX_TOKENS, numbers, simulated_job, summary_job, unverified_names, unverified_numbers
+from f1.jobs import ALIAS, MAX_TOKENS, simulated_job, summary_job, unverified_names
 from f1.jobs.facts import NoSessionData, lap_time, session_facts
 from f1.jobs.season import round_and_session
 
