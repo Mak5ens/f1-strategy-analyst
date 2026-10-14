@@ -73,10 +73,10 @@ just down
 
 | Path | Content |
 | -- | -- |
-| `src/core/` | Reusable foundation: gateway client, tools, hybrid index, retrieval pipeline and its evaluation, Langfuse tracing, batches on the job queue; then the agent graph. Never imports `f1` ([ADR-011](docs/adr/011-core-and-theme-separation.md)) |
-| `src/f1/` | The Formula 1 theme: race data ingestion (`f1/data/`), deterministic tools (`f1/tools/`), FIA corpus (`f1/corpus/`), questions on the rules (`f1/rag/`), session summary jobs (`f1/jobs/`), API |
+| `src/core/` | Reusable foundation: gateway client, tools, hybrid index, retrieval pipeline and its evaluation, evaluation dataset format, Langfuse tracing, batches on the job queue; then the agent graph. Never imports `f1` ([ADR-011](docs/adr/011-core-and-theme-separation.md)) |
+| `src/f1/` | The Formula 1 theme: race data ingestion (`f1/data/`), deterministic tools (`f1/tools/`), FIA corpus (`f1/corpus/`), questions on the rules (`f1/rag/`), session summary jobs (`f1/jobs/`), evaluation cases (`f1/evals/`), API |
 | `tests/unit/`, `tests/integration/` | Tests without the stack, and against it (`just smoke`) |
-| `evals/` | Development set of the retrieval pipeline and its reports (`evals/rag/`); test set and evaluation harness (milestone 4.2) |
+| `evals/` | The evaluation dataset (`evals/datasets/`: 411 cases in seven families, development and test sets) and the retrieval reports (`evals/rag/`); the harness comes with LAB-148 |
 | `docs/adr/` | Architecture decision records of this repo |
 | `docs/data-schema.md` | Tables of the race data lake, their sources and conventions |
 | `docs/tools.md` | The race analysis tools: inputs, outputs, assumptions, limits |

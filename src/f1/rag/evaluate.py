@@ -8,6 +8,7 @@ answer from those to abstain on. The test set (LAB-146) is never used here.
 import argparse
 import json
 import logging
+import statistics
 import sys
 import time
 from collections.abc import Sequence
@@ -20,7 +21,7 @@ from core.retrieval.evaluation import Outcome, calibrate, load_cases, metrics, r
 from core.retrieval.pipeline import PipelineConfig, Retrieval, RetrievalPipeline
 from f1.rag import rag_pipeline
 
-DEV_SET = Path("evals/rag/dev.jsonl")
+DEV_SET = Path("evals/datasets/dev.jsonl")  # never the test set: the threshold is calibrated here
 REPORTS = Path("evals/rag/reports")
 # A question makes up to three gateway calls (rewrite, embeddings, rerank), and the f1 key allows 60 per minute.
 # The gateway client would wait out the limit anyway, but the wait would count in the latency measured.
@@ -60,6 +61,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="f1-rag-eval", description=__doc__.splitlines()[0] if __doc__ else None)
     parser.add_argument("--cases", type=Path, default=DEV_SET)
     parser.add_argument("--only", help="run one configuration of the ablation, e.g. '+ rerank'")
+    parser.add_argument(
+        "--runs",
+        type=int,
+        default=1,
+        help="calibrate on this many runs of the whole pipeline and average: the rewrite varies from run to run",
+    )
     args = parser.parse_args(argv)
     logging.basicConfig(level=logging.WARNING, format="%(levelname)s %(name)s %(message)s")
 
@@ -80,6 +87,17 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
         if not switches:  # the whole pipeline
             full = outcomes
+
+    if full and args.runs > 1:
+        whole = base.model_copy(update=OFF)
+        thresholds = [calibrate(full).threshold]
+        for _ in range(args.runs - 1):
+            thresholds.append(calibrate(evaluate(rag_pipeline(whole), args.cases)).threshold)
+        report["thresholds"] = thresholds
+        print(
+            f"\nThresholds over {args.runs} runs: {', '.join(f'{t:.3f}' for t in thresholds)};"
+            f" mean {statistics.mean(thresholds):.3f}, spread {statistics.pstdev(thresholds):.3f}"
+        )
 
     if full:
         calibration = calibrate(full)

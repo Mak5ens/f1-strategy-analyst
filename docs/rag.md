@@ -6,7 +6,8 @@ The choices and what was measured are in [ADR-024](adr/024-production-rag-pipeli
 
 ```bash
 just ask "Les retardataires peuvent-ils se dédoubler sous safety car en 2025 ?"
-just rag-eval                    # ablation and threshold calibration on evals/rag/dev.jsonl
+just rag-eval                    # ablation and threshold calibration on evals/datasets/dev.jsonl
+just rag-eval --runs 3           # the same, the threshold averaged over three runs of the whole pipeline
 ```
 
 ## The six steps
@@ -68,6 +69,6 @@ The f1 key allows 60 requests and 100,000 tokens a minute, and a question makes 
 
 ## Evaluation
 
-`evals/rag/dev.jsonl` holds 36 questions in French: 30 with the sources expected (regulations of 2024 to 2026, decisions of four Grands Prix), 6 outside the corpus. An expected source is a set of payload fields (`{"season": 2025, "parent_article": "55"}`), so it survives a new issue of the regulations. `just rag-eval` runs steps 1 to 4 under each configuration, prints Recall@1, Recall@5 and MRR@10 counted on distinct sources, as the model gets them, and writes a report in `evals/rag/reports/`.
+The cases are those of the evaluation dataset (`evals/README.md`, LAB-146) whose family is `retrieval`, `regulation` or `out_of_corpus`: questions in French with the sources expected (regulations of 2024 to 2026, decisions), and questions outside the corpus. `just rag-eval` reads the development set only (69 of them; until LAB-146, the 36 of `evals/rag/dev.jsonl`). An expected source is a set of payload fields (`{"season": 2025, "parent_article": "55"}`), so it survives a new issue of the regulations. `just rag-eval` runs steps 1 to 4 under each configuration, prints Recall@1, Recall@5 and MRR@10 counted on distinct sources, as the model gets them, and writes a report in `evals/rag/reports/`. With `--runs N`, the whole pipeline runs N times and the report gives each run's threshold, their mean and their spread.
 
 The development set is small: one question moves a recall by 3 points. It is for calibration and for catching regressions while working; the test set and the harness that gates pull requests are LAB-146 and LAB-148.

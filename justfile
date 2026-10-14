@@ -39,10 +39,14 @@ corpus *args: _env
 ask question: _env
     uv run f1-ask "$1"
 
-# Measure the retrieval pipeline stage by stage on evals/rag/dev.jsonl and calibrate the abstention threshold
+# Measure the retrieval pipeline stage by stage on evals/datasets/dev.jsonl and calibrate the abstention threshold
 # (about 20 minutes; `just rag-eval --only "+ rerank"` for one configuration). Report in evals/rag/reports/
 rag-eval *args: _env
     uv run f1-rag-eval "$@"
+
+# Build the evaluation dataset (evals/datasets/): `just eval-dataset`, `check`, `push` (Langfuse), `draft-regulation`
+eval-dataset *args: _env
+    uv run f1-eval-dataset "$@"
 
 # Summarize every session of a season through the platform's job queue, e.g. `just season-jobs 2025 --simulate`
 # (needs llmops-gateway's stack: RabbitMQ and the worker)

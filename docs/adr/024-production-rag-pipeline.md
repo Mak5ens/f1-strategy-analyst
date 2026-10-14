@@ -9,7 +9,7 @@ The app answers questions on the FIA rules for a strategy analyst, in French, fr
 A wrong rule stated with confidence is worse than no answer: an analyst would build a strategy call on it. So the pipeline must cite every claim, and say "not found" rather than guess.
 The plan of 2026-10-10 asked for a production pipeline, every stage justified by a measure, as opposed to the "embeddings, top 5, answer" baseline that LAB-147 keeps as a reference.
 
-Facts measured while building it, on the development set of 36 French questions (`evals/rag/dev.jsonl`: 30 with expected sources, 6 outside the corpus):
+Facts measured while building it, on the development set of 36 French questions (then `evals/rag/dev.jsonl`, now in the development set of `evals/datasets/`: 30 with expected sources, 6 outside the corpus):
 
 - The gateway's small models cannot do the job: asked to rewrite a question as JSON, `qwen2.5:0.5b` repeated an array item until the timeout, and `qwen2.5:1.5b` copied the example of its prompt ("Italian Grand Prix") into the filters of a question about no race. LAB-185 added `chat-medium` (qwen2.5:7b, local GPU) and `chat-pro` (Mistral Small 3.2, Scaleway).
 - `chat-medium` rewrites well, but answered "not found" on two of three questions whose sources held the answer; `chat-pro` answered them, each claim cited.

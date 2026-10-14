@@ -36,6 +36,7 @@ f1-corpus = "f1.corpus.ingest:main"
 f1-ask = "f1.rag.ask:main"
 f1-rag-eval = "f1.rag.evaluate:main"
 f1-season-jobs = "f1.jobs.season:main"
+f1-eval-dataset = "f1.evals.build:main"
 
 [dependency-groups]
 dev = [
