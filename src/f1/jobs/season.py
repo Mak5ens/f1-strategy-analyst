@@ -16,8 +16,9 @@ from typing import Any
 
 from core.jobs import Job, Report, Result, run_batch
 from core.lake import Lake
+from core.numbers import unverified_numbers
 from f1.data import connect
-from f1.jobs import ALIAS, REPLY_QUEUE, simulated_job, summary_job, unverified_names, unverified_numbers
+from f1.jobs import ALIAS, REPLY_QUEUE, simulated_job, summary_job, unverified_names
 from f1.jobs.facts import session_facts
 
 log = logging.getLogger("f1.season_jobs")
