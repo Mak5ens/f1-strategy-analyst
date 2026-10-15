@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.5.0](https://github.com/Mak5ens/f1-strategy-analyst/compare/v0.4.0...v0.5.0) (2026-10-15)
+
+
+### Features
+
+* **agent:** controlled LangGraph debrief agent with three human stops, and ADR-025 (LAB-151) ([#21](https://github.com/Mak5ens/f1-strategy-analyst/issues/21)) ([c99695a](https://github.com/Mak5ens/f1-strategy-analyst/commit/c99695a8407ce674d08f460ea3874f26dc9789bf))
+* **evals:** model comparison on the test set, and ADR-012 (LAB-150) ([#19](https://github.com/Mak5ens/f1-strategy-analyst/issues/19)) ([0f6e699](https://github.com/Mak5ens/f1-strategy-analyst/commit/0f6e69972ad3507b804cca1f0d5af851faac4ae3))
+
 ## [0.4.0](https://github.com/Mak5ens/f1-strategy-analyst/compare/v0.3.0...v0.4.0) (2026-10-15)
 
 
