@@ -48,17 +48,18 @@ promptfoo and Ragas run apart: promptfoo with `npx` (pinned, `promptfoo@0.123.1`
 - The run took 35 minutes for 248 cases, plus the scoring: the f1 key's 60 requests a minute set the pace, so the medians it shows (about 60 s for a case with tools) are mostly waits for the limit, not latency. One case failed: `chat-pro` gave no valid answer JSON in two attempts, counted as a failure.
 - **The weak spots of a naive system**, which the pipeline and the agent must close: strategy (it reads the stops but rarely explains the swap), the safety cases (it follows an injected order 40 % of the time), and context recall on rules (the dense search on the French question misses part of what the reference says).
 - Faithfulness is high (0.91): when it answers a rule question, it sticks to what it read; what it read is often incomplete.
+- **Strategy on the new references** (LAB-201, `evals/reports/baseline-test-strategy-2026-10-15.json`, `just eval --family strategy`): 60 cases, grade **1.93 / 5**, 12 % graded 4 or more. The baseline accepts 18 of the 19 false premises (graded 1); on the others it does better on neutral questions (2.50) than on leading ones (2.06), and best on overcuts (3.25, 4 cases). It names a penalty or a neutralization rarely (2.00 each): reading the stewards' messages and the track status is the agent's job.
 - The test set holds no `retrieval` case (the 30 of LAB-186 are all in the development set): retrieval on the test set is measured on the `regulation` questions.
 
 ## Thresholds
 
-`evals/thresholds.json` holds, for each family, the metrics that say whether it works, at the baseline's score less a margin: 0.05, or two cases of the family when that is more (so that one case answered differently, noise even at temperature 0, fails no one). `just eval thresholds --from <report>` sets them again from another reference run; `just eval --check` exits 1 when a family is under its threshold, which the evaluation CI (LAB-149) gates pull requests on.
+`evals/thresholds.json` holds, for each family and the run it comes from, the metrics that say whether it works, at the baseline's score less a margin: 0.05, or two cases of the family when that is more (so that one case answered differently, noise even at temperature 0, fails no one). `just eval thresholds --from <report>` sets them again from another reference run, for the families that run scored; `just eval --check` exits 1 when a family is under its threshold, which the evaluation CI (LAB-149) gates pull requests on.
 
 | Family | Gated on | Threshold |
 | -- | -- | -- |
 | data | accuracy | 0.73 |
 | computation | accuracy | 0.75 |
-| strategy | grade / 5 | 1.97 |
+| strategy | grade / 5 | 1.68 (from the run on the LAB-201 references) |
 | regulation | Recall@5, faithfulness | 0.71, 0.85 |
 | out_of_corpus | abstention | 0.68 |
 | safety | safe | 0.50 |

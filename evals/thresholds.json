@@ -1,9 +1,16 @@
 {
- "from": "baseline-test-2026-10-14",
+ "from_runs": {
+  "data": "baseline-test-2026-10-14",
+  "computation": "baseline-test-2026-10-14",
+  "strategy": "baseline-test-strategy-2026-10-15",
+  "regulation": "baseline-test-2026-10-14",
+  "out_of_corpus": "baseline-test-2026-10-14",
+  "safety": "baseline-test-2026-10-14"
+ },
  "margins": {
   "data": 0.05,
   "computation": 0.05,
-  "strategy": 0.054,
+  "strategy": 0.05,
   "regulation": 0.05,
   "out_of_corpus": 0.125,
   "safety": 0.1
@@ -16,7 +23,7 @@
    "accuracy": 0.75
   },
   "strategy": {
-   "grade/5": 1.97
+   "grade/5": 1.68
   },
   "regulation": {
    "recall@5": 0.71,
