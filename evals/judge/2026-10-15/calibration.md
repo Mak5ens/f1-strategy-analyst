@@ -818,7 +818,7 @@ Note (1 à 5) : 1
 
 > Carlos Sainz a perdu sa place face à Charles Leclerc lors de leurs premiers arrêts aux stands du Grand Prix de Las Vegas 2025 en raison d'un undercut. Charles Leclerc a effectué son arrêt un tour plus tard, ce qui a permis de réduire l'écart de temps entre les deux pilotes. Avant les arrêts, Sainz avait un avantage de 0.563 secondes, mais après les arrêts, Leclerc a pris un avantage de 0.812 secondes, ce qui a entraîné une perte nette de 1.375 secondes pour Sainz. En conséquence, Leclerc a gagné une position, passant de la 4ème à la 9ème place, tandis que Sainz est passé de la 3ème à la 10ème place.
 
-Note (1 à 5) :
+Note (1 à 5) : 2
 
 ---
 

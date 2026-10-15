@@ -865,9 +865,69 @@ def _behind_before(race: RaceFacts, code: str, lap: int, rival: str) -> str | No
     return None
 
 
+def history(race: RaceFacts, a: str, b: str) -> list[tuple[int, str, str]]:
+    """Each change of order between two drivers over the race: (lap, now ahead, how), the start first.
+
+    The order is read at the line at the end of each lap both completed. "how" says where the pass came from: a stop
+    (an in- or out-lap of either), a neutralization, or the track."""
+    mine, theirs = race.laps.get(a, {}), race.laps.get(b, {})
+    changes: list[tuple[int, str, str]] = []
+    ahead = None
+    for lap in sorted(mine.keys() & theirs.keys()):
+        gap = _gap(mine[lap], theirs[lap])
+        if gap is None:
+            continue
+        now = a if gap < 0 else b
+        if now == ahead:
+            continue
+        if ahead is None:
+            changes.append((lap, now, "au départ" if lap == 1 else f"au tour {lap}"))
+        else:
+            pitted = [
+                code
+                for code, laps in ((a, mine), (b, theirs))
+                if any(
+                    number(laps[n]["pit_in_session_s"]) is not None or number(laps[n]["pit_out_session_s"]) is not None
+                    for n in (lap - 1, lap)
+                    if n in laps
+                )
+            ]
+            neutral = neutralization([mine[lap]["track_status"], theirs[lap]["track_status"]])
+            if pitted:
+                how = f"aux stands ({' et '.join(race.name(code) for code in pitted)} au stand)"
+            elif neutral:
+                how = f"sous {neutral}"
+            else:
+                how = "en piste"
+            changes.append((lap, now, how))
+        ahead = now
+    return changes
+
+
+def order_holds(race: RaceFacts, duel: Duel) -> bool:
+    """No change of order from the cycle to the next stop of either driver, or to the flag."""
+    later = [
+        int(stop["lap"])
+        for stop in race.raw_stops
+        if stop["driver"] in duel.stops and int(stop["lap"]) > duel.cycle.lap_after
+    ]
+    until = min(later) if later else 10_000
+    return not any(duel.cycle.lap_before < lap < until for lap, _, _ in history(race, duel.driver, duel.rival)[1:])
+
+
 def context(race: RaceFacts, duel: Duel) -> list[str]:
     codes = [duel.ahead_before, next(c for c in duel.stops if c != duel.ahead_before)]
     lines = []
+    changes = history(race, *codes)
+    if changes:
+        steps = [
+            f"{race.name(ahead)} devant {how}"
+            if index == 0
+            else f"{race.name(ahead)} passe devant au tour {lap}, {how}"
+            for index, (lap, ahead, how) in enumerate(changes)
+        ]
+        end = ", et jusqu'à l'arrivée" if len(changes) == 1 else ""
+        lines.append(f"Le duel sur toute la course : {' ; '.join(steps)}{end}.")
     starts = [line for code in codes if (line := _start(race, code))]
     if starts:
         lines.append(f"Départ : {' ; '.join(starts)}.")

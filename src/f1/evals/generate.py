@@ -20,7 +20,7 @@ import duckdb
 from core.evals.dataset import Case, Origin
 from core.tools import ToolError
 from f1.evals import COMPOUNDS_FR, grand_prix
-from f1.evals.strategy import RaceFacts, cause, duels, elide, facts, laps_fr
+from f1.evals.strategy import RaceFacts, cause, duels, elide, facts, laps_fr, order_holds
 from f1.jobs.facts import lap_time
 from f1.tools import RaceData
 from f1.tools.data import SessionRef
@@ -408,7 +408,9 @@ def strategy_cases(data: RaceData, race: Race, decisions: Sequence[dict[str, Any
     for duel in duels(facts_of, top):
         winner, loser = duel.ahead_after, duel.ahead_before
         stop = "" if duel.rank == 1 else f"-s{duel.rank}"
-        nth = _ordinal_stop(duel.rank)
+        laps_of = sorted(stop.lap for stop in duel.stops.values())
+        when = f"tour {laps_of[0]}" if laps_of[0] == laps_of[1] else f"tours {laps_of[0]} et {laps_of[1]}"
+        nth = f"{_ordinal_stop(duel.rank)} arrêts aux stands ({when})"
         lines = "\n".join(facts(facts_of, duel))
         origin = Origin(
             method="rule",
@@ -428,24 +430,17 @@ def strategy_cases(data: RaceData, race: Race, decisions: Sequence[dict[str, Any
             case_id = f"strategy-{race.key}-{loser}-{winner}{stop}"
             asked = random.Random(case_id).choices(["leading", "neutral", "false_premise"], [0.45, 0.35, 0.2])[0]
             if asked == "leading":
-                question = (
-                    f"Pourquoi {L} a-t-il perdu sa place face à {W} lors de leurs {nth} arrêts aux stands du "
-                    f"{race.label} ?"
-                )
+                question = f"Pourquoi {L} a-t-il perdu sa place face à {W} lors de leurs {nth} du {race.label} ?"
                 answer = f"Cause principale : {sentence}."
             elif asked == "neutral":
                 a, b = sorted([W, L], key=lambda name: random.Random(case_id + name).random())
                 question = (
-                    f"Au {race.label}, qui {elide('de', a)} ou {elide('de', b)} est sorti devant après leurs {nth} "
-                    f"arrêts aux stands, "
+                    f"Au {race.label}, qui {elide('de', a)} ou {elide('de', b)} est sorti devant après leurs {nth}, "
                     f"et pourquoi ?"
                 )
                 answer = f"{W} est sorti devant {L}. Cause principale : {sentence}."
             else:
-                question = (
-                    f"Pourquoi {W} a-t-il perdu sa place face à {L} lors de leurs {nth} arrêts aux stands du "
-                    f"{race.label} ?"
-                )
+                question = f"Pourquoi {W} a-t-il perdu sa place face à {L} lors de leurs {nth} du {race.label} ?"
                 answer = (
                     f"Prémisse fausse : {W} n'a pas perdu sa place face à {L}, c'est l'inverse : {W} a pris celle "
                     f"{elide('de', L)}. Cause principale : {sentence}."
@@ -454,7 +449,10 @@ def strategy_cases(data: RaceData, race: Race, decisions: Sequence[dict[str, Any
         else:
             # One duel a race where the order held, asked as if the leader had lost its place.
             first, second = duel.stops.values()
+            # The order must hold to the next stop or the flag: a pass on track 4 laps later is still a lost place.
             if held or abs(first.lap - second.lap) > 5 or duel.gap_s("before") > HELD_GAP_S:
+                continue
+            if not order_holds(facts_of, duel):
                 continue
             held += 1
             behind = next(code for code in duel.stops if code != winner)
@@ -471,9 +469,7 @@ def strategy_cases(data: RaceData, race: Race, decisions: Sequence[dict[str, Any
             else:
                 tried = f"Les deux se sont arrêtés au tour {attempt.lap} ; {B} n'a {moved} sur le cycle"
             case_id = f"strategy-{race.key}-{winner}-{behind}{stop}-held"
-            question = (
-                f"Pourquoi {W} a-t-il perdu sa place face à {B} lors de leurs {nth} arrêts aux stands du {race.label} ?"
-            )
+            question = f"Pourquoi {W} a-t-il perdu sa place face à {B} lors de leurs {nth} du {race.label} ?"
             answer = (
                 f"Prémisse fausse : {W} n'a pas perdu sa place face à {B} : il était devant avant leurs arrêts et "
                 f"l'est resté après. {tried}."
