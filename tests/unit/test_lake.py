@@ -47,3 +47,12 @@ def test_connect_creates_a_view_per_table_with_files(lake: Lake) -> None:
     ]
     views = {row[0] for row in connection.sql("SELECT view_name FROM duckdb_views() WHERE NOT internal").fetchall()}
     assert views == {"laps"}  # no file yet for results: no view rather than a failing one
+
+
+def test_an_exported_lake_reads_the_same_from_its_folder(lake: Lake, tmp_path: Path) -> None:
+    lake.write_parquet("laps/2025/01-R.parquet", pa.table({"lap": [1, 2]}))
+    lake.write_json("_manifest/2025/01.json", {"schema_version": 1})
+    assert lake.export(tmp_path / "copy") == 2
+    copy = Lake(LakeSettings(uri=str(tmp_path / "copy"), _env_file=None))
+    assert copy.keys("") == lake.keys("")
+    assert copy.read_json("_manifest/2025/01.json") == {"schema_version": 1}

@@ -3,8 +3,9 @@ name: Evaluation
 # The evaluation as a quality gate (LAB-149, docs/evaluation.md): a pull request that changes what the system answers
 # (code, prompts, configuration, dataset, scorers) runs the baseline on a sample of the test set, comments the score of
 # each family against the main branch's reference runs, and fails when a family falls by more than its margin.
-# Every case runs on llmops-gateway started from a pinned release (.github/actions/gateway), with the data that
-# eval-data.yml builds. A full run of the test set runs once a week on main, or on demand.
+# Every case runs on llmops-gateway started from a pinned release (.github/actions/gateway), with the lake and the
+# index of the reference runs, published encrypted by `just eval-data-publish`. A full run of the test set runs once a
+# week on main, or on demand.
 on:
   pull_request:
     paths:
@@ -13,6 +14,7 @@ on:
       - evals/promptfoo/**
       - evals/ragas/**
       - evals/thresholds.json
+      - evals/eval-data.json
       - pyproject.toml
       - uv.lock
       - .github/workflows/eval.yml
@@ -65,31 +67,14 @@ jobs:
             echo "::error::The SCW_SECRET_KEY secret is missing: chat-pro cannot answer (docs/evaluation.md, CI)."
             exit 1
           fi
-      # The latest data of eval-data.yml: run it first when a cache is missing.
-      - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
-        with:
-          path: data/lake
-          key: eval-lake-2024-
-          restore-keys: eval-lake-2024-
-          fail-on-cache-miss: true
-      - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
-        with:
-          path: data/lake
-          key: eval-lake-2025-
-          restore-keys: eval-lake-2025-
-          fail-on-cache-miss: true
-      - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
-        with:
-          path: data/lake
-          key: eval-lake-2026-
-          restore-keys: eval-lake-2026-
-          fail-on-cache-miss: true
-      - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
-        with:
-          path: .cache/index
-          key: eval-index-
-          restore-keys: eval-index-
-          fail-on-cache-miss: true
+      # The lake and the index of the reference runs (`just eval-data-publish`), checked against evals/eval-data.json.
+      - name: Fetch the data
+        env:
+          EVAL_DATA_KEY: ${{ secrets.EVAL_DATA_KEY }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          just eval-data-fetch .cache/eval-data
+          mkdir -p data && mv .cache/eval-data/lake data/lake
       - uses: ./.github/actions/gateway
         with:
           version: ${{ env.GATEWAY_VERSION }}
@@ -99,7 +84,7 @@ jobs:
           cp .env.example .env
           docker compose up --detach --wait qdrant
           start=$(date +%s%N)
-          just index-load .cache/index
+          just index-load .cache/eval-data/index
           echo "Index restored in $(( ($(date +%s%N) - start) / 1000000 )) ms." >> "$GITHUB_STEP_SUMMARY"
       - name: Evaluate
         run: |

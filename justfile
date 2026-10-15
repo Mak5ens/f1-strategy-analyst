@@ -62,6 +62,39 @@ index-load dir=".cache/index":
         echo "$collection: $(curl -sf "$url/collections/$collection" | result "r['points_count']") points"
     done
 
+# The CI cannot build the lake (F1's live timing refuses GitHub's runners): it gets this machine's lake and Qdrant
+# index, encrypted with EVAL_DATA_KEY (the repository secret of the same name), from the `eval-data` release.
+# Publish the evaluation CI's data (lake and index, encrypted), then commit evals/eval-data.json, which names it
+eval-data-publish: _env
+    #!/usr/bin/env bash
+    set -euo pipefail
+    : "${EVAL_DATA_KEY:?set EVAL_DATA_KEY in .env: the repository secret of the same name}"
+    work=.cache/eval-data
+    rm -rf "$work" && mkdir -p "$work"
+    uv run python -c 'import sys; from pathlib import Path; from core.lake import Lake; print(Lake().export(Path(sys.argv[1])), "lake files")' "$work/lake"
+    just index-save "$work/index"
+    asset="eval-data-$(date -u +%Y%m%dT%H%M).tar.gz.enc"
+    tar -C "$work" -czf - lake index \
+        | openssl enc -aes-256-cbc -pbkdf2 -iter 600000 -salt -pass env:EVAL_DATA_KEY -out ".cache/$asset"
+    gh release view eval-data > /dev/null 2>&1 || gh release create eval-data --prerelease --title "Evaluation data" \
+        --notes "Data of the evaluation CI (docs/evaluation.md), encrypted: race data lake and FIA corpus index."
+    gh release upload eval-data ".cache/$asset"
+    printf '{\n "asset": "%s",\n "sha256": "%s"\n}\n' "$asset" "$(sha256sum ".cache/$asset" | cut -d' ' -f1)" \
+        > evals/eval-data.json
+    echo "$asset published: commit evals/eval-data.json"
+
+# Download the data named in evals/eval-data.json, check it and decrypt it into a folder (`lake/`, `index/`)
+eval-data-fetch dir=".cache/eval-data":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    : "${EVAL_DATA_KEY:?set EVAL_DATA_KEY}"
+    read -r asset sha < <(python3 -c 'import json; d = json.load(open("evals/eval-data.json")); print(d["asset"], d["sha256"])')
+    [ -f ".cache/$asset" ] || gh release download eval-data --pattern "$asset" --dir .cache
+    echo "$sha  .cache/$asset" | sha256sum --check --quiet
+    rm -rf "{{dir}}" && mkdir -p "{{dir}}"
+    openssl enc -d -aes-256-cbc -pbkdf2 -iter 600000 -pass env:EVAL_DATA_KEY -in ".cache/$asset" | tar -C "{{dir}}" -xzf -
+    echo "{{dir}}: $(find "{{dir}}/lake" -type f | wc -l) lake files, $(ls "{{dir}}/index" | wc -l) snapshots"
+
 # Ask a question on the FIA rules, in French: `just ask "Peut-on changer de pneus sous drapeau rouge ?"`.
 # Needs the corpus (`just corpus`) and the gateway; the trace goes to the f1 project in Langfuse
 ask question: _env

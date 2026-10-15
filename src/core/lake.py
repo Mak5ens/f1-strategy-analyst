@@ -77,6 +77,14 @@ class Lake:
         infos = self._fs.get_file_info(selector)
         return sorted(info.path.removeprefix(self._root + "/") for info in infos if info.type == pafs.FileType.File)
 
+    def export(self, folder: Path) -> int:
+        """Copy every file of the lake into a local folder, keys kept: a lake whose `uri` is that folder reads the
+        same. Returns the number of files."""
+        folder.mkdir(parents=True, exist_ok=True)
+        pafs.copy_files(self._root, str(folder.resolve()), source_filesystem=self._fs,
+                        destination_filesystem=pafs.LocalFileSystem())  # fmt: skip
+        return len(self.keys(""))
+
     def connect(self, tables: Iterable[str]) -> duckdb.DuckDBPyConnection:
         """An in-memory DuckDB with one view per table that has files, reading `<table>/**/*.parquet`."""
         connection = duckdb.connect()
