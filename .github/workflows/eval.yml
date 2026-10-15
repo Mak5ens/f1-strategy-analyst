@@ -8,6 +8,9 @@ name: Evaluation
 # week on main, or on demand.
 on:
   pull_request:
+    # A draft is not evaluated: each push would pay a run. Marking it ready for review runs it, and so does each push
+    # once it is ready.
+    types: [opened, synchronize, reopened, ready_for_review]
     paths:
       - src/**
       - evals/datasets/**
@@ -41,8 +44,10 @@ env:
 
 jobs:
   eval:
-    # A fork's pull request gets no secret, so no chat-pro: it is not evaluated.
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    # A fork's pull request gets no secret, so no chat-pro: it is not evaluated; nor is a draft.
+    if: >-
+      github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository
+      && !github.event.pull_request.draft)
     runs-on: ubuntu-latest
     timeout-minutes: 90
     permissions:

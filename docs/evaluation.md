@@ -69,7 +69,7 @@ promptfoo and Ragas run apart: promptfoo with `npx` (pinned, `promptfoo@0.123.1`
 
 ## The evaluation CI
 
-`.github/workflows/eval.yml` makes the evaluation a quality gate (LAB-149). A pull request that changes what the system answers (`src/`, the dataset, the scorers, `evals/thresholds.json`, the dependencies) runs the baseline on 10 cases per family of the test set, then comments a table on the pull request, edited by each new run: for every gated metric, the score of the run, the score of the main branch's reference run on the same cases, the difference and the drop allowed. The job fails when a metric falls by more than that. A full run of the test set, also held to the thresholds, runs every Tuesday night on main, or on demand (`workflow_dispatch`, mode `full`).
+`.github/workflows/eval.yml` makes the evaluation a quality gate (LAB-149). A pull request that changes what the system answers (`src/`, the dataset, the scorers, `evals/thresholds.json`, the dependencies) runs the baseline on 10 cases per family of the test set, then comments a table on the pull request, edited by each new run (a draft is not evaluated: the run starts when it is marked ready for review, then at each push): for every gated metric, the score of the run, the score of the main branch's reference run on the same cases, the difference and the drop allowed. The job fails when a metric falls by more than that. A full run of the test set, also held to the thresholds, runs every Tuesday night on main, or on demand (`workflow_dispatch`, mode `full`).
 
 The demo PR (#17) lets the baseline call one tool before answering instead of three, which reads like a latency gain; a race number needs `find_race`, then the tool that computes it. Its comment:
 
@@ -97,7 +97,7 @@ The demo PR (#17) lets the baseline call one tool before answering instead of th
 
 **Duration and cost, measured.** A quick run: 6 to 9 minutes of evaluation for 60 cases, 12 to 13 minutes for the whole job (the gateway starts in about 3), $0.06 to $0.11. A full run of the 273 cases: about 35 minutes and $0.40 locally; the weekly run on main gives its CI figure.
 
-**Cost control.** The run reads the key's spend from the gateway before and after (`/key/info`, `core.gateway.key_spend`), and the comment shows it with the duration. `--budget` stops a run whose spend goes over: $0.25 for a sample, $1.00 for a full run; the cases left are counted as errors, so the gate fails rather than passes on less.
+**Cost control.** Pull requests are opened as drafts while they change, and evaluated once ready: about one run per pull request, $1 to $2 a month at 15 pull requests, plus about $1.60 for the weekly full runs. The run reads the key's spend from the gateway before and after (`/key/info`, `core.gateway.key_spend`), and the comment shows it with the duration. `--budget` stops a run whose spend goes over: $0.25 for a sample, $1.00 for a full run; the cases left are counted as errors, so the gate fails rather than passes on less.
 
 ## The judge
 
