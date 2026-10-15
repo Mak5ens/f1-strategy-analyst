@@ -7,7 +7,7 @@
     just eval --check                  # fail when a family falls under its threshold (evals/thresholds.json)
     just eval --run-name <run> --resume   # go on with an interrupted run: only the missing or failed cases
     just eval judge-sheet              # 30 strategy answers graded by the judge, for a person to grade too
-    just eval agreement                # how the judge agrees with the person's grades
+    just eval agreement                # how the judge agrees with the person's grades (latest round)
     just eval thresholds --from evals/reports/<run>.json   # initial thresholds from a reference run
 
 The system runs once per case; promptfoo, Ragas and the judge then score what it recorded (`core.evals.harness`).
@@ -50,8 +50,23 @@ log = logging.getLogger("f1.eval")
 WORK = Path(".cache/evals")
 REPORTS = Path("evals/reports")
 THRESHOLDS = Path("evals/thresholds.json")
-CALIBRATION = Path("evals/judge/calibration.jsonl")  # what the person grades: no judge grade in sight
-JUDGE_GRADES = Path("evals/judge/judge-grades.json")
+# One directory a calibration round, by date: `calibration.jsonl` is what the person grades (no judge grade in sight),
+# `judge-grades.json` the judge's grades, `agreement.json` how close they are.
+JUDGE = Path("evals/judge")
+SHEET_SIZE = 30
+# A round is drawn by kind, so that the cases where the judge is most likely wrong are there: false premises (an order
+# that held, a premise reversed), penalties, neutralizations, the rare causes; then overcuts and undercuts.
+SHEET_QUOTAS: list[tuple[str, int]] = [
+    ("cause:no_swap", 5),
+    ("question:false_premise -cause:no_swap", 5),  # a swap asked the other way round
+    ("cause:penalty", 5),
+    ("cause:neutralization", 5),
+    ("cause:slow_stop", 1),
+    ("cause:weather", 1),
+    ("cause:double_stack", 1),
+    ("cause:overcut", 3),
+    ("cause:undercut", 4),
+]
 SEED = 148
 END_USER = "f1-evals"  # the judge's calls, apart from the system's
 
@@ -181,11 +196,28 @@ def evaluate(args: argparse.Namespace) -> int:
     return 0
 
 
+def sheet_cases(cases: Sequence[Case], *, seed: int = SEED) -> list[Case]:
+    """The strategy cases of a calibration round, drawn by SHEET_QUOTAS, each case at most once."""
+    rng = random.Random(seed)
+    chosen: list[Case] = []
+    for kind, count in SHEET_QUOTAS:
+        tag, _, without = kind.partition(" -")
+        pool = [case for case in cases if tag in case.tags and without not in case.tags and case not in chosen]
+        chosen += rng.sample(pool, min(count, len(pool)))
+    rest = [case for case in cases if case not in chosen]
+    return chosen + rng.sample(rest, max(0, min(SHEET_SIZE - len(chosen), len(rest))))
+
+
 def judge_sheet(args: argparse.Namespace) -> int:
     """30 strategy cases answered by the system and graded by the judge, for a person to grade without looking at
-    the judge's grade first."""
+    the judge's grade first. A new round goes to its own directory: an earlier round's grades are never lost."""
+    directory = JUDGE / (args.round or f"{datetime.now(UTC):%Y-%m-%d}")
+    if (directory / "calibration.jsonl").exists():
+        print(f"{directory} already holds a round: give another --round")
+        return 1
     cases = [case for case in read_cases(DATASETS / "dev.jsonl") + read_cases(DATASETS / "test.jsonl")]
-    strategy = random.Random(SEED).sample([case for case in cases if case.family == "strategy"], 30)
+    strategy = sheet_cases([case for case in cases if case.family == "strategy"])
+    random.Random(SEED).shuffle(strategy)  # the kinds mixed, so that the order says nothing
     records = run_system(SYSTEMS[args.system](), strategy, workers=args.workers)
     grades = judge_records(strategy, records)
     rows = [
@@ -197,8 +229,8 @@ def judge_sheet(args: argparse.Namespace) -> int:
         }
         for case, record in zip(strategy, records, strict=True)
     ]
-    calibration_sheet(CALIBRATION, rows)
-    JUDGE_GRADES.write_text(
+    calibration_sheet(directory / "calibration.jsonl", rows)
+    (directory / "judge-grades.json").write_text(
         json.dumps(
             {case_id: {"judge": grade["score"], "reason": grade["reason"]} for case_id, grade in grades.items()},
             ensure_ascii=False,
@@ -206,16 +238,20 @@ def judge_sheet(args: argparse.Namespace) -> int:
         )
         + "\n"
     )
-    print(f"{len(rows)} answers in {CALIBRATION}: set `human` (1 to 5) on each line, then `just eval agreement`")
+    print(f"{len(rows)} answers in {directory}/calibration.jsonl: set `human` (1 to 5) on each line, then "
+          "`just eval agreement`")  # fmt: skip
     return 0
 
 
 def judge_agreement(args: argparse.Namespace) -> int:
-    rows = [json.loads(line) for line in CALIBRATION.read_text().splitlines() if line.strip()]
-    judge = json.loads(JUDGE_GRADES.read_text())
+    rounds = sorted(path for path in JUDGE.iterdir() if (path / "calibration.jsonl").exists())
+    directory = JUDGE / args.round if args.round else rounds[-1]
+    rows = [json.loads(line) for line in (directory / "calibration.jsonl").read_text().splitlines() if line.strip()]
+    judge = json.loads((directory / "judge-grades.json").read_text())
     pairs = [(int(judge[row["id"]]["judge"]), int(row["human"])) for row in rows if row.get("human") is not None]
     result = agreement(pairs)
-    (CALIBRATION.parent / "agreement.json").write_text(json.dumps(result, indent=1) + "\n")
+    (directory / "agreement.json").write_text(json.dumps(result, indent=1) + "\n")
+    print(directory)
     for key, value in result.items():
         print(f"{key:15s} {value:.2f}")
     return 0
@@ -274,6 +310,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--workers", type=int, default=4, help="cases run at once (the rate limit sets the pace)")
     parser.add_argument("--records", help="score this records.jsonl instead of running the system")
     parser.add_argument("--run-name")
+    parser.add_argument("--round", help="judge-sheet, agreement: the calibration round (a date by default)")
     parser.add_argument("--resume", action="store_true", help="keep the cases a run of that name already answered")
     parser.add_argument("--no-ragas", action="store_true")
     parser.add_argument("--no-judge", action="store_true")

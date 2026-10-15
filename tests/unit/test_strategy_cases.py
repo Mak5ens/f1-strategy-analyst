@@ -169,3 +169,19 @@ def test_a_stop_under_a_safety_car_is_named() -> None:
         )
         is None
     )
+
+
+def test_a_calibration_round_draws_the_hard_cases_first() -> None:
+    from core.evals.dataset import Case, Origin
+    from f1.evals.run import SHEET_SIZE, sheet_cases
+
+    origin = Origin(method="rule", by="test", reviewed=False)
+    cases = [
+        Case(id=f"s{n}", family="strategy", question="?", answer="x", tags=[tag], origin=origin)
+        for n, tag in enumerate(["cause:no_swap"] * 8 + ["cause:penalty"] * 2 + ["cause:undercut"] * 40)
+    ]
+    chosen = sheet_cases(cases)
+    assert len(chosen) == SHEET_SIZE and len({case.id for case in chosen}) == SHEET_SIZE
+    assert sum("cause:no_swap" in case.tags for case in chosen) >= 5
+    assert sum("cause:penalty" in case.tags for case in chosen) == 2  # all there are
+    assert sheet_cases(cases) == chosen

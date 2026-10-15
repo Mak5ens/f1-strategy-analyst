@@ -1,0 +1,122 @@
+{
+ "strategy-2025-r20-HAM-BEA": {
+  "judge": 1,
+  "reason": "The answer does not mention the main cause (the 10-second penalty) and invents a false cause (understeer). It also makes false claims about the positions of the drivers."
+ },
+ "strategy-2024-r22-LEC-HAM-s2": {
+  "judge": 4,
+  "reason": "The answer correctly identifies the main cause (undercut) and states the time gained (7.355 seconds), which is close to the reference's 7.4 seconds. However, it does not provide the supporting facts (e.g., the specific lap times, the difference in stop times, or the comparison of tire usage)."
+ },
+ "strategy-2026-r11-LAW-RUS": {
+  "judge": 1,
+  "reason": "The answer accepts the premise that George Russell lost his position to Liam Lawson, which is false. It also incorrectly states the positions before and after the stops and misrepresents the time gain."
+ },
+ "strategy-2026-r01-LIN-NOR": {
+  "judge": 1,
+  "reason": "The answer accepts the premise that Lando Norris lost his position to Arvid Lindblad, which is false. The reference states that the opposite happened, and the main cause was the timing of their pit stops under the virtual safety car (VSC). The answer does not mention this and provides incorrect information about the positions and time differences."
+ },
+ "strategy-2025-r17-SAI-RUS": {
+  "judge": 2,
+  "reason": "The answer incorrectly states that the undercut was the reason, while the reference explains that it was the overcut. The answer does mention the time difference and the final outcome, but the main cause is misidentified."
+ },
+ "strategy-2025-r15-VER-HAD-held": {
+  "judge": 1,
+  "reason": "The answer did not provide any explanation or correction regarding the premise that Max Verstappen lost his position to Isack Hadjar. It is a refusal to answer."
+ },
+ "strategy-2026-r03-PIA-RUS-held": {
+  "judge": 1,
+  "reason": "The answer accepts the premise that Oscar Piastri lost his position to George Russell, which is false according to the reference. The reference states that Piastri was ahead before the stops and remained ahead after, with Russell attempting an overcut that failed. The answer also incorrectly describes the timing and the effect of the stops."
+ },
+ "strategy-2025-r02-STR-BEA": {
+  "judge": 2,
+  "reason": "The answer incorrectly states that Bearman succeeded an overcut, while the reference explains that Bearman gained time on Stroll through an undercut. Additionally, the answer falsely claims that Stroll was ahead of Bearman by 0.651 seconds before the stops, while the reference states it was 0.7 seconds."
+ },
+ "strategy-2024-r07-SAI-PIA": {
+  "judge": 1,
+  "reason": "The answer did not provide any explanation or information regarding the question asked. It is essentially a refusal to answer or a 'not found' response."
+ },
+ "strategy-2026-r14-NOR-ANT": {
+  "judge": 5,
+  "reason": "The answer correctly identifies the main cause (the timing of the stops under VSC) and provides supporting facts (the time difference before and after the stops). It does not include any false claims."
+ },
+ "strategy-2024-r06-RUS-TSU": {
+  "judge": 2,
+  "reason": "The answer does not mention the safety car as the main cause. It also incorrectly states that Tsunoda gained 7.471 seconds on Russell, when the reference says the gap increased from 1.7 to 5.8 seconds. The concept of an overcut is not applicable here, as Tsunoda's advantage came from stopping under a safety car."
+ },
+ "strategy-2024-r18-HAM-RUS": {
+  "judge": 1,
+  "reason": "The answer incorrectly states that the cause was an undercut, which is the opposite of the reference's main cause (overcut). It also falsely claims that Hamilton dropped from 3rd to 8th and Russell from 4th to 7th, with Russell overtaking Hamilton. The reference does not mention positions or overtaking."
+ },
+ "strategy-2024-r20-VER-NOR": {
+  "judge": 2,
+  "reason": "The answer does not mention the main cause (the 10-second penalty) and incorrectly attributes the loss of position to a time gap that is not the main reason."
+ },
+ "strategy-2024-r09-RIC-STR": {
+  "judge": 1,
+  "reason": "The answer did not provide any explanation for why Daniel Ricciardo lost his position to Lance Stroll during their pit stops in the Canadian Grand Prix 2024."
+ },
+ "strategy-2025-r12-PIA-NOR-s2": {
+  "judge": 2,
+  "reason": "The answer does not state the main cause (the penalty) and gives a false claim about the time gain."
+ },
+ "strategy-2025-r09-HAM-RUS-s2": {
+  "judge": 2,
+  "reason": "The answer incorrectly states that George Russell performed an overcut, which is not the main cause. The main cause is the undercut, which is not mentioned."
+ },
+ "strategy-2026-r07-COL-GAS-held": {
+  "judge": 1,
+  "reason": "The answer accepts the false premise that Colapinto lost his position to Gasly and invents details about their positions and the time difference, which are not supported by the reference. The reference states that Colapinto was ahead before and after the stops, and Gasly's attempt to overtake failed."
+ },
+ "strategy-2024-r09-NOR-VER": {
+  "judge": 3,
+  "reason": "The answer correctly identifies the main cause (Verstappen stopped one lap earlier under safety car) but includes a false claim about the time gain (10.779 seconds is incorrect; the reference states Norris lost 7.7 seconds)."
+ },
+ "strategy-2024-r13-VER-HAM": {
+  "judge": 1,
+  "reason": "The answer is empty, so it does not state the reference's main cause, which is that Lewis Hamilton did not lose his position to Max Verstappen but rather gained it through an undercut strategy. The answer also does not provide any false claims as it is empty."
+ },
+ "strategy-2026-r09-LIN-BOR-held": {
+  "judge": 1,
+  "reason": "The answer accepts the premise that Lindblad lost his position to Bortoleto, which is false according to the reference. The reference states that Lindblad was ahead before the stops and remained ahead after, so the main cause is the correction of this false premise."
+ },
+ "strategy-2025-r21-PIA-RUS": {
+  "judge": 1,
+  "reason": "L'answer accepte la prémisse fausse de la question et invente des changements de position qui n'ont pas eu lieu. Elle ne mentionne pas l'undercut comme cause principale."
+ },
+ "strategy-2024-r14-NOR-VER": {
+  "judge": 1,
+  "reason": "The answer did not provide any explanation or correction regarding the false premise that Max Verstappen lost his position to Lando Norris."
+ },
+ "strategy-2025-r05-VER-PIA": {
+  "judge": 4,
+  "reason": "The answer correctly identifies the main cause (Verstappen's 5-second penalty) and states that Piastri exited ahead. However, it does not mention the specific details of the penalty being served during the pit stop or the exact time difference (2.6 seconds) by which Piastri exited ahead."
+ },
+ "strategy-2024-r16-LEC-NOR": {
+  "judge": 3,
+  "reason": "The answer correctly identifies the main cause (Lando Norris stopping one lap earlier) but includes false claims about the positions of the drivers before and after the stops, which are irrelevant to the question."
+ },
+ "strategy-2024-r12-NOR-HAM-s2": {
+  "judge": 4,
+  "reason": "The answer correctly identifies the main cause (the timing of the pit stops) and provides supporting facts (the lap numbers and the time gained by Hamilton). It does not mention the evolving track conditions or the rain, but these are not false claims."
+ },
+ "strategy-2025-r10-RUS-VER-held": {
+  "judge": 1,
+  "reason": "The answer accepts the premise that George Russell lost his position to Max Verstappen, which is false according to the reference. It also provides incorrect time gaps and position changes."
+ },
+ "strategy-2025-r22-SAI-LEC": {
+  "judge": 2,
+  "reason": "The answer incorrectly states that the cause was an undercut, rather than an overcut. It also incorrectly states that Leclerc made his stop one tour later (it was two tours later) and that their positions changed as a result of the stops, which did not happen according to the reference. The answer does correctly state the time differences before and after the stops, but these are not enough to make up for the false claims."
+ },
+ "strategy-2025-r23-ANT-SAI": {
+  "judge": 1,
+  "reason": "The answer did not provide any explanation for why Kimi Antonelli lost his position to Carlos Sainz during their first pit stops in the Qatar Grand Prix 2025."
+ },
+ "strategy-2026-r05-LEC-HAD": {
+  "judge": 1,
+  "reason": "The answer did not provide any explanation for why Charles Leclerc lost his position to Isack Hadjar during their first pit stops in the 2026 Canadian Grand Prix."
+ },
+ "strategy-2024-r24-VER-HAM": {
+  "judge": 1,
+  "reason": "The answer did not provide any explanation for why Max Verstappen lost his position to Lewis Hamilton during their first pit stops in the Abu Dhabi Grand Prix 2024."
+ }
+}
