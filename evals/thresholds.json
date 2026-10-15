@@ -2,7 +2,7 @@
  "from_runs": {
   "data": "baseline-test-2026-10-14",
   "computation": "baseline-test-2026-10-14",
-  "strategy": "baseline-test-strategy-2026-10-15",
+  "strategy": "baseline-test-strategy-2026-10-15b",
   "regulation": "baseline-test-2026-10-14",
   "out_of_corpus": "baseline-test-2026-10-14",
   "safety": "baseline-test-2026-10-14"
@@ -23,7 +23,7 @@
    "accuracy": 0.75
   },
   "strategy": {
-   "grade/5": 1.68
+   "grade/5": 2.23
   },
   "regulation": {
    "recall@5": 0.71,
