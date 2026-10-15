@@ -7,7 +7,10 @@ The app never talks to a model provider directly. The gateway decides which mode
 import json
 import random
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager
+from contextvars import ContextVar
+from dataclasses import dataclass
 from datetime import UTC, datetime
 
 import httpx2
@@ -53,6 +56,34 @@ def gateway_client(
     )
 
 
+@dataclass
+class Usage:
+    """Chat calls and their tokens, counted by the transport while a `usage_scope` is open."""
+
+    calls: int = 0
+    prompt_tokens: int = 0
+    completion_tokens: int = 0
+
+    @property
+    def tokens(self) -> int:
+        return self.prompt_tokens + self.completion_tokens
+
+
+_USAGE: ContextVar[Usage | None] = ContextVar("gateway_usage", default=None)
+
+
+@contextmanager
+def usage_scope() -> Iterator[Usage]:
+    """Count every chat call made in the block, on this thread, whatever client makes it (an agent's node and the
+    retrieval pipeline it calls alike): an agent's budget per request is counted this way."""
+    usage = Usage()
+    token = _USAGE.set(usage)
+    try:
+        yield usage
+    finally:
+        _USAGE.reset(token)
+
+
 # Longest wait for one rate-limited call: LiteLLM's limiter counts by the minute, so a few windows at most.
 MAX_RATE_LIMIT_WAIT = 300.0
 
@@ -91,6 +122,8 @@ class GatewayTransport(httpx2.BaseTransport):
         while True:
             response = self._transport.handle_request(request)
             if response.status_code != 429 or waited >= self._max_wait:
+                if (usage := _USAGE.get()) is not None and request.url.path.endswith("/chat/completions"):
+                    _count(usage, response)
                 return response
             wait = min(rate_limit_wait(response.headers, self._now()), self._max_wait - waited)
             response.read()
@@ -116,6 +149,18 @@ class GatewayTransport(httpx2.BaseTransport):
             content=json.dumps({**body, "user": self._end_user}).encode(),
             extensions=request.extensions,
         )
+
+
+def _count(usage: Usage, response: httpx2.Response) -> None:
+    usage.calls += 1
+    if response.status_code != 200:
+        return
+    try:
+        counted = json.loads(response.read()).get("usage") or {}
+    except ValueError:
+        return
+    usage.prompt_tokens += int(counted.get("prompt_tokens") or 0)
+    usage.completion_tokens += int(counted.get("completion_tokens") or 0)
 
 
 def key_spend(settings: GatewaySettings | None = None, *, transport: httpx2.BaseTransport | None = None) -> float:
