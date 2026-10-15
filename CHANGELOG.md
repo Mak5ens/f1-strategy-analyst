@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.4.0](https://github.com/Mak5ens/f1-strategy-analyst/compare/v0.3.0...v0.4.0) (2026-10-15)
+
+
+### Features
+
+* add the evaluation harness and measure the baseline on the test set (LAB-148) ([#13](https://github.com/Mak5ens/f1-strategy-analyst/issues/13)) ([9a5dce8](https://github.com/Mak5ens/f1-strategy-analyst/commit/9a5dce8d49021a389fc8b7cb94064a391b476d92))
+* **evals:** rich and correct strategy references (LAB-201) ([#15](https://github.com/Mak5ens/f1-strategy-analyst/issues/15)) ([91325b7](https://github.com/Mak5ens/f1-strategy-analyst/commit/91325b77bc4c41414834d674312147ecfd9a1bf6))
+
 ## [0.3.0](https://github.com/Mak5ens/f1-strategy-analyst/compare/v0.2.0...v0.3.0) (2026-10-14)
 
 
