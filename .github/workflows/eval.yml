@@ -53,8 +53,6 @@ jobs:
       LAKE_URI: data/lake
       # chat-medium (qwen2.5:7b) is too slow on a runner's CPU: rewriting runs on chat-pro, as answers do.
       RAG_REWRITE_MODEL: chat-pro
-      # The traces stay in the runner's Langfuse, gone with it.
-      LANGFUSE_PUBLIC_KEY: ""
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
@@ -87,6 +85,9 @@ jobs:
           just index-load .cache/eval-data/index
           echo "Index restored in $(( ($(date +%s%N) - start) / 1000000 )) ms." >> "$GITHUB_STEP_SUMMARY"
       - name: Evaluate
+        env:
+          # The app's traces would only reach the runner's Langfuse, gone with it (the gateway's stack needs the key).
+          LANGFUSE_PUBLIC_KEY: ""
         run: |
           if [ "$MODE" = quick ]; then
             run="ci-${{ github.event.pull_request.number && format('pr{0}', github.event.pull_request.number) || 'quick' }}-${GITHUB_SHA::7}"
