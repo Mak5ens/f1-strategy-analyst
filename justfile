@@ -15,9 +15,10 @@ hooks:
 lint:
     uvx pre-commit run --all-files
 
-# Start Qdrant, PostgreSQL and the S3 store, wait until they are healthy, then check the gateway with the f1 key
+# Start Qdrant, PostgreSQL, the S3 store, the API and the front (http://localhost:WEB_PORT), rebuilt when their code
+# changed, wait until they are healthy, then check the gateway with the f1 key
 up: _env
-    docker compose up --detach --wait
+    docker compose up --detach --wait --build
     @just smoke
 
 # Stop the local services (pass --volumes to also delete the Qdrant index, the database and the race data)
@@ -149,13 +150,40 @@ test *args: _env
 test-unit *args:
     uv run pytest tests/unit "$@"
 
-# Serve the API with auto-reload on http://localhost:API_PORT
+# Serve the API with auto-reload on http://localhost:API_DEV_PORT (`just up` serves the built one on API_PORT)
 api: _env
-    uv run uvicorn f1.api:app --reload --port "${API_PORT:-8000}"
+    uv run uvicorn f1.api:app --reload --port "${API_DEV_PORT:-8001}"
 
-# Build the app image locally, as the CI does
+# Build the images locally, as the CI does: the API's, and the front's
 image:
     docker build --tag f1-strategy-analyst:dev .
+    docker build --tag f1-strategy-analyst-web:dev web
+
+# Install the front's dependencies, at the pnpm version of web/package.json, and the browser of its end-to-end tests
+web-install:
+    cd web && corepack pnpm install --frozen-lockfile && corepack pnpm exec playwright install chromium
+
+# Serve the front with hot reload on http://localhost:WEB_DEV_PORT, against the API of `just up` (or API_URL)
+web-dev: _env
+    cd web && API_URL="${API_URL:-http://localhost:${API_PORT:-8000}}" corepack pnpm dev --port "${WEB_DEV_PORT:-3001}"
+
+# Check the front: Biome (lint and format), types, Vitest, then Playwright on a build against the API of `just up`
+# (or API_URL). `just web-test unit` stops after Vitest
+web-test *args: _env
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cd web
+    corepack pnpm lint
+    corepack pnpm typecheck
+    corepack pnpm test
+    [ "${1:-}" = unit ] && exit 0
+    API_URL="${API_URL:-http://localhost:${API_PORT:-8000}}" corepack pnpm test:e2e
+
+# Regenerate the front's API client from FastAPI's OpenAPI: web/openapi.json, then web/src/lib/api/schema.d.ts.
+# Run it after any change to the API's routes or models, and commit both: the CI fails while they differ
+web-gen-client:
+    uv run python -m f1.api > web/openapi.json
+    cd web && corepack pnpm gen-client
 
 [private]
 _env:

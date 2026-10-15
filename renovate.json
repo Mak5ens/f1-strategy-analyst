@@ -1,8 +1,14 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "description": "Version updates of the app: images of compose.yaml and the Dockerfile, Python dependencies (uv.lock), GitHub Actions and the shared workflow of llmops-platform (pinned to commit SHAs), pre-commit hooks.",
-  "extends": ["config:recommended", "helpers:pinGitHubActionDigests", ":semanticCommits"],
-  "labels": ["dependencies"],
+  "description": "Version updates of the app: images of compose.yaml and the Dockerfiles, Python dependencies (uv.lock), the front's (web/package.json, pnpm-lock.yaml, pnpm itself), GitHub Actions and the shared workflow of llmops-platform (pinned to commit SHAs), pre-commit hooks.",
+  "extends": [
+    "config:recommended",
+    "helpers:pinGitHubActionDigests",
+    ":semanticCommits"
+  ],
+  "labels": [
+    "dependencies"
+  ],
   "prConcurrentLimit": 5,
   "dependencyDashboard": true,
   "pre-commit": {
@@ -11,18 +17,62 @@
   "packageRules": [
     {
       "description": "ruff: the Python package and the pre-commit hook on the same version",
-      "matchPackageNames": ["ruff", "astral-sh/ruff-pre-commit"],
+      "matchPackageNames": [
+        "ruff",
+        "astral-sh/ruff-pre-commit"
+      ],
       "groupName": "ruff"
     },
     {
       "description": "Python: the build and runtime stages of the Dockerfile, and .python-version, on the same version",
-      "matchPackageNames": ["python"],
+      "matchPackageNames": [
+        "python"
+      ],
       "groupName": "Python"
     },
     {
+      "description": "Biome: the front's package, the pre-commit hook and the hook's copy on the same version",
+      "matchPackageNames": [
+        "@biomejs/biome",
+        "biomejs/pre-commit"
+      ],
+      "groupName": "Biome"
+    },
+    {
+      "description": "Node.js: the stages of web/Dockerfile and the CI's setup-node on the same version",
+      "matchPackageNames": [
+        "node"
+      ],
+      "groupName": "Node.js"
+    },
+    {
+      "description": "The front's API client: the generator and its fetch client move together",
+      "matchPackageNames": [
+        "openapi-typescript",
+        "openapi-fetch"
+      ],
+      "groupName": "openapi-typescript"
+    },
+    {
       "description": "Major versions need a reading of their upgrade notes",
-      "matchUpdateTypes": ["major"],
+      "matchUpdateTypes": [
+        "major"
+      ],
       "dependencyDashboardApproval": true
+    }
+  ],
+  "customManagers": [
+    {
+      "description": "The Biome of the pre-commit hook, an npm package Renovate's pre-commit manager does not read",
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/^\\.pre-commit-config\\.yaml$/"
+      ],
+      "matchStrings": [
+        "\"@biomejs/biome@(?<currentValue>[^\"]+)\""
+      ],
+      "depNameTemplate": "@biomejs/biome",
+      "datasourceTemplate": "npm"
     }
   ]
 }

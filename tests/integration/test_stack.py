@@ -1,6 +1,8 @@
-"""The local stack answers: the gateway with the `f1` key (started from llmops-gateway), and Qdrant (`just up`)."""
+"""The local stack answers: the gateway with the `f1` key (started from llmops-gateway), Qdrant, the API and the front
+(`just up`)."""
 
 import os
+from importlib.metadata import version
 
 import httpx
 import pytest
@@ -42,3 +44,12 @@ def test_qdrant_is_ready() -> None:
     port = os.environ.get("QDRANT_PORT", "6333")
 
     assert httpx.get(f"http://localhost:{port}/readyz", timeout=5).status_code == 200
+
+
+def test_the_front_shows_the_api_it_reaches() -> None:
+    # The page reads /info through the client generated from the API's OpenAPI, from the front's server.
+    page = httpx.get(f"http://localhost:{os.environ.get('WEB_PORT', '3000')}/", timeout=10)
+
+    assert page.status_code == 200
+    assert "Disponible" in page.text
+    assert f"Version {version('f1-strategy-analyst')}" in page.text

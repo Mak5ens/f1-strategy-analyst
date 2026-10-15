@@ -20,6 +20,8 @@ repos:
     rev: v1.38.0
     hooks:
       - id: yamllint
+        # Written by pnpm.
+        exclude: ^web/pnpm-lock\.yaml$
 
   - repo: https://github.com/DavidAnson/markdownlint-cli2
     rev: v0.23.3
@@ -37,6 +39,17 @@ repos:
       - id: ruff-check
         args: [--fix]
       - id: ruff-format
+
+  # The front's lint and format, with web/biome.json. Same version as web/package.json's (Renovate groups them); the
+  # hook installs its own copy, so pre-commit needs no `pnpm install`.
+  - repo: https://github.com/biomejs/pre-commit
+    rev: v2.5.15
+    hooks:
+      - id: biome-check
+        # From web/, where biome.json is: Biome reads its configuration from the folder it runs in.
+        entry: bash -c 'cd web && exec biome check --write --files-ignore-unknown=true --no-errors-on-unmatched "${@#web/}"' --
+        additional_dependencies: ["@biomejs/biome@2.5.15"]
+        files: ^web/
 
   # Runs in the project's virtualenv (uv.lock), so it sees the real dependencies and their types.
   - repo: local

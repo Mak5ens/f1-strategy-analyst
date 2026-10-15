@@ -1,7 +1,9 @@
-# Local dependencies of the app: Qdrant (FIA corpus index), PostgreSQL (agent checkpoints, human review log)
-# and an S3 store for the race data lake (Parquet files, queried with DuckDB).
+# The app and its local dependencies: Qdrant (FIA corpus index), PostgreSQL (agent checkpoints, human review log),
+# an S3 store for the race data lake (Parquet files, queried with DuckDB), then the API and the front, built from
+# their Dockerfiles (the cluster's images).
 # The gateway is not here: it runs from llmops-gateway (`just gateway-up` there), and the app calls it on GATEWAY_URL.
-# The app itself runs on the host with `uv run` during development; the Dockerfile is for the cluster.
+# The CLIs (`just ingest`, `just debrief`...) run on the host with `uv run`; so do `just api` and `just web-dev`, with
+# reload, on ports of their own.
 # Every service restarts with Docker (after a reboot, or a restart of Docker), like the gateway's, until `just down`.
 name: f1-strategy-analyst
 
@@ -59,6 +61,51 @@ services:
       - s3-data:/data
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8333/healthz"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+
+  # The API, configured by .env like the CLIs, with the addresses of the services as the containers see them.
+  api:
+    build: .
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      QDRANT_URL: http://qdrant:6333
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      LAKE_S3_ENDPOINT: http://s3:8333
+      # The gateway and its Langfuse, on the host at llmops-gateway's default ports.
+      GATEWAY_URL: http://host.docker.internal:4000
+      LANGFUSE_HOST: http://host.docker.internal:3100
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    ports:
+      - 127.0.0.1:${API_PORT:-8000}:8000
+    depends_on:
+      qdrant: {condition: service_healthy}
+      postgres: {condition: service_healthy}
+      s3: {condition: service_healthy}
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz')"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+
+  # The front, its server calling the API inside the compose network.
+  web:
+    build: web
+    environment:
+      API_URL: http://api:8000
+    ports:
+      - 127.0.0.1:${WEB_PORT:-3000}:3000
+    depends_on:
+      api: {condition: service_healthy}
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:3000').then((r) => process.exit(r.ok ? 0 : 1), () => process.exit(1))"]
       interval: 5s
       timeout: 5s
       retries: 12

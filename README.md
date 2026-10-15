@@ -48,7 +48,7 @@ Quality is tested like code. Each pull request shows the scores and **fails belo
 | Data storage | Parquet in S3 (SeaweedFS locally), queried with DuckDB ([schema](docs/data-schema.md)) |
 | FIA corpus and RAG | pypdf, structure-aware parent/child chunking, Qdrant (dense vectors through the gateway, BM25 sparse vectors with fastembed); query rewriting, multi-query, RRF fusion, a cross-encoder reranker behind the gateway, an abstention threshold and a check of every citation ([corpus](docs/corpus.md), [pipeline](docs/rag.md), [ADR-024](docs/adr/024-production-rag-pipeline.md)) |
 | Evaluation | promptfoo, Ragas, LLM judge, Langfuse Datasets; Langfuse traces and scores per question |
-| API and UI | FastAPI, Next.js |
+| API and UI | FastAPI; Next.js, Tailwind CSS and shadcn/ui, a client generated from the OpenAPI (openapi-typescript), Vitest and Playwright |
 | LLM access | [llmops-gateway](https://github.com/Mak5ens/llmops-gateway) |
 
 ## Quick start
@@ -56,7 +56,7 @@ Quality is tested like code. Each pull request shows the scores and **fails belo
 Requires [just](https://just.systems/), [uv](https://docs.astral.sh/uv/) and Docker. The app calls every model through [llmops-gateway](https://github.com/Mak5ens/llmops-gateway), so start it first (`just gateway-up` in that repo).
 
 ```bash
-just up           # Qdrant, PostgreSQL and the S3 store, then a check of the gateway and the data sources
+just up           # Qdrant, PostgreSQL, the S3 store, the API and the front (http://localhost:3000), then a check of the stack
 just ingest 2025  # race data of a season into the lake (a few minutes; reruns skip what is stored)
 just sql "SELECT driver, lap, pit_lane_time_s FROM pit_stops WHERE season = 2025 AND round = 16"
 just corpus 2025  # FIA regulations and stewards' decisions into Qdrant (the first run downloads for a while)
@@ -64,7 +64,7 @@ just ask "Les retardataires peuvent-ils se dédoubler sous safety car en 2025 ?"
 just baseline "Combien de temps Lando Norris a-t-il perdu lors de son 1er arrêt au Grand Prix d'Italie 2025 ?"
 just season-jobs 2025 --simulate  # one job per session through the platform's job queue (drop --simulate for real summaries)
 just test-unit    # unit tests, no stack needed
-just api          # the API on http://localhost:8000
+just web-dev      # the front with hot reload on http://localhost:3001 (`just web-install` once first)
 just down
 ```
 
@@ -76,6 +76,7 @@ just down
 | -- | -- |
 | `src/core/` | Reusable foundation: gateway client, tools, hybrid index, retrieval pipeline and its evaluation, evaluation dataset format, Langfuse tracing, batches on the job queue; then the agent graph. Never imports `f1` ([ADR-011](docs/adr/011-core-and-theme-separation.md)) |
 | `src/f1/` | The Formula 1 theme: race data ingestion (`f1/data/`), deterministic tools (`f1/tools/`), FIA corpus (`f1/corpus/`), questions on the rules (`f1/rag/`), session summary jobs (`f1/jobs/`), evaluation cases (`f1/evals/`), API |
+| `web/` | The front: Next.js, its API client generated from FastAPI's OpenAPI ([docs](docs/web.md), [ADR-026](docs/adr/026-nextjs-front-in-the-app-repo.md)) |
 | `tests/unit/`, `tests/integration/` | Tests without the stack, and against it (`just smoke`) |
 | `evals/` | The evaluation dataset (`evals/datasets/`: 411 cases in seven families, development and test sets) and the retrieval reports (`evals/rag/`); the harness comes with LAB-148 |
 | `docs/adr/` | Architecture decision records of this repo |
@@ -84,6 +85,7 @@ just down
 | `docs/corpus.md` | The FIA corpus: sources, chunking, metadata, incremental index |
 | `docs/rag.md` | The retrieval pipeline: six steps, abstention, traces and scores, evaluation |
 | `docs/baseline.md` | The reference system: dense search, tools chosen in JSON, an answer whose numbers are checked |
+| `docs/web.md` | The front: recipes, the generated API client, conventions |
 | `docs/jobs.md` | Session summaries as asynchronous jobs on the platform's queue, and the check of their numbers and names |
 
 ## Roadmap
