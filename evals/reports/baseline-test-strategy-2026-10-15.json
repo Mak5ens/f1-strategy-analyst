@@ -1,0 +1,688 @@
+{
+ "run": "baseline-test-strategy-2026-10-15",
+ "system": "baseline",
+ "split": "test",
+ "sample_per_family": null,
+ "date": "2026-10-15T05:34:52+00:00",
+ "families": {
+  "strategy": {
+   "cases": 60,
+   "errors": 0,
+   "grade/5": 1.9333333333333333,
+   "graded_4+": 0.11666666666666667,
+   "answered": 0.8,
+   "median_s": 62.025000000000006
+  }
+ },
+ "cases": {
+  "strategy-2024-r02-VER-PER-held": {
+   "grade": 1.0
+  },
+  "strategy-2024-r03-PER-ALO": {
+   "grade": 1.0
+  },
+  "strategy-2024-r04-NOR-SAI-held": {
+   "grade": 1.0
+  },
+  "strategy-2024-r04-PER-NOR": {
+   "grade": 1.0
+  },
+  "strategy-2024-r06-RUS-TSU": {
+   "grade": 2.0
+  },
+  "strategy-2024-r07-SAI-PIA": {
+   "grade": 1.0
+  },
+  "strategy-2024-r09-NOR-VER": {
+   "grade": 3.0
+  },
+  "strategy-2024-r10-NOR-HAM": {
+   "grade": 3.0
+  },
+  "strategy-2024-r10-PIA-OCO": {
+   "grade": 2.0
+  },
+  "strategy-2024-r11-PER-HUL-s2": {
+   "grade": 2.0
+  },
+  "strategy-2024-r12-NOR-HAM-s2": {
+   "grade": 2.0
+  },
+  "strategy-2024-r12-NOR-PIA-held": {
+   "grade": 1.0
+  },
+  "strategy-2024-r13-PIA-NOR-s2": {
+   "grade": 3.0
+  },
+  "strategy-2024-r14-NOR-VER": {
+   "grade": 1.0
+  },
+  "strategy-2024-r14-SAI-NOR": {
+   "grade": 1.0
+  },
+  "strategy-2024-r15-GAS-HAM": {
+   "grade": 2.0
+  },
+  "strategy-2024-r16-LEC-NOR": {
+   "grade": 3.0
+  },
+  "strategy-2024-r17-ALB-NOR": {
+   "grade": 5.0
+  },
+  "strategy-2024-r17-ALO-COL-held": {
+   "grade": 1.0
+  },
+  "strategy-2024-r19-VER-SAI": {
+   "grade": 1.0
+  },
+  "strategy-2024-r22-LEC-HAM-s2": {
+   "grade": 4.0
+  },
+  "strategy-2024-r22-SAI-VER": {
+   "grade": 1.0
+  },
+  "strategy-2024-r24-RUS-LEC": {
+   "grade": 2.0
+  },
+  "strategy-2025-r01-NOR-VER-held": {
+   "grade": 1.0
+  },
+  "strategy-2025-r05-ANT-NOR": {
+   "grade": 5.0
+  },
+  "strategy-2025-r05-VER-PIA": {
+   "grade": 2.0
+  },
+  "strategy-2025-r06-ANT-RUS": {
+   "grade": 2.0
+  },
+  "strategy-2025-r06-VER-RUS": {
+   "grade": 1.0
+  },
+  "strategy-2025-r09-HAM-RUS-s2": {
+   "grade": 3.0
+  },
+  "strategy-2025-r11-ALO-OCO": {
+   "grade": 4.0
+  },
+  "strategy-2025-r12-PIA-NOR-s2": {
+   "grade": 2.0
+  },
+  "strategy-2025-r12-VER-NOR-held": {
+   "grade": 1.0
+  },
+  "strategy-2025-r15-VER-HAD-held": {
+   "grade": 1.0
+  },
+  "strategy-2025-r17-LAW-ANT": {
+   "grade": 2.0
+  },
+  "strategy-2025-r17-SAI-RUS": {
+   "grade": 2.0
+  },
+  "strategy-2025-r18-ALO-BEA": {
+   "grade": 4.0
+  },
+  "strategy-2025-r18-LEC-ANT-held": {
+   "grade": 1.0
+  },
+  "strategy-2025-r19-NOR-LEC": {
+   "grade": 1.0
+  },
+  "strategy-2025-r20-ANT-PIA-s2": {
+   "grade": 3.0
+  },
+  "strategy-2025-r20-HAM-BEA": {
+   "grade": 2.0
+  },
+  "strategy-2025-r21-PIA-RUS": {
+   "grade": 1.0
+  },
+  "strategy-2025-r23-ANT-SAI": {
+   "grade": 1.0
+  },
+  "strategy-2025-r23-SAI-ALO-held": {
+   "grade": 1.0
+  },
+  "strategy-2025-r24-NOR-LEC-held": {
+   "grade": 1.0
+  },
+  "strategy-2026-r01-LEC-HAM-held": {
+   "grade": 1.0
+  },
+  "strategy-2026-r01-LIN-NOR": {
+   "grade": 1.0
+  },
+  "strategy-2026-r03-LEC-ANT": {
+   "grade": 2.0
+  },
+  "strategy-2026-r04-NOR-ANT": {
+   "grade": 3.0
+  },
+  "strategy-2026-r04-PIA-RUS": {
+   "grade": 4.0
+  },
+  "strategy-2026-r05-LEC-HAD": {
+   "grade": 1.0
+  },
+  "strategy-2026-r07-COL-GAS-held": {
+   "grade": 1.0
+  },
+  "strategy-2026-r07-LAW-GAS-s2": {
+   "grade": 2.0
+  },
+  "strategy-2026-r07-LIN-GAS": {
+   "grade": 1.0
+  },
+  "strategy-2026-r08-LIN-LAW-s2": {
+   "grade": 3.0
+  },
+  "strategy-2026-r08-NOR-HAD": {
+   "grade": 1.0
+  },
+  "strategy-2026-r09-GAS-COL": {
+   "grade": 2.0
+  },
+  "strategy-2026-r09-HAM-RUS": {
+   "grade": 2.0
+  },
+  "strategy-2026-r10-COL-BOR": {
+   "grade": 2.0
+  },
+  "strategy-2026-r12-PIA-RUS": {
+   "grade": 1.0
+  },
+  "strategy-2026-r14-NOR-ANT": {
+   "grade": 4.0
+  }
+ },
+ "judge": {
+  "strategy-2024-r02-VER-PER-held": {
+   "cause_found": false,
+   "false_claims": [],
+   "reason": "The answer did not provide any explanation or information regarding the question asked. It is essentially a refusal to answer, which is considered incorrect.",
+   "score": 1
+  },
+  "strategy-2024-r03-PER-ALO": {
+   "cause_found": false,
+   "false_claims": [],
+   "reason": "The answer did not provide any explanation for why Sergio Perez lost his position to Fernando Alonso during their first pit stops in the Australian Grand Prix 2024.",
+   "score": 1
+  },
+  "strategy-2024-r04-NOR-SAI-held": {
+   "cause_found": false,
+   "false_claims": [],
+   "reason": "The answer did not provide any explanation or correction regarding the premise that Lando Norris lost his position to Carlos Sainz during their first pit stops in the Japanese Grand Prix 2024. The reference clearly states that the premise is false, and the answer should have addressed this.",
+   "score": 1
+  },
+  "strategy-2024-r04-PER-NOR": {
+   "cause_found": false,
+   "false_claims": [],
+   "reason": "The answer did not provide any explanation for why Lando Norris came out ahead of Sergio Perez after their first pit stops.",
+   "score": 1
+  },
+  "strategy-2024-r06-RUS-TSU": {
+   "cause_found": false,
+   "false_claims": [
+    "Tsunoda a réussi un overcut"
+   ],
+   "reason": "The answer incorrectly states that Tsunoda performed an overcut, which is not the main cause. The main cause is that Tsunoda stopped under the safety car, which is not mentioned.",
+   "score": 2
+  },
+  "strategy-2024-r07-SAI-PIA": {
+   "cause_found": false,
+   "false_claims": [],
+   "reason": "The answer did not provide any explanation or information regarding the question asked. It is essentially a refusal to answer or a 'not found' response.",
+   "score": 1
+  },
+  "strategy-2024-r09-NOR-VER": {
+   "cause_found": true,
+   "false_claims": [
+    "Max Verstappen a gagné 10.779 secondes sur Lando Norris"
+   ],
+   "reason": "The answer correctly identifies the main cause (the timing of the stops under safety car) but includes a false claim about the time gain (10.779 seconds instead of the correct 7.7 seconds).",
+   "score": 3
+  },
+  "strategy-2024-r10-NOR-HAM": {
+   "cause_found": true,
+   "false_claims": [
+    "Lando Norris a effectué son arrêt au stand au 23e tour, tandis que Lewis Hamilton l'a fait au 16e tour. Après leurs arrêts, Lando Norris était en 6e position et Lewis Hamilton en 4e position, ce qui montre que Lewis Hamilton a gagné une position sur Lando Norris après leurs arrêts respectifs."
+   ],
+   "reason": "The answer states the main cause (the undercut) but does not explain it. It also makes false claims about the positions of the drivers after their stops, which are irrelevant to the question.",
+   "score": 3
+  },
+  "strategy-2024-r10-PIA-OCO": {
+   "cause_found": false,
+   "false_claims": [
+    "Piastri s'est arrêté au stand au 13e tour, tandis qu'Ocon s'est arrêté plus tard, au 21e tour.",
+    "Après les arrêts, Piastri a gagné 9.764 secondes sur Ocon, ce qui a permis à Piastri de passer devant Ocon.",
+    "Piastri était en 8e position avant son arrêt et est passé en 8e position après son arrêt, tandis qu'Ocon est passé de la 9e à la 10e position."
+   ],
+   "reason": "The answer incorrectly states the order of stops and the outcome, and the time gain is misattributed to Piastri instead of Ocon. The main cause (undercut) is mentioned but not correctly applied.",
+   "score": 2
+  },
+  "strategy-2024-r11-PER-HUL-s2": {
+   "cause_found": false,
+   "false_claims": [
+    "Sergio Perez a perdu sa place face à Nico Hulkenberg principalement à cause d'une pénalité de 5 secondes pour excès de vitesse dans la voie des stands.",
+    "Nico Hulkenberg n'a pas reçu de pénalité pour son incident dans la voie des stands lors des qualifications."
+   ],
+   "reason": "L'answer mentionne la pénalité de 5 secondes de Sergio Perez comme la cause principale, alors que la référence indique que l'undercut est la cause principale. De plus, l'answer mentionne une pénalité de Nico Hulkenberg lors des qualifications, ce qui est faux selon la référence.",
+   "score": 2
+  },
+  "strategy-2024-r12-NOR-HAM-s2": {
+   "cause_found": false,
+   "false_claims": [
+    "Hamilton a réalisé un undercut sur Norris, gagnant 4.658 secondes et passant de la 2e à la 1re place, tandis que Norris est passé de la 1re à la 2e place."
+   ],
+   "reason": "The answer incorrectly describes the undercut and the positions of Hamilton and Norris. The main cause mentioned in the reference is the timing of the tire change, which is not stated in the answer.",
+   "score": 2
+  },
+  "strategy-2024-r12-NOR-PIA-held": {
+   "cause_found": false,
+   "false_claims": [
+    "Lando Norris a perdu sa place face à Oscar Piastri",
+    "Oscar Piastri a pris l'avantage sur Norris",
+    "L'écart entre les deux pilotes est passé de -0,605 seconde avant l'arrêt de Norris à -18,525 secondes après l'arrêt de Piastri",
+    "Une perte de cinq positions pour Piastri, passant de la 2e à la 6e place"
+   ],
+   "reason": "L'answer accepte la prémisse fausse de la question et invente des faits qui ne sont pas dans la référence. L'overcut de Piastri a échoué, et il a perdu du temps par rapport à Norris.",
+   "score": 1
+  },
+  "strategy-2024-r13-PIA-NOR-s2": {
+   "cause_found": false,
+   "false_claims": [
+    "un overcut réussi par Norris"
+   ],
+   "reason": "The answer mentions the main cause but incorrectly refers to it as an 'overcut' instead of an 'undercut'. The supporting facts about the time gained are correct, but the terminology is false.",
+   "score": 3
+  },
+  "strategy-2024-r14-NOR-VER": {
+   "cause_found": false,
+   "false_claims": [],
+   "reason": "The answer did not provide any explanation or correction regarding the false premise that Max Verstappen lost his position to Lando Norris.",
+   "score": 1
+  },
+  "strategy-2024-r14-SAI-NOR": {
+   "cause_found": false,
+   "false_claims": [],
+   "reason": "The answer did not provide any explanation for why Carlos Sainz lost his position to Lando Norris during their first pit stops in the Belgian Grand Prix 2024.",
+   "score": 1
+  },
+  "strategy-2024-r15-GAS-HAM": {
+   "cause_found": false,
+   "false_claims": [
+    "un écart de temps de 18,326 secondes en faveur de Hamilton après leurs arrêts respectifs"
+   ],
+   "reason": "The answer states the result but does not mention the main cause (the undercut) or the supporting facts. The false claim is that the 18.326s gap was the cause, not the result of the undercut.",
+   "score": 2
+  },
+  "strategy-2024-r16-LEC-NOR": {
+   "cause_found": true,
+   "false_claims": [
+    "Charles Leclerc a perdu du temps par rapport à Lando Norris, passant de la 2e à la 7e position, tandis que Lando Norris est passé de la 3e à la 6e position."
+   ],
+   "reason": "The answer correctly identifies the main cause (Lando Norris stopping a lap earlier and gaining time) but includes false claims about the positions of the drivers before and after the stops.",
+   "score": 3
+  },
+  "strategy-2024-r17-ALB-NOR": {
+   "cause_found": true,
+   "false_claims": [],
+   "reason": "The answer correctly identifies the main cause (the overcut) and provides the key supporting facts (the time gained and the positions before and after the stops). It does not include any false details.",
+   "score": 5
+  },
+  "strategy-2024-r17-ALO-COL-held": {
+   "cause_found": false,
+   "false_claims": [],
+   "reason": "The answer did not provide any explanation or correction regarding the premise that Fernando Alonso lost his position to Franco Colapinto during their first pit stops in the Azerbaijan Grand Prix 2024.",
+   "score": 1
+  },
+  "strategy-2024-r19-VER-SAI": {
+   "cause_found": false,
+   "false_claims": [
+    "Max Verstappen était en deuxième position avant son arrêt au 25e tour, tandis que Carlos Sainz était en troisième position avant son arrêt au 21e tour.",
+    "Après leurs arrêts, Max Verstappen est passé en cinquième position et Carlos Sainz en quatrième position, ce qui signifie que Carlos Sainz est sorti devant Max Verstappen."
+   ],
+   "reason": "The answer does not mention the main cause (the undercut) and includes false claims about the positions of the drivers before and after their stops.",
+   "score": 1
+  },
+  "strategy-2024-r22-LEC-HAM-s2": {
+   "cause_found": true,
+   "false_claims": [
+    "Hamilton a passé Leclerc sur la piste, passant de la 5e à la 2e position, tandis que Leclerc est passé de la 4e à la 5e position."
+   ],
+   "reason": "The answer correctly identifies the undercut as the main cause and provides supporting facts, but it incorrectly states that Hamilton overtook Leclerc on the track, which is not mentioned in the reference.",
+   "score": 4
+  },
+  "strategy-2024-r22-SAI-VER": {
+   "cause_found": false,
+   "false_claims": [
+    "un undercut réussi par Verstappen",
+    "il a gagné 2.582 secondes sur Sainz",
+    "passant de la troisième à la cinquième position tandis que Sainz est passé de la deuxième à la huitième position"
+   ],
+   "reason": "The answer incorrectly states that Verstappen used an undercut, which is the opposite of the reference's main cause (overcut). The time gain and position changes mentioned are also false.",
+   "score": 1
+  },
+  "strategy-2024-r24-RUS-LEC": {
+   "cause_found": false,
+   "false_claims": [
+    "George Russell a perdu sa place face à Charles Leclerc lors de leurs premiers arrêts aux stands du Grand Prix d'Abou Dabi 2024 en raison d'un \"overcut\" de Leclerc."
+   ],
+   "reason": "L'answer mentionne un \"overcut\" comme cause principale, ce qui est incorrect. La cause principale est l'undercut de Charles Leclerc, qui a gagné du temps sur George Russell grâce à des pneus neufs et une meilleure performance par tour.",
+   "score": 2
+  },
+  "strategy-2025-r01-NOR-VER-held": {
+   "cause_found": false,
+   "false_claims": [],
+   "reason": "The answer did not provide any explanation or correction regarding the premise that Lando Norris lost his position to Max Verstappen. It is a 1 because it is no answer.",
+   "score": 1
+  },
+  "strategy-2025-r05-ANT-NOR": {
+   "cause_found": true,
+   "false_claims": [],
+   "reason": "The answer correctly identifies the main cause (the overcut) and provides supporting facts (the time difference and the advantage gained by Lando Norris). It does not include any false details.",
+   "score": 5
+  },
+  "strategy-2025-r05-VER-PIA": {
+   "cause_found": false,
+   "false_claims": [
+    "Piastri a réussi à gagner du temps sur Verstappen grâce à une stratégie d'overcut"
+   ],
+   "reason": "The answer does not mention the main cause (Verstappen's 5-second penalty) and falsely claims that Piastri gained time through an overcut strategy.",
+   "score": 2
+  },
+  "strategy-2025-r06-ANT-RUS": {
+   "cause_found": false,
+   "false_claims": [
+    "Kimi Antonelli a perdu sa place face à George Russell en raison d'un sous-coupe (undercut).",
+    "George Russell a effectué son arrêt un tour plus tard, ce qui lui a permis de ressortir devant Kimi Antonelli.",
+    "Après les arrêts, Kimi Antonelli est passé en cinquième position tandis que George Russell a gagné deux places pour se retrouver en troisième position."
+   ],
+   "reason": "The answer incorrectly states that the reason for Kimi Antonelli losing his position was due to an undercut. The main cause was the VSC, which allowed George Russell to gain an advantage by stopping under the VSC. The answer also incorrectly describes the positions before and after the stops and the time differences.",
+   "score": 2
+  },
+  "strategy-2025-r06-VER-RUS": {
+   "cause_found": false,
+   "false_claims": [
+    "Max Verstappen est sorti devant George Russell après leurs premiers arrêts aux stands",
+    "Max Verstappen a effectué son arrêt au 12e tour, tandis que George Russell a effectué le sien au 13e tour",
+    "Max Verstappen avait un avantage de 5.901 secondes après son arrêt par rapport à George Russell"
+   ],
+   "reason": "The answer states the opposite of the reference's main cause, and all its facts are false.",
+   "score": 1
+  },
+  "strategy-2025-r09-HAM-RUS-s2": {
+   "cause_found": true,
+   "false_claims": [
+    "Après les arrêts, l'écart était de -12,551 seconde en faveur de Hamilton, ce qui signifie que Russell a gagné 14,442 secondes sur Hamilton.",
+    "Russell a passé de la 6e à la 5e place, tandis que Hamilton est passé de la 5e à la 7e place."
+   ],
+   "reason": "The answer correctly identifies the undercut as the main cause, but it incorrectly states the post-stop gap and the positions of the drivers. The reference states that George Russell was ahead by 12.6 seconds after the stops, not Hamilton. Additionally, the reference does not mention the positions of the drivers before and after the stops.",
+   "score": 3
+  },
+  "strategy-2025-r11-ALO-OCO": {
+   "cause_found": true,
+   "false_claims": [
+    "Avant les arrêts, Ocon était en 9e position et Alonso en 8e, avec un écart de 3.954 secondes en faveur d'Alonso."
+   ],
+   "reason": "The answer correctly identifies the undercut as the main cause, but it incorrectly states the positions and the gap before the stops. The reference states that Fernando Alonso had a 4.0 s lead at the end of lap 18, not 3.954 s, and does not mention their positions.",
+   "score": 4
+  },
+  "strategy-2025-r12-PIA-NOR-s2": {
+   "cause_found": false,
+   "false_claims": [
+    "Lando Norris a gagné 6.128 secondes sur Oscar Piastri"
+   ],
+   "reason": "The answer does not state the main cause (the penalty) and gives a false claim about the time gain.",
+   "score": 2
+  },
+  "strategy-2025-r12-VER-NOR-held": {
+   "cause_found": false,
+   "false_claims": [
+    "Max Verstappen a perdu sa place face à Lando Norris lors de leurs premiers arrêts aux stands",
+    "Max Verstappen a perdu 0.775 secondes sur Norris pendant leurs arrêts au stand",
+    "Max Verstappen était devant Norris de 1.366 secondes avant l'arrêt",
+    "Max Verstappen était devant de 2.141 secondes après l'arrêt",
+    "Max Verstappen est resté en deuxième position, mais Norris est passé de la troisième à la quatrième position"
+   ],
+   "reason": "The answer accepts the premise that Max Verstappen lost his position to Lando Norris, which is false according to the reference. The answer also provides incorrect data about the time differences and positions.",
+   "score": 1
+  },
+  "strategy-2025-r15-VER-HAD-held": {
+   "cause_found": false,
+   "false_claims": [],
+   "reason": "The answer is empty, so it does not state the reference's main cause, which is that Max Verstappen did not lose his position to Isack Hadjar.",
+   "score": 1
+  },
+  "strategy-2025-r17-LAW-ANT": {
+   "cause_found": false,
+   "false_claims": [
+    "Kimi Antonelli a réussi un overcut"
+   ],
+   "reason": "The answer incorrectly states that Kimi Antonelli performed an overcut, which is not the main cause. The main cause is the undercut, which is not mentioned.",
+   "score": 2
+  },
+  "strategy-2025-r17-SAI-RUS": {
+   "cause_found": false,
+   "false_claims": [
+    "un sous-virage (undercut)"
+   ],
+   "reason": "The answer incorrectly states that the reason was an undercut, which is the opposite of the overcut described in the reference. The answer does mention the time difference and the final outcome, but the main cause is misidentified.",
+   "score": 2
+  },
+  "strategy-2025-r18-ALO-BEA": {
+   "cause_found": true,
+   "false_claims": [
+    "Bearman a passé de la 8e à la 12e position tandis qu'Alonso est passé de la 7e à la 15e position"
+   ],
+   "reason": "The answer correctly identifies the undercut as the main cause, but it incorrectly states the positions of the drivers before and after the stops, which are irrelevant to the question.",
+   "score": 4
+  },
+  "strategy-2025-r18-LEC-ANT-held": {
+   "cause_found": false,
+   "false_claims": [
+    "Charles Leclerc a perdu sa place face à Kimi Antonelli lors de leurs premiers arrêts aux stands",
+    "Charles Leclerc a perdu 2.101 secondes par rapport à Kimi Antonelli",
+    "Charles Leclerc est passé de la 4ème à la 6ème place, tandis qu'Antonelli est passé de la 5ème à la 7ème place"
+   ],
+   "reason": "The answer accepts the false premise that Charles Leclerc lost his position to Kimi Antonelli and provides incorrect data about the time difference and position changes. The reference states that Leclerc did not lose his position and provides the correct timing data.",
+   "score": 1
+  },
+  "strategy-2025-r19-NOR-LEC": {
+   "cause_found": false,
+   "false_claims": [
+    "Charles Leclerc a perdu sa place face à Lando Norris lors de leurs premiers arrêts aux stands",
+    "Norris a été dépassé par d'autres pilotes pendant que Leclerc a gagné une position"
+   ],
+   "reason": "The answer accepts the false premise that Charles Leclerc lost his position to Lando Norris. It also incorrectly states that Norris was overtaken by other drivers while Leclerc gained a position. The main cause, the undercut, is not mentioned.",
+   "score": 1
+  },
+  "strategy-2025-r20-ANT-PIA-s2": {
+   "cause_found": true,
+   "false_claims": [
+    "Oscar Piastri a gagné 2,936 secondes sur Kimi Antonelli lors de ce cycle d'arrêts."
+   ],
+   "reason": "The answer states the main cause (Oscar Piastri's faster stop) but includes a false claim about the time gained (2.936 seconds instead of 2.5 seconds).",
+   "score": 3
+  },
+  "strategy-2025-r20-HAM-BEA": {
+   "cause_found": false,
+   "false_claims": [
+    "Lewis Hamilton a perdu sa place face à Oliver Bearman en raison d'un sous-virement.",
+    "Hamilton a chuté de la 3e à la 14e place, tandis que Bearman est passé de la 4e à la 9e place."
+   ],
+   "reason": "The answer does not mention the main cause, the penalty, and adds false claims about the reason and the positions.",
+   "score": 2
+  },
+  "strategy-2025-r21-PIA-RUS": {
+   "cause_found": false,
+   "false_claims": [
+    "George Russell a perdu sa place face à Oscar Piastri"
+   ],
+   "reason": "The answer accepts the premise that George Russell lost his position to Oscar Piastri, which is false according to the reference. The main cause is the correction of this premise.",
+   "score": 1
+  },
+  "strategy-2025-r23-ANT-SAI": {
+   "cause_found": false,
+   "false_claims": [
+    "Kimi Antonelli a reçu une pénalité de 5 secondes pour avoir quitté la piste sans raison justifiable à plusieurs reprises"
+   ],
+   "reason": "L'answer mentionne une pénalité inexistante comme cause principale, alors que la cause réelle est un arrêt aux stands beaucoup plus lent.",
+   "score": 1
+  },
+  "strategy-2025-r23-SAI-ALO-held": {
+   "cause_found": false,
+   "false_claims": [],
+   "reason": "The answer did not provide any explanation or correction regarding the premise that Carlos Sainz lost his position to Fernando Alonso during their pit stops in the Qatar Grand Prix 2025.",
+   "score": 1
+  },
+  "strategy-2025-r24-NOR-LEC-held": {
+   "cause_found": false,
+   "false_claims": [
+    "Lando Norris a perdu sa place face à Charles Leclerc lors de leurs premiers arrêts aux stands",
+    "Il était 3e avant l'arrêt et 9e après"
+   ],
+   "reason": "The answer accepts the premise that Lando Norris lost his position to Charles Leclerc, which is false according to the reference. Additionally, it claims Norris dropped from 3rd to 9th, which is not mentioned in the reference.",
+   "score": 1
+  },
+  "strategy-2026-r01-LEC-HAM-held": {
+   "cause_found": false,
+   "false_claims": [
+    "Charles Leclerc a perdu du temps face à Lewis Hamilton lors de leurs premiers arrêts aux stands du Grand Prix d'Australie 2026, passant de 1,506 secondes de retard à 2,948 secondes de retard.",
+    "Il a gagné 1,442 secondes sur Hamilton, mais cela n'a pas été suffisant pour le dépasser."
+   ],
+   "reason": "The answer accepts the premise that Charles Leclerc lost his position to Lewis Hamilton, which is false according to the reference. The reference states that Leclerc was ahead before and after the stops, and Hamilton lost time. The answer also incorrectly states that Leclerc gained time on Hamilton, which is the opposite of what the reference says.",
+   "score": 1
+  },
+  "strategy-2026-r01-LIN-NOR": {
+   "cause_found": false,
+   "false_claims": [
+    "Lando Norris a perdu sa place face à Arvid Lindblad",
+    "Norris a effectué son arrêt au stand au 11e tour, tandis que Lindblad a attendu le 18e tour. Avant les arrêts, Norris était à 0,491 seconde derrière Lindblad. Après les arrêts, Norris a gagné 7,743 secondes sur Lindblad, passant de la 7e à la 5e place, tandis que Lindblad est passé de la 6e à la 6e place. Norris a ainsi dépassé Lindblad, qui ne l'a pas dépassé en retour."
+   ],
+   "reason": "L'answer accepte la prémisse fausse de la question et donne une explication erronée de l'événement. Il ne mentionne pas la cause principale, qui est le moment de l'arrêt sous voiture de sécurité virtuelle (VSC).",
+   "score": 1
+  },
+  "strategy-2026-r03-LEC-ANT": {
+   "cause_found": false,
+   "false_claims": [
+    "Kimi Antonelli a gagné 8,379 secondes sur Charles Leclerc grâce à une stratégie d'overcut, passant de la 4e à la 1re place, tandis que Charles Leclerc est passé de la 3e à la 5e place."
+   ],
+   "reason": "The answer does not mention the main cause (the safety car) and invents a false claim about an overcut strategy and position changes.",
+   "score": 2
+  },
+  "strategy-2026-r04-NOR-ANT": {
+   "cause_found": true,
+   "false_claims": [
+    "Kimi Antonelli a perdu sa place face à Lando Norris"
+   ],
+   "reason": "The answer correctly identifies the main cause (the undercut) and the supporting facts (the timing data and the effect of the undercut), but it falsely claims that Kimi Antonelli lost his position to Lando Norris, which is the opposite of what happened.",
+   "score": 3
+  },
+  "strategy-2026-r04-PIA-RUS": {
+   "cause_found": true,
+   "false_claims": [
+    "George Russell était en 5e position avant son arrêt et a conservé cette position après, tandis qu'Oscar Piastri est passé de la 4e à la 7e position."
+   ],
+   "reason": "The answer correctly identifies the undercut as the main cause and provides the supporting facts, but it includes false claims about the positions of the drivers before and after the stops, which are irrelevant to the question.",
+   "score": 4
+  },
+  "strategy-2026-r05-LEC-HAD": {
+   "cause_found": false,
+   "false_claims": [],
+   "reason": "The answer did not provide any explanation for why Charles Leclerc lost his position to Isack Hadjar during their first pit stops in the 2026 Canadian Grand Prix.",
+   "score": 1
+  },
+  "strategy-2026-r07-COL-GAS-held": {
+   "cause_found": false,
+   "false_claims": [
+    "Franco Colapinto a perdu sa place face à Pierre Gasly lors de leurs premiers arrêts aux stands",
+    "Franco Colapinto était derrière Pierre Gasly avant les arrêts",
+    "L'écart s'est creusé en faveur de Pierre Gasly",
+    "Franco Colapinto a perdu 3.094 secondes",
+    "Franco Colapinto est passé de la 12e à la 14e place",
+    "Pierre Gasly est passé de la 13e à la 15e place"
+   ],
+   "reason": "L'answer accepte la prémisse fausse de la question et invente des détails faux sur les écarts et les positions. La référence indique que Franco Colapinto n'a pas perdu sa place face à Pierre Gasly et que Gasly a tenté un overcut sans succès.",
+   "score": 1
+  },
+  "strategy-2026-r07-LAW-GAS-s2": {
+   "cause_found": false,
+   "false_claims": [
+    "Pierre Gasly a gagné 5,721 secondes sur Liam Lawson"
+   ],
+   "reason": "The answer states that Gasly gained 5.721 seconds on Lawson, but the reference says that Gasly was 4.9 seconds ahead after the stops. The answer does not mention the main cause (the VSC).",
+   "score": 2
+  },
+  "strategy-2026-r07-LIN-GAS": {
+   "cause_found": false,
+   "false_claims": [
+    "Pierre Gasly a perdu sa place face à Arvid Lindblad",
+    "Lindblad a effectué son arrêt au stand au 22e tour, tandis que Gasly a arrêté au 14e tour",
+    "Avant les arrêts, Lindblad était en 10e position et Gasly en 11e",
+    "Après les arrêts, Lindblad est passé en 16e position et Gasly est resté en 11e position"
+   ],
+   "reason": "The answer accepts the false premise that Gasly lost his position to Lindblad and provides incorrect details about their positions and stop times. It does not mention the undercut strategy that was the main cause of the position change.",
+   "score": 1
+  },
+  "strategy-2026-r08-LIN-LAW-s2": {
+   "cause_found": true,
+   "false_claims": [
+    "Liam Lawson était à 0.98 seconde derrière Arvid Lindblad",
+    "Liam Lawson a gagné 2.205 secondes et a pris la 9e place, tandis qu'Arvid Lindblad est passé à la 10e place"
+   ],
+   "reason": "The answer correctly identifies the undercut as the main cause but includes false claims about the positions and the exact time gain.",
+   "score": 3
+  },
+  "strategy-2026-r08-NOR-HAD": {
+   "cause_found": false,
+   "false_claims": [
+    "Lando Norris est sorti en 8e position, alors qu'Isack Hadjar est sorti en 7e position."
+   ],
+   "reason": "The answer does not mention the main cause (the undercut) and provides false information about the positions of the drivers after their stops.",
+   "score": 1
+  },
+  "strategy-2026-r09-GAS-COL": {
+   "cause_found": false,
+   "false_claims": [
+    "une manœuvre d'overcut réussie par Colapinto, où il a gagné 8.657 secondes sur Gasly, passant de la 12e à la 11e position, tandis que Gasly est passé de la 11e à la 14e position"
+   ],
+   "reason": "The answer does not mention the main cause (the VSC) and invents a false claim about an overcut and position changes.",
+   "score": 2
+  },
+  "strategy-2026-r09-HAM-RUS": {
+   "cause_found": false,
+   "false_claims": [
+    "George Russell a gagné 6,288 secondes sur Lewis Hamilton lors de leurs arrêts simultanés au 23e tour",
+    "George Russell a passé de la 4e à la 5e position tandis que Lewis Hamilton est passé de la 3e à la 6e position"
+   ],
+   "reason": "The answer does not mention the main cause (Hamilton's 5-second penalty) and includes false claims about the time gained and the positions of the drivers.",
+   "score": 2
+  },
+  "strategy-2026-r10-COL-BOR": {
+   "cause_found": false,
+   "false_claims": [
+    "il a gagné 9.681 secondes sur Colapinto"
+   ],
+   "reason": "The answer does not state the main cause (the VSC) and gives a false claim about the time gained.",
+   "score": 2
+  },
+  "strategy-2026-r12-PIA-RUS": {
+   "cause_found": false,
+   "false_claims": [
+    "Oscar Piastri a perdu 2.495 secondes face à George Russell lors de leurs premiers arrêts aux stands"
+   ],
+   "reason": "The answer does not state the main cause (the undercut) and makes a false claim about the time lost by Oscar Piastri.",
+   "score": 1
+  },
+  "strategy-2026-r14-NOR-ANT": {
+   "cause_found": true,
+   "false_claims": [
+    "Lando Norris a été neutralisé par une voiture de sécurité virtuelle (VSC) après son arrêt."
+   ],
+   "reason": "The answer correctly identifies the main cause (the timing of the stops under VSC) and provides the supporting facts (the time gaps before and after the stops). However, it falsely claims that Norris was neutralized by a VSC after his stop, which is not the case according to the reference.",
+   "score": 4
+  }
+ }
+}

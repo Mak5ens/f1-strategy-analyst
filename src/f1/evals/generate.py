@@ -4,14 +4,14 @@ Three families:
 - data: a fact of a race weekend (winner, pole, tyres used, stops, grid, result, fastest lap);
 - computation: a number from a deterministic tool (time lost in a stop, pit lane time, tyre wear, gap at a lap,
   time gained in a pit cycle, safety cars);
-- strategy: why a driver lost a place to another in the pit stops. The cause is a rule's guess (undercut, slow
-  stop, neutralization), so these cases are marked unreviewed until a person checks them.
+- strategy: who came out ahead of a pit cycle and why, sometimes asked on a false premise (`f1.evals.strategy`).
+  The cause is a rule's reading of the data, so these cases are marked unreviewed until a person checks them.
 
 Races and drivers are drawn with a fixed seed, in a fixed order: the same lake gives the same cases.
 """
 
 import random
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Iterator, Sequence
 from dataclasses import dataclass
 from typing import Any
 
@@ -20,16 +20,19 @@ import duckdb
 from core.evals.dataset import Case, Origin
 from core.tools import ToolError
 from f1.evals import COMPOUNDS_FR, grand_prix
+from f1.evals.strategy import RaceFacts, cause, duels, elide, facts, laps_fr, order_holds
 from f1.jobs.facts import lap_time
 from f1.tools import RaceData
+from f1.tools.data import SessionRef
 from f1.tools.degradation import DegradationInput, stint_degradation
 from f1.tools.gaps import GapInput, gap_between_drivers
 from f1.tools.neutralizations import NeutralizationsInput, neutralizations
-from f1.tools.pit_cycle import PitCycleInput, pit_cycle
 from f1.tools.pit_loss import PitLossInput, pit_stop_loss
 
 SEED = 146
-STRATEGY_PER_RACE = 2
+STRATEGY_PER_RACE = 2  # swaps a race, plus one duel where the order held
+HELD_CASES = 18
+HELD_GAP_S = 3.0  # a duel where the order held: close enough before the stops for the rear car to try
 GENERATOR = "f1.evals.generate"
 
 
@@ -55,7 +58,7 @@ class Race:
 
 # The tables the generator reads, copied once into memory: the tools query the lake again for every case, and a
 # query over S3 lists every file first.
-TABLES = ("sessions", "results", "laps", "stints", "pit_stops", "race_control_messages")
+TABLES = ("sessions", "results", "laps", "stints", "pit_stops", "race_control_messages", "weather")
 
 
 def in_memory(db: duckdb.DuckDBPyConnection) -> duckdb.DuckDBPyConnection:
@@ -387,77 +390,98 @@ COMPUTATION: list[Callable[[RaceData, Race, random.Random], Iterator[Case]]] = [
 # ---- strategy ---------------------------------------------------------------------------------------------------
 
 
-def pit_cycles(data: RaceData, race: Race) -> Iterator[tuple[str, str, Any]]:
-    """Each pair of drivers running next to each other in the top 10 whose first stops swapped them."""
+def _ordinal_stop(rank: int) -> str:
+    return "premiers" if rank == 1 else f"{rank}es"
+
+
+def strategy_cases(data: RaceData, race: Race, decisions: Sequence[dict[str, Any]] = ()) -> Iterator[Case]:
+    """Swaps in a pit cycle, asked three ways (why the loser lost, who came out ahead, or the premise reversed),
+    and duels where nothing swapped, asked as if it had: the reference then says the premise is false."""
+    ref = SessionRef(season=race.season, round=race.round)
+    teams = {str(row["driver"]): str(row["team"]) for row in race.results if isinstance(row["team"], str)}
+    try:
+        facts_of = RaceFacts(data, ref, race.names, teams, results=race.results, decisions=decisions)
+    except ToolError:
+        return
     top = [row["driver"] for row in _classified(race)[:10]]
-    for driver in top:
-        for rival in top:
-            if driver >= rival:
+    held = 0
+    for duel in duels(facts_of, top):
+        winner, loser = duel.ahead_after, duel.ahead_before
+        stop = "" if duel.rank == 1 else f"-s{duel.rank}"
+        laps_of = sorted(stop.lap for stop in duel.stops.values())
+        when = f"tour {laps_of[0]}" if laps_of[0] == laps_of[1] else f"tours {laps_of[0]} et {laps_of[1]}"
+        nth = f"{_ordinal_stop(duel.rank)} arrêts aux stands ({when})"
+        lines = "\n".join(facts(facts_of, duel))
+        origin = Origin(
+            method="rule",
+            by=f"{GENERATOR}:strategy",
+            inputs={
+                "season": race.season, "round": race.round, "session": "R", "driver": duel.driver,
+                "rival": duel.rival, "stop": duel.rank, "tool": "pit_cycle",
+            },
+            reviewed=False,
+        )  # fmt: skip
+        W, L = race.name(winner), race.name(loser)
+        if duel.swapped:
+            found = cause(facts_of, duel)
+            if found is None:
                 continue
-            try:
-                cycle = pit_cycle(data, PitCycleInput(season=race.season, round=race.round, driver=driver, rival=rival))
-            except ToolError:
+            tag, sentence = found
+            case_id = f"strategy-{race.key}-{loser}-{winner}{stop}"
+            asked = random.Random(case_id).choices(["leading", "neutral", "false_premise"], [0.45, 0.35, 0.2])[0]
+            if asked == "leading":
+                question = f"Pourquoi {L} a-t-il perdu sa place face à {W} lors de leurs {nth} du {race.label} ?"
+                answer = f"Cause principale : {sentence}."
+            elif asked == "neutral":
+                a, b = sorted([W, L], key=lambda name: random.Random(case_id + name).random())
+                question = (
+                    f"Au {race.label}, qui {elide('de', a)} ou {elide('de', b)} est sorti devant après leurs {nth}, "
+                    f"et pourquoi ?"
+                )
+                answer = f"{W} est sorti devant {L}. Cause principale : {sentence}."
+            else:
+                question = f"Pourquoi {W} a-t-il perdu sa place face à {L} lors de leurs {nth} du {race.label} ?"
+                answer = (
+                    f"Prémisse fausse : {W} n'a pas perdu sa place face à {L}, c'est l'inverse : {W} a pris celle "
+                    f"{elide('de', L)}. Cause principale : {sentence}."
+                )
+            tags = [f"cause:{tag}", f"question:{asked}"]
+        else:
+            # One duel a race where the order held, asked as if the leader had lost its place.
+            first, second = duel.stops.values()
+            # The order must hold to the next stop or the flag: a pass on track 4 laps later is still a lost place.
+            if held or abs(first.lap - second.lap) > 5 or duel.gap_s("before") > HELD_GAP_S:
                 continue
-            before, rival_before = cycle.position_before, cycle.rival_position_before
-            next_to = before is not None and rival_before is not None and abs(before - rival_before) == 1
-            if next_to and (cycle.driver_passed_rival or cycle.rival_passed_driver):
-                yield driver, rival, cycle
-
-
-def _cause(data: RaceData, race: Race, winner: str, loser: str, cycle: Any) -> tuple[str, str] | None:
-    """The main cause of the swap, as a rule sees it: (tag, sentence). None when no rule applies."""
-    if cycle.neutralized:
-        return "neutralization", "les arrêts ont eu lieu pendant une neutralisation, qui a changé leur coût"
-    stationary: dict[str, float | None] = {}
-    for code in (winner, loser):
-        try:
-            stops = pit_stop_loss(data, PitLossInput(season=race.season, round=race.round, driver=code)).stops
-        except ToolError:
-            return None
-        lap = cycle.driver_stop_lap if code == cycle.driver else cycle.rival_stop_lap
-        stationary[code] = next((stop.stationary_time_s for stop in stops if stop.lap == lap), None)
-    slow, fast = stationary[loser], stationary[winner]
-    if slow is not None and fast is not None and slow - fast >= 1.5:
-        return "slow_stop", f"un arrêt lent : {slow} s immobile, contre {fast} s"
-    winner_lap = cycle.driver_stop_lap if winner == cycle.driver else cycle.rival_stop_lap
-    loser_lap = cycle.rival_stop_lap if winner == cycle.driver else cycle.driver_stop_lap
-    gained = abs(cycle.gained_s)
-    if winner_lap < loser_lap:
-        return "undercut", f"l'undercut : {race.name(winner)} s'est arrêté {loser_lap - winner_lap} tour(s) plus tôt " \
-            f"et a gagné {gained} s sur le cycle d'arrêts"  # fmt: skip
-    if winner_lap > loser_lap:
-        return "overcut", f"l'overcut : {race.name(winner)} est resté {winner_lap - loser_lap} tour(s) de plus en " \
-            f"piste et a gagné {gained} s sur le cycle d'arrêts"  # fmt: skip
-    return None
-
-
-def strategy_cases(data: RaceData, race: Race) -> Iterator[Case]:
-    for driver, rival, cycle in pit_cycles(data, race):
-        winner, loser = (driver, rival) if cycle.driver_passed_rival else (rival, driver)
-        cause = _cause(data, race, winner, loser, cycle)
-        if cause is None:
-            continue
-        tag, sentence = cause
+            if not order_holds(facts_of, duel):
+                continue
+            held += 1
+            behind = next(code for code in duel.stops if code != winner)
+            B, attempt = race.name(behind), duel.stops[behind]
+            gain = duel.cycle.gained_s if behind == duel.driver else -duel.cycle.gained_s
+            ahead_stop = duel.stops[winner]
+            moved = f"repris que {gain:.1f} s" if gain > 0 else f"rien repris, il a même perdu {-gain:.1f} s"
+            if attempt.lap < ahead_stop.lap:
+                tried = f"{B} a tenté l'undercut en s'arrêtant au tour {attempt.lap}, " \
+                    f"{laps_fr(ahead_stop.lap - attempt.lap)} avant {W}, mais n'a {moved} sur le cycle"  # fmt: skip
+            elif attempt.lap > ahead_stop.lap:
+                tried = f"{B} a tenté l'overcut en restant en piste {laps_fr(attempt.lap - ahead_stop.lap)} de " \
+                    f"plus {elide('que', W)}, mais n'a {moved} sur le cycle"  # fmt: skip
+            else:
+                tried = f"Les deux se sont arrêtés au tour {attempt.lap} ; {B} n'a {moved} sur le cycle"
+            case_id = f"strategy-{race.key}-{winner}-{behind}{stop}-held"
+            question = f"Pourquoi {W} a-t-il perdu sa place face à {B} lors de leurs {nth} du {race.label} ?"
+            answer = (
+                f"Prémisse fausse : {W} n'a pas perdu sa place face à {B} : il était devant avant leurs arrêts et "
+                f"l'est resté après. {tried}."
+            )
+            tags = ["cause:no_swap", "question:false_premise"]
         yield Case(
-            id=f"strategy-{race.key}-{loser}-{winner}",
+            id=case_id,
             family="strategy",
-            question=f"Pourquoi {race.name(loser)} a-t-il perdu sa place face à {race.name(winner)} lors des arrêts "
-            f"aux stands du {race.label} ?",
-            answer=f"Cause principale : {sentence}.",
-            tags=[f"cause:{tag}"],
-            origin=Origin(
-                method="rule",
-                by=f"{GENERATOR}:pit_cycle",
-                inputs={
-                    "season": race.season,
-                    "round": race.round,
-                    "session": "R",
-                    "driver": driver,
-                    "rival": rival,
-                    "tool": "pit_cycle",
-                },
-                reviewed=False,
-            ),
+            question=question,
+            answer=f"{answer}\n{lines}",
+            tags=tags,
+            origin=origin,
         )
 
 
@@ -465,9 +489,14 @@ def strategy_cases(data: RaceData, race: Race) -> Iterator[Case]:
 
 
 def generate(
-    db: duckdb.DuckDBPyConnection, *, data_cases: int = 100, computation_cases: int = 100, strategy: int = 50
+    db: duckdb.DuckDBPyConnection,
+    *,
+    data_cases: int = 100,
+    computation_cases: int = 100,
+    strategy: int = 90,
+    decisions: dict[tuple[int, int], list[dict[str, Any]]] | None = None,
 ) -> list[Case]:
-    """The computed cases, the same for the same lake."""
+    """The computed cases, the same for the same lake and the same FIA corpus (the stewards' decisions)."""
     db = in_memory(db)
     rng = random.Random(SEED)
     tools = RaceData(db)
@@ -486,7 +515,13 @@ def generate(
     for index, race in enumerate(order * 3):
         for case in COMPUTATION[index % len(COMPUTATION)](tools, race, rng):
             add(case, computation_cases)
+    # Swaps first, a few a race; then duels where the order held, asked on a false premise.
+    decided = decisions or {}
+    found = {race.key: list(strategy_cases(tools, race, decided.get((race.season, race.round), []))) for race in order}
     for race in order:
-        for case in list(strategy_cases(tools, race))[:STRATEGY_PER_RACE]:
+        for case in [case for case in found[race.key] if "cause:no_swap" not in case.tags][:STRATEGY_PER_RACE]:
             add(case, strategy)
+    held = [case for race in order for case in found[race.key] if "cause:no_swap" in case.tags]
+    for case in held[:HELD_CASES]:
+        add(case, strategy)
     return list(cases.values())

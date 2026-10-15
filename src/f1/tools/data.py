@@ -85,6 +85,10 @@ class RaceData:
     def race_control_messages(self, ref: SessionRef) -> list[dict[str, Any]]:
         return self._rows("race_control_messages", ref, order="time_utc")
 
+    def weather(self, ref: SessionRef) -> list[dict[str, Any]]:
+        """One row a minute; empty when the session has none."""
+        return self._rows("weather", ref, order="session_time_s")
+
     def events(self, season: int) -> list[dict[str, Any]]:
         """The race weekends of a season in the data, with their name, place and country."""
         return self._query(

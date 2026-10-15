@@ -3,6 +3,7 @@ Langfuse read, and the retrieval cases read back by `just rag-eval`."""
 
 import json
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
 import pytest
@@ -102,6 +103,10 @@ class FakeLangfuse:
     def create_dataset_item(self, *, id: str, **item: Any) -> None:
         self.items[id] = item
 
+    def get_dataset(self, name: str) -> Any:
+        items = [SimpleNamespace(**{"status": None, **item, "id": id}) for id, item in self.items.items()]
+        return SimpleNamespace(items=[item for item in items if item.id.startswith(f"{name}:")])
+
     def flush(self) -> None:
         pass
 
@@ -117,6 +122,14 @@ def test_a_second_push_updates_the_items_instead_of_copying_them() -> None:
     assert item["expected_output"]["value"] == 1
     assert item["metadata"]["origin"]["method"] == "computed"
     assert dataset_items([case("c")])[0]["metadata"]["family"] == "data"
+
+
+def test_an_item_whose_case_left_the_set_is_archived() -> None:
+    client = FakeLangfuse()
+    push_to_langfuse("f1-dev", [case("a", answer="x"), case("b", answer="y")], description="d", client=client)
+    push_to_langfuse("f1-dev", [case("a", answer="x")], description="d", client=client)
+    assert client.items["f1-dev:b"]["status"] == "ARCHIVED"
+    assert "status" not in client.items["f1-dev:a"]
 
 
 def test_rag_eval_reads_the_rule_and_out_of_corpus_cases(tmp_path: Path) -> None:
