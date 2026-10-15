@@ -25,6 +25,7 @@ from core.tools import ToolError
 from f1.evals import COMPOUNDS_FR
 from f1.tools import RaceData
 from f1.tools.data import SessionRef, integer, number
+from f1.tools.penalties import Penalty, penalties
 from f1.tools.pit_cycle import PitCycleInput, PitCycleOutput, pit_cycle
 from f1.tools.pit_loss import PitLossInput, StopLoss, pit_stop_loss
 
@@ -42,85 +43,6 @@ NEUTRALIZATIONS_FR = {
     "7": "voiture de sécurité virtuelle (VSC)",
     "5": "drapeau rouge",
 }
-
-PENALTY = re.compile(
-    r"^FIA STEWARDS: (?P<served>PENALTY SERVED - )?"
-    r"(?:(?P<seconds>\d+) SECOND (?P<kind>TIME|STOP/GO)|(?P<other>DRIVE THROUGH|STOP-AND-GO)) PENALTY "
-    r"FOR CAR \d+ \((?P<driver>[A-Z]{3})\)(?: - (?P<reason>.+))?"
-)
-
-
-@dataclass(frozen=True)
-class Penalty:
-    driver: str
-    kind: Literal["time", "drive_through", "stop_go"]
-    seconds: int | None  # added to the stop for a time penalty; held in the box for a stop and go
-    reason: str
-    lap: int  # the lap race control announced it
-
-    def french(self) -> str:
-        what = (
-            f"une pénalité de {self.seconds} s"
-            if self.kind == "time"
-            else "un drive-through"
-            if self.kind == "drive_through"
-            else f"un stop and go de {self.seconds or 10} s"
-        )
-        return f"{what} {reason_fr(self.reason)}".strip()
-
-
-# The stewards' usual reasons, in French; another reason is quoted as it is.
-REASONS_FR = [
-    ("CAUSING A COLLISION", "pour avoir provoqué une collision"),
-    ("LEAVING THE TRACK AND GAINING", "pour avoir gagné un avantage en sortant de la piste"),
-    ("FALSE START", "pour un faux départ"),
-    ("STARTING PROCEDURE", "pour une infraction à la procédure de départ"),
-    ("SPEEDING IN THE PIT LANE", "pour excès de vitesse dans la voie des stands"),
-    ("TRACK LIMITS", "pour dépassements répétés des limites de la piste"),
-    ("RELEASING IN UNSAFE", "pour une remise en piste dangereuse"),
-    ("UNSAFE RELEASE", "pour une remise en piste dangereuse"),
-    ("FORCING ANOTHER", "pour avoir poussé un autre pilote hors de la piste"),
-    ("YELLOW FLAG", "pour ne pas avoir respecté un drapeau jaune"),
-    ("FAILING TO SLOW UNDER YELLOW", "pour ne pas avoir ralenti sous drapeau jaune"),
-    ("IGNORING BLUE FLAGS", "pour avoir ignoré les drapeaux bleus"),
-    ("VSC INFRINGEMENT", "pour une infraction sous VSC"),
-    ("SAFETY CAR INFRINGEMENT", "pour une infraction sous voiture de sécurité"),
-    ("FAILING TO FOLLOW RACE DIRECTOR", "pour ne pas avoir suivi les instructions du directeur de course"),
-]
-
-
-def reason_fr(reason: str) -> str:
-    reason = re.sub(r"\s*\(\d{2}:\d{2}:\d{2}\)$", "", reason.strip())
-    if not reason:
-        return ""
-    for start, french in REASONS_FR:
-        if reason.upper().startswith(start):
-            return french
-    return f"(« {reason.lower()} »)"
-
-
-def penalties(messages: Sequence[dict[str, Any]]) -> tuple[list[Penalty], list[tuple[str, int]]]:
-    """The penalties given in a race, in order, and the (driver, lap) of each "PENALTY SERVED" message."""
-    given, served = [], []
-    for message in messages:
-        found = PENALTY.match(str(message["message"]))
-        if not found:
-            continue
-        lap = integer(message["lap"]) or 1
-        if found["served"]:
-            served.append((found["driver"], lap))
-            continue
-        other = found["other"]
-        kind: Literal["time", "drive_through", "stop_go"] = (
-            "drive_through"
-            if other == "DRIVE THROUGH"
-            else "stop_go"
-            if other or found["kind"] == "STOP/GO"
-            else "time"
-        )
-        seconds = int(found["seconds"]) if found["seconds"] else None
-        given.append(Penalty(found["driver"], kind, seconds, (found["reason"] or "").strip(), lap))
-    return given, served
 
 
 def served_at(

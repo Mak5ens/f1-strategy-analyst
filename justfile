@@ -109,6 +109,12 @@ rag-eval *args: _env
 baseline question: _env
     uv run f1-baseline "$1"
 
+# A strategy debrief by the agent (LAB-151), its three stops answered in the terminal:
+# `just debrief "Débrief stratégique du GP d'Italie 2025 pour Ferrari"`, or `just debrief --resume <thread>`.
+# Needs the stack (`just up`), the corpus and the gateway
+debrief *args: _env
+    uv run f1-debrief "$@"
+
 # Evaluate a system on the dataset, one table per family: `just eval --sample 8`, `just eval --check`,
 # `just eval judge-sheet`, `just eval agreement` (docs/evaluation.md)
 eval *args: _env

@@ -102,6 +102,9 @@ class FakeTheme:
     def render(self, subject: Mapping[str, Any], points: Sequence[Point], rules: Sequence[Rule]) -> str:
         return "\n".join(f"- {point.text}" for point in points)
 
+    def check(self, point: Point) -> list[str]:
+        return ["a number in words"] if "deux tours" in point.text else []
+
 
 def agent(theme: FakeTheme, saver: InMemorySaver | None = None, **limits: Any) -> Agent:
     published: list[str] = theme.published
@@ -167,6 +170,14 @@ def test_a_number_from_no_analysis_sends_the_point_back_to_draft() -> None:
     assert run.state.drafts == 2
     assert "19.0" in next(iter(theme.problems_seen[1].values()))[0]  # the second draft is told what was wrong
     assert run.state.points[0].status == "verified"
+
+
+def test_the_theme_adds_its_own_checks() -> None:
+    words = [Point(id="P1", text="Leclerc s'est arrêté deux tours plus tard.", facts=["loss:LEC"])]
+    bot = agent(FakeTheme(drafts=[words] * 3))
+    bot.start("Débrief de Monza", thread_id="t8")
+    run = bot.resume("t8", ["loss:LEC"])
+    assert run.state.points[0].problems == ["a number in words"]
 
 
 def test_a_point_never_backed_reaches_the_person_marked_unverified() -> None:

@@ -11,7 +11,8 @@ explains, how a deliverable is written. The graph decides the rest, the same for
   (the checkpointer), so a request waiting for a person survives a restart.
 - **Numbers come from analyses only.** `verify` is code: each number of a point must be in the outputs of the
   analyses the point cites (or in a rule source it cites), each source must be one the retrieval found. A point that
-  fails goes back to `draft`, at most `AGENT_DRAFTS` drafts in all, then is marked unverified for the person. A failed
+  fails goes back to `draft`, at most `AGENT_DRAFTS` drafts in all, then is marked unverified for the person; the
+  theme adds its own checks (`Theme.check`: numbers written in words, which no check could match). A failed
   analysis never yields a number: its point says the data is unavailable.
 - **Limits per request**: steps, model calls and tokens, on top of the gateway's budget of the team; over a limit,
   the request stops, and says which.
@@ -118,6 +119,10 @@ class Theme(Protocol):
         """The point that says an analysis could not be computed."""
         ...
 
+    def check(self, point: Point) -> list[str]:
+        """The theme's own checks of a point, on top of the graph's (a number written in words escapes those)."""
+        ...
+
     def render(self, subject: Mapping[str, Any], points: Sequence[Point], rules: Sequence[Rule]) -> str:
         """The deliverable, once reviewed."""
         ...
@@ -195,13 +200,19 @@ class Agent:
 
     def start(self, request: str, *, thread_id: str) -> Run:
         state = AgentState(request=request, trace_id=self.tracer.new_trace_id())
-        self.graph.invoke(state, self._config(thread_id))
+        try:
+            self.graph.invoke(state, self._config(thread_id))
+        finally:
+            self.tracer.flush()  # the spans leave before a person, or a restart, makes the request wait
         return self.get(thread_id)
 
     def resume(self, thread_id: str, answer: Any) -> Run:
         if self.get(thread_id).waiting is None:
             raise ValueError(f"{thread_id} is not waiting for an answer")
-        self.graph.invoke(Command(resume=answer), self._config(thread_id))
+        try:
+            self.graph.invoke(Command(resume=answer), self._config(thread_id))
+        finally:
+            self.tracer.flush()
         return self.get(thread_id)
 
     def get(self, thread_id: str) -> Run:
@@ -362,7 +373,7 @@ class Agent:
             if point.status == "unavailable":
                 points.append(point)
                 continue
-            problems = check_point(point, results, sources, state.subject)
+            problems = check_point(point, results, sources, state.subject) + self.theme.check(point)
             points.append(
                 point.model_copy(update={"problems": problems, "status": "unverified" if problems else "verified"})
             )

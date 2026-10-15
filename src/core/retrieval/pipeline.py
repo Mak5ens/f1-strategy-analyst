@@ -254,6 +254,10 @@ class RetrievalPipeline:
         self._tracer.flush()
         return result
 
+    def answer_within(self, question: str, *, session_id: str | None) -> Answer:
+        """The whole pipeline inside a trace already open (an agent's node): its steps are spans of that trace."""
+        return self._answer(self._retrieve(question, session_id), session_id)
+
     def retrieve(self, question: str) -> Retrieval:
         """Steps 1 to 4 only, without generation: what the retrieval evaluation measures."""
         with self._tracer.trace("rag-retrieve", {"question": question, "config": self._switches()}) as trace_id:
