@@ -8,6 +8,12 @@ export type Subject = components["schemas"]["Subject"];
 export type Status = DebriefSummary["status"];
 export type Stop = NonNullable<DebriefSummary["waiting"]>;
 export type Driver = components["schemas"]["Driver"];
+export type Analysis = components["schemas"]["Analysis"];
+export type Point = components["schemas"]["ShownPoint"];
+export type Decision = components["schemas"]["Decision"];
+export type Fact = components["schemas"]["Fact"];
+export type Source = components["schemas"]["Source"];
+export type JournalEntry = components["schemas"]["JournalEntry"];
 export type Race = components["schemas"]["Race"];
 export type RaceSummary = components["schemas"]["RaceSummary"];
 
@@ -61,6 +67,16 @@ export async function fetchSeasons(client: Client = apiClient()): Promise<number
   }
 }
 
+/** The races the home page puts forward, the last one raced first; null when the API does not answer. */
+export async function fetchFeatured(client: Client = apiClient()): Promise<RaceSummary[] | null> {
+  try {
+    const { data } = await client.GET("/races/featured", { signal: AbortSignal.timeout(10000) });
+    return data ?? null;
+  } catch {
+    return null;
+  }
+}
+
 /** The calendar of a season (the latest if omitted); null when the API does not answer. */
 export async function fetchRaces(season?: number, client: Client = apiClient()): Promise<RaceSummary[] | null> {
   try {
@@ -89,6 +105,32 @@ export async function fetchRace(
       signal: AbortSignal.timeout(15000),
     });
     if (response.status === 404) return "missing";
+    return data ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** A request and what its stop needs; null when it does not exist or the API does not answer. */
+export async function fetchDebrief(id: string, client: Client = apiClient()): Promise<Debrief | null> {
+  try {
+    const { data } = await client.GET("/debriefs/{debrief_id}", {
+      params: { path: { debrief_id: id } },
+      signal: AbortSignal.timeout(10000),
+    });
+    return data ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** The journal of the reviews, the latest first: all, of one debrief, or of some actions. */
+export async function fetchJournal(
+  query: { debrief?: string; action?: Decision["action"][] } = {},
+  client: Client = apiClient(),
+): Promise<JournalEntry[] | null> {
+  try {
+    const { data } = await client.GET("/decisions", { params: { query }, signal: AbortSignal.timeout(10000) });
     return data ?? null;
   } catch {
     return null;

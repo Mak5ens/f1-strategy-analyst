@@ -218,9 +218,30 @@ export interface paths {
     put?: never;
     /**
      * Answer Review
-     * @description One decision per point: approve, correct (with the text) or reject, with a reason unless approved.
+     * @description One decision per point: approve, correct (with the text) or reject, with a reason unless approved. Each
+     *     decision is logged with the agent's text, once the agent accepts the review.
      */
     post: operations["answer_review_debriefs__debrief_id__review_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/decisions": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List Decisions
+     * @description The journal of the reviews, the latest first.
+     */
+    get: operations["list_decisions_decisions_get"];
+    put?: never;
+    post?: never;
     delete?: never;
     options?: never;
     head?: never;
@@ -359,7 +380,22 @@ export interface components {
       /** Plan */
       plan: components["schemas"]["Analysis"][];
       /** Points */
-      points: components["schemas"]["Point"][];
+      points: components["schemas"]["ShownPoint"][];
+      /**
+       * Facts
+       * @description The analyses run, which `Point.facts` cite
+       */
+      facts: components["schemas"]["Fact"][];
+      /**
+       * Sources
+       * @description The rule passages, which `Point.sources` cite
+       */
+      sources: components["schemas"]["Source"][];
+      /**
+       * Decisions
+       * @description The review's, once made
+       */
+      decisions: components["schemas"]["Decision"][];
       /**
        * Deliverable
        * @description The published debrief, in Markdown
@@ -442,6 +478,23 @@ export interface components {
        */
       change: number | null;
     };
+    /**
+     * Fact
+     * @description An analysis the agent ran: the points cite it for their numbers.
+     */
+    Fact: {
+      /** Id */
+      id: string;
+      /** Label */
+      label: string;
+      /** Ok */
+      ok: boolean;
+      /**
+       * Error
+       * @description Why it gave no number
+       */
+      error: string | null;
+    };
     /** HTTPValidationError */
     HTTPValidationError: {
       /** Detail */
@@ -458,6 +511,50 @@ export interface components {
       name: string;
       /** Version */
       version: string;
+    };
+    /**
+     * JournalEntry
+     * @description A decision of a review, kept with the agent's text it judged.
+     */
+    JournalEntry: {
+      /** Id */
+      id: number;
+      /** Debrief */
+      debrief: string;
+      /** Request */
+      request: string;
+      subject: components["schemas"]["Subject"];
+      /** Point */
+      point: string;
+      /**
+       * Action
+       * @enum {string}
+       */
+      action: "approve" | "correct" | "reject";
+      /** Reason */
+      reason: ("wrong_number" | "wrong_source" | "off_topic" | "wording" | "other") | null;
+      /**
+       * Text Before
+       * @description The agent's text
+       */
+      text_before: string;
+      /**
+       * Text After
+       * @description The corrected text
+       */
+      text_after: string | null;
+      /**
+       * Point Status
+       * @description What the agent's check said of the point
+       */
+      point_status: string | null;
+      /** Decided By */
+      decided_by: string;
+      /**
+       * Decided At
+       * Format: date-time
+       */
+      decided_at: string;
     };
     /** Neutralization */
     Neutralization: {
@@ -521,34 +618,6 @@ export interface components {
        * @description The ids of the analyses to run
        */
       analyses: string[];
-    };
-    /**
-     * Point
-     * @description One point of the deliverable: a text, the results its numbers come from, the sources it cites.
-     */
-    Point: {
-      /** Id */
-      id: string;
-      /** Text */
-      text: string;
-      /**
-       * Facts
-       * @description Ids of the analyses whose numbers the text uses
-       */
-      facts?: string[];
-      /**
-       * Sources
-       * @description Ids of the rule sources the text cites
-       */
-      sources?: string[];
-      /**
-       * Status
-       * @default draft
-       * @enum {string}
-       */
-      status: "draft" | "verified" | "unverified" | "unavailable" | "corrected";
-      /** Problems */
-      problems?: string[];
     };
     /**
      * Race
@@ -625,6 +694,46 @@ export interface components {
     ReviewAnswer: {
       /** Decisions */
       decisions: components["schemas"]["Decision"][];
+    };
+    /**
+     * ShownPoint
+     * @description A point of the debrief, its lists always present.
+     */
+    ShownPoint: {
+      /** Id */
+      id: string;
+      /** Text */
+      text: string;
+      /**
+       * Facts
+       * @description Ids of the analyses whose numbers the text uses
+       */
+      facts: string[];
+      /**
+       * Sources
+       * @description Ids of the rule sources the text cites
+       */
+      sources: string[];
+      /**
+       * Status
+       * @default draft
+       * @enum {string}
+       */
+      status: "draft" | "verified" | "unverified" | "unavailable" | "corrected";
+      /** Problems */
+      problems: string[];
+    };
+    /**
+     * Source
+     * @description A passage of the FIA documents the points may cite.
+     */
+    Source: {
+      /** Id */
+      id: string;
+      /** Label */
+      label: string;
+      /** Text */
+      text: string;
     };
     /** Stint */
     Stint: {
@@ -1112,6 +1221,40 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["Debrief"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  list_decisions_decisions_get: {
+    parameters: {
+      query?: {
+        /** @description Only those of this debrief */
+        debrief?: string | null;
+        action?: ("approve" | "correct" | "reject")[] | null;
+        limit?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["JournalEntry"][];
         };
       };
       /** @description Validation Error */

@@ -6,7 +6,7 @@ requests (`RequestStore`, one row each, updated after every run) and the deliver
 to list without loading a graph.
 """
 
-from collections.abc import Iterator
+from collections.abc import Iterator, Sequence
 from contextlib import contextmanager
 from typing import Any
 
@@ -18,7 +18,7 @@ from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from core.agent.graph import Run
-from core.agent.state import AgentState, serializer
+from core.agent.state import AgentState, Decision, Point, serializer
 
 
 class PostgresSettings(BaseSettings):
@@ -67,6 +67,20 @@ _REQUESTS = """CREATE TABLE IF NOT EXISTS requests (
 )"""
 
 
+_DECISIONS = """CREATE TABLE IF NOT EXISTS decisions (
+    id bigserial PRIMARY KEY,
+    thread_id text NOT NULL,
+    point text NOT NULL,
+    action text NOT NULL,
+    reason text,
+    text_before text NOT NULL,
+    text_after text,
+    point_status text,
+    decided_by text NOT NULL,
+    decided_at timestamptz NOT NULL DEFAULT now()
+)"""
+
+
 class RequestStore:
     """Every request of an agent, where it stands: running, waiting for a person (and for what), stopped, published.
 
@@ -79,6 +93,7 @@ class RequestStore:
         with psycopg.connect(self._dsn, autocommit=True) as connection:
             connection.execute(_REQUESTS)
             connection.execute(_TABLE)
+            connection.execute(_DECISIONS)
             # The deliverables published before this table existed are requests too.
             connection.execute(
                 "INSERT INTO requests (thread_id, request, subject, status, created_at, updated_at) "
@@ -100,6 +115,43 @@ class RequestStore:
                     run.waiting.kind if run.waiting else None,
                 ),
             )
+
+    def log_decisions(self, thread_id: str, points: Sequence[Point], decisions: Sequence[Decision], *, by: str) -> None:
+        """The review's journal: who decided what on each point, why, and the agent's text before any correction."""
+        drafted = {point.id: point for point in points}
+        with psycopg.connect(self._dsn, autocommit=True) as connection, connection.cursor() as cursor:
+            cursor.executemany(
+                "INSERT INTO decisions (thread_id, point, action, reason, text_before, text_after, point_status, "
+                "decided_by) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)",
+                [
+                    (
+                        thread_id,
+                        decision.point,
+                        decision.action,
+                        decision.reason,
+                        drafted[decision.point].text if decision.point in drafted else "",
+                        decision.text if decision.action == "correct" else None,
+                        drafted[decision.point].status if decision.point in drafted else None,
+                        by,
+                    )
+                    for decision in decisions
+                ],
+            )
+
+    # Before `list`, which hides the built-in in the class body.
+    def decisions(
+        self, *, thread_id: str | None = None, actions: Sequence[str] | None = None, limit: int = 500
+    ) -> list[dict[str, Any]]:
+        """The journal, the latest first, with each request's text and subject: of one request, or of some actions."""
+        with psycopg.connect(self._dsn, row_factory=dict_row) as connection:
+            rows = connection.execute(
+                "SELECT d.*, r.request, r.subject FROM decisions d JOIN requests r USING (thread_id) "
+                "WHERE (%(thread)s::text IS NULL OR d.thread_id = %(thread)s) "
+                "AND (%(actions)s::text[] IS NULL OR d.action = ANY(%(actions)s)) "
+                "ORDER BY d.decided_at DESC, d.id DESC LIMIT %(limit)s",
+                {"thread": thread_id, "actions": list(actions) if actions else None, "limit": limit},
+            ).fetchall()
+        return list(rows)
 
     def list(
         self, *, status: str | None = None, subject: dict[str, Any] | None = None, limit: int = 50

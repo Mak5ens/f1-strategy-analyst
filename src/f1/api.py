@@ -24,6 +24,7 @@ from fastapi import Depends, FastAPI, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from core.agent import Agent, Analysis, Clarification, Decision, Point, Run
+from core.agent.state import RejectReason
 from core.agent.store import RequestStore
 from f1.display import Driver, Response, grand_prix_fr, team_colour
 from f1.grand_prix import GrandPrix, Race, RaceSummary
@@ -67,6 +68,27 @@ class DebriefSummary(Response):
     updated_at: datetime
 
 
+class ShownPoint(Response, Point):
+    """A point of the debrief, its lists always present."""
+
+
+class Fact(Response):
+    """An analysis the agent ran: the points cite it for their numbers."""
+
+    id: str
+    label: str
+    ok: bool
+    error: str | None = Field(None, description="Why it gave no number")
+
+
+class Source(Response):
+    """A passage of the FIA documents the points may cite."""
+
+    id: str
+    label: str
+    text: str
+
+
 class Debrief(Response):
     """A request and everything a person needs at its stop."""
 
@@ -77,9 +99,29 @@ class Debrief(Response):
     subject: Subject
     clarification: Clarification | None = Field(None, description="The open question, when waiting for it")
     plan: list[Analysis] = Field(default_factory=list)
-    points: list[Point] = Field(default_factory=list)
+    points: list[ShownPoint] = Field(default_factory=list)
+    facts: list[Fact] = Field(default_factory=list, description="The analyses run, which `Point.facts` cite")
+    sources: list[Source] = Field(default_factory=list, description="The rule passages, which `Point.sources` cite")
+    decisions: list[Decision] = Field(default_factory=list, description="The review's, once made")
     deliverable: str | None = Field(None, description="The published debrief, in Markdown")
     stop_reason: str | None = None
+
+
+class JournalEntry(Response):
+    """A decision of a review, kept with the agent's text it judged."""
+
+    id: int
+    debrief: str
+    request: str
+    subject: Subject
+    point: str
+    action: Literal["approve", "correct", "reject"]
+    reason: RejectReason | None = None
+    text_before: str = Field(description="The agent's text")
+    text_after: str | None = Field(None, description="The corrected text")
+    point_status: str | None = Field(None, description="What the agent's check said of the point")
+    decided_by: str
+    decided_at: datetime
 
 
 class NewDebrief(BaseModel):
@@ -240,11 +282,46 @@ def answer_plan(debrief_id: str, body: PlanAnswer, agent: AgentDep) -> Debrief:
     return debrief(agent.resume(debrief_id, body.analyses))
 
 
+# Who decides, until the site has accounts (milestone 6): its owner, the analyst.
+REVIEWER = "analyste"
+
+
 @app.post("/debriefs/{debrief_id}/review")
-def answer_review(debrief_id: str, body: ReviewAnswer, agent: AgentDep) -> Debrief:
-    """One decision per point: approve, correct (with the text) or reject, with a reason unless approved."""
-    _waiting(agent, debrief_id, "review")
-    return debrief(agent.resume(debrief_id, [decision.model_dump() for decision in body.decisions]))
+def answer_review(debrief_id: str, body: ReviewAnswer, agent: AgentDep, requests: RequestsDep) -> Debrief:
+    """One decision per point: approve, correct (with the text) or reject, with a reason unless approved. Each
+    decision is logged with the agent's text, once the agent accepts the review."""
+    points = _waiting(agent, debrief_id, "review").state.points
+    run = agent.resume(debrief_id, [decision.model_dump() for decision in body.decisions])
+    if run.waiting is None or run.waiting.kind != "review":
+        requests.log_decisions(debrief_id, points, body.decisions, by=REVIEWER)
+    return debrief(run)
+
+
+@app.get("/decisions")
+def list_decisions(
+    requests: RequestsDep,
+    debrief_id: Annotated[str | None, Query(alias="debrief", description="Only those of this debrief")] = None,
+    action: Annotated[list[Literal["approve", "correct", "reject"]] | None, Query()] = None,
+    limit: Annotated[int, Query(ge=1, le=1000)] = 200,
+) -> list[JournalEntry]:
+    """The journal of the reviews, the latest first."""
+    return [
+        JournalEntry(
+            id=row["id"],
+            debrief=row["thread_id"],
+            request=row["request"],
+            subject=subject(row["subject"]),
+            point=row["point"],
+            action=row["action"],
+            reason=row["reason"],
+            text_before=row["text_before"],
+            text_after=row["text_after"],
+            point_status=row["point_status"],
+            decided_by=row["decided_by"],
+            decided_at=row["decided_at"],
+        )
+        for row in requests.decisions(thread_id=debrief_id, actions=action, limit=limit)
+    ]
 
 
 def _run(agent: Agent, debrief_id: str) -> Run:
@@ -254,10 +331,11 @@ def _run(agent: Agent, debrief_id: str) -> Run:
         raise HTTPException(404, f"no debrief {debrief_id}") from None
 
 
-def _waiting(agent: Agent, debrief_id: str, stop: Stop) -> None:
+def _waiting(agent: Agent, debrief_id: str, stop: Stop) -> Run:
     run = _run(agent, debrief_id)
     if run.waiting is None or run.waiting.kind != stop:
         raise HTTPException(409, f"debrief {debrief_id} is not waiting for its {stop} ({run.status})")
+    return run
 
 
 def debrief(run: Run) -> Debrief:
@@ -271,7 +349,10 @@ def debrief(run: Run) -> Debrief:
         subject=subject(state.subject),
         clarification=state.clarification if waiting == "clarification" else None,
         plan=state.plan,
-        points=state.points,
+        points=[ShownPoint.model_validate(point.model_dump()) for point in state.points],
+        facts=[Fact(id=r.id, label=r.label, ok=r.ok, error=r.error) for r in state.results],
+        sources=[Source(id=src.id, label=src.label, text=src.text) for rule in state.rules for src in rule.sources],
+        decisions=state.decisions,
         deliverable=state.deliverable,
         stop_reason=state.stop_reason,
     )
