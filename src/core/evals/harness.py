@@ -89,12 +89,16 @@ def run_system(
     *,
     workers: int = 4,
     on_record: Callable[[Record], None] = lambda record: None,
+    stop: Callable[[], str | None] = lambda: None,
 ) -> list[Record]:
     """The system on every case, a few at a time: the gateway's rate limit sets the pace (its client waits out a
-    429). A case that raises is recorded as an error, which every scorer counts as a failure."""
+    429). A case that raises is recorded as an error, which every scorer counts as a failure. `stop` is asked before
+    each case: a reason (a budget spent) records the case as an error without running it."""
 
     def one(case: Case) -> Record:
         start = time.monotonic()
+        if reason := stop():
+            return Record(case.id, case.family, case.question, False, "", error=f"not run: {reason}")
         try:
             record = system.run(case)
         except Exception as error:

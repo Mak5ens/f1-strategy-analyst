@@ -219,3 +219,6 @@ __marimo__/
 
 # Local lake (LAKE_URI as a folder) and the FastF1 HTTP cache (.cache/ above).
 /data/
+
+# llmops-gateway, checked out at a release by the evaluation CI (.github/actions/gateway).
+/.gateway/

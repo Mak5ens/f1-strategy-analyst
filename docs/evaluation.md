@@ -56,7 +56,7 @@ promptfoo and Ragas run apart: promptfoo with `npx` (pinned, `promptfoo@0.123.1`
 
 ## Thresholds
 
-`evals/thresholds.json` holds, for each family and the run it comes from, the metrics that say whether it works, at the baseline's score less a margin: 0.05, or two cases of the family when that is more (so that one case answered differently, noise even at temperature 0, fails no one). `just eval thresholds --from <report>` sets them again from another reference run, for the families that run scored; `just eval --check` exits 1 when a family is under its threshold, which the evaluation CI (LAB-149) gates pull requests on.
+`evals/thresholds.json` holds, for each family and the run it comes from, the metrics that say whether it works, at the baseline's score less a margin: 0.05, or two cases of the family when that is more (so that one case answered differently, noise even at temperature 0, fails no one). `just eval thresholds --from <report>` sets them again from another reference run, for the families that run scored, and names that run in `from_runs`. `just eval --check` exits 1 when a family falls under its reference run on the same cases by more than that margin, or, for a run on the whole family, under its threshold: the evaluation CI gates pull requests on it (below).
 
 | Family | Gated on | Threshold |
 | -- | -- | -- |
@@ -66,6 +66,38 @@ promptfoo and Ragas run apart: promptfoo with `npx` (pinned, `promptfoo@0.123.1`
 | regulation | Recall@5, faithfulness | 0.71, 0.85 |
 | out_of_corpus | abstention | 0.68 |
 | safety | safe | 0.50 |
+
+## The evaluation CI
+
+`.github/workflows/eval.yml` makes the evaluation a quality gate (LAB-149). A pull request that changes what the system answers (`src/`, the dataset, the scorers, `evals/thresholds.json`, the dependencies) runs the baseline on 10 cases per family of the test set, then comments a table on the pull request, edited by each new run: for every gated metric, the score of the run, the score of the main branch's reference run on the same cases, the difference and the drop allowed. The job fails when a metric falls by more than that. A full run of the test set, also held to the thresholds, runs every Tuesday night on main, or on demand (`workflow_dispatch`, mode `full`).
+
+The demo PR (#17) lets the baseline call one tool before answering instead of three, which reads like a latency gain; a race number needs `find_race`, then the tool that computes it. Its comment:
+
+```text
+**3 check(s) failed** against the reference runs of the main branch.
+
+| Family | Metric | Cases | This run | Main | Δ | Allowed drop | |
+| -- | -- | --: | --: | --: | --: | --: | -- |
+| data | accuracy | 10 | 0.00 | 0.90 | -0.90 | 0.20 | ❌ |
+| computation | accuracy | 10 | 0.00 | 0.80 | -0.80 | 0.20 | ❌ |
+| strategy | grade/5 | 10 | 1.00 | 2.80 | -1.80 | 1.00 | ❌ |
+| regulation | recall@5 | 10 | 0.90 | 0.90 | +0.00 | 0.20 | ✅ |
+...
+- **data** accuracy fell from 0.90 to 0.00 on the same 10 cases (-0.90), more than the 0.20 allowed.
+```
+
+**Why the same cases.** A sample of 10 cannot be held to a threshold set on a whole family: an easy draw passes, a hard one fails. The reference report of each family (`evals/reports/`, named in `from_runs`) keeps the score of every case, so the run is compared with the reference on exactly the cases it drew (`core.evals.compare`). The margin is two cases of those compared, or 5 points when that is more: 0.20 for 10 cases (1.00 on the judge's 5-point scale). A sample catches a change that breaks a family, not a slight drift: that is the weekly full run's job, with margins of 2 to 12 points. Measured on the system of main, run in CI against its own reference: every delta within one case (strategy -0.20 on 10 cases, +0.30 on 20). A first demo, a prompt telling the model to answer from memory, lost two data cases on 10 and none on 20: noise, not a regression, since the baseline's code withholds any number that no tool returned and the model kept calling tools. 20 cases per family (17 minutes, $0.21) halves the margin; 10 stays the default for its time and cost.
+
+**Where it runs.** On the runner, with nothing shared with a developer's machine:
+
+- **The gateway** of `llmops-gateway` at a pinned release (`GATEWAY_VERSION`, `.github/actions/gateway`): its compose stack at that tag, with the images the release published on GHCR (signed by cosign) instead of a build, and its tenants. The app calls it with the f1 key of its `.env.example`, as locally. `chat-medium` (qwen2.5:7b) is too slow on a runner's CPU, so the rewriting runs on `chat-pro` (`RAG_REWRITE_MODEL`), like the answers; the baseline does not rewrite, so its scores are not affected. Only `granite-embedding` is pulled for `embed`.
+- **The data** of the reference runs, not data built on the runner: F1's live timing, where FastF1 reads laps and race control, answers 403 to GitHub's runners (OpenF1, Jolpica-F1 and fia.com answer). `just eval-data-publish` exports the developer's lake (2,595 files) and Qdrant index (`just index-save`: two snapshots, 46 MB), encrypts them with `EVAL_DATA_KEY` (AES-256, a repository secret, and in the developer's `.env`), uploads them as an asset of the `eval-data` release (34 MB), and writes its name and SHA-256 to `evals/eval-data.json`. The CI downloads that asset, checks its hash, decrypts it (`just eval-data-fetch`) and restores the index (`just index-load`). The asset is public but unreadable without the key: the FIA's texts and the timing data are not redistributed. Publishing new data is a commit of `evals/eval-data.json`, so it goes through the gate like any change, and should come with new reference runs.
+- **Restore, not rebuild.** Restoring the snapshots takes about a second; indexing the corpus again takes 17 minutes 40 seconds on the developer's machine (2,872 chunks embedded through the gateway, the PDFs already downloaded), and would first download about 900 documents from fia.com, 10 seconds apart.
+- **The secrets**: `SCW_SECRET_KEY`, the Scaleway key of the gateway's CI, for `chat-pro`, and `EVAL_DATA_KEY`. A fork's pull request gets no secret and is not evaluated.
+
+**Duration and cost, measured.** A quick run: 6 to 9 minutes of evaluation for 60 cases, 12 to 13 minutes for the whole job (the gateway starts in about 3), $0.06 to $0.11. A full run of the 273 cases: about 35 minutes and $0.40 locally; the weekly run on main gives its CI figure.
+
+**Cost control.** The run reads the key's spend from the gateway before and after (`/key/info`, `core.gateway.key_spend`), and the comment shows it with the duration. `--budget` stops a run whose spend goes over: $0.25 for a sample, $1.00 for a full run; the cases left are counted as errors, so the gate fails rather than passes on less.
 
 ## The judge
 
@@ -78,6 +110,6 @@ A judge is only trusted once it agrees with a person. `just eval judge-sheet` an
 ## Limits
 
 - **The judge and Ragas run on `chat-pro`, the model of the systems they score.** A model grading its own kind of answers can be lenient with its own errors. The calibration against a person measures that; a judge on another provider is the fix if it shows.
-- **The rate limit sets the duration.** The f1 key allows 60 requests a minute and a case takes 3 to 6 calls: the 248 cases of the test set take about 25 minutes, over the 15 aimed at. The evaluation key of LAB-195 (300 a minute) brings it under. Until then, `--sample` gives a quick look; the client waits out a 429 instead of counting a failure.
+- **The rate limit sets the duration.** The f1 key allows 60 requests a minute and a case takes 3 to 6 calls: the 273 cases of the test set take about 35 minutes; the client waits out a 429 instead of counting a failure. In CI the gateway is the runner's own, so its limits and budget start from zero at each run and nothing is shared with the app; the evaluation key of LAB-195 (300 a minute) is for runs against a shared gateway.
 - **Strategy references are a rule's reading of the data** (`evals/README.md`): the judge's grade is only as good as the reference. The calibration found the first ones too thin and sometimes wrong: penalties served at a stop taken for slow stops, a neutralization not named, a stop compared with the wrong stop of the rival, a passing position taken for an overtake, questions that always assumed the premise. LAB-201 rewrote the rule on each point; the calibration of 2026-10-14 was measured on the old references.
 - **`retrieval` and `regulation` metrics measure the passages the system retrieved.** For the baseline, the passages themselves; the ablation of the production pipeline, stage by stage, is `just rag-eval`.

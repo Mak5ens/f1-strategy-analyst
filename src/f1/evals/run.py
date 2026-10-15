@@ -4,14 +4,16 @@
     just eval --sample 8               # at most 8 cases per family: a quick look, within the rate limit
     just eval --family strategy        # one family only (its thresholds are updated alone)
     just eval --split dev --push       # the development set, and the run in Langfuse
-    just eval --check                  # fail when a family falls under its threshold (evals/thresholds.json)
+    just eval --check                  # fail when a family falls under the main branch's reference runs
+    just eval --sample 10 --check --budget 0.25   # the CI's quick gate (.github/workflows/eval.yml)
     just eval --run-name <run> --resume   # go on with an interrupted run: only the missing or failed cases
     just eval judge-sheet              # 30 strategy answers graded by the judge, for a person to grade too
     just eval agreement                # how the judge agrees with the person's grades (latest round)
     just eval thresholds --from evals/reports/<run>.json   # initial thresholds from a reference run
 
 The system runs once per case; promptfoo, Ragas and the judge then score what it recorded (`core.evals.harness`).
-Work files go to `.cache/evals/<run>/`, the report to `evals/reports/<run>.json`.
+Work files go to `.cache/evals/<run>/`, the report to `evals/reports/<run>.json`, and its summary, for a pull
+request comment, to `.cache/evals/<run>/summary.md`.
 """
 
 import argparse
@@ -20,12 +22,14 @@ import logging
 import math
 import random
 import sys
+import time
 from collections.abc import Sequence
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 from core.baseline import Baseline
+from core.evals.compare import MARGIN, NOISE_CASES, CaseScores, compare, markdown
 from core.evals.dataset import FAMILIES, Case, read_cases
 from core.evals.harness import (
     Record,
@@ -49,7 +53,7 @@ from core.evals.judge import (
     grade,
     read_markdown_grades,
 )
-from core.gateway import gateway_client
+from core.gateway import gateway_client, key_spend
 from f1.evals.build import DATASETS
 
 log = logging.getLogger("f1.eval")
@@ -125,7 +129,44 @@ def judge_records(cases: Sequence[Case], records: Sequence[Record]) -> dict[str,
     return grades
 
 
+def spend() -> float | None:
+    """The key's spend so far, or None when the gateway cannot tell (an older gateway, a key without the right)."""
+    try:
+        return key_spend()
+    except Exception as error:
+        log.warning("spend of the key unknown: %s", error)
+        return None
+
+
+def settled_spend(*, pause: float = 15.0, tries: int = 6) -> float | None:
+    """The spend once the gateway has written the last calls: the same twice in a row, `pause` seconds apart."""
+    last = spend()
+    for _ in range(tries):
+        if last is None:
+            return None
+        time.sleep(pause)
+        now = spend()
+        if now == last:
+            return now
+        last = now
+    return last
+
+
+def references(families: Sequence[str]) -> dict[str, tuple[str, CaseScores]]:
+    """Each family's reference run on the main branch (`from_runs` of evals/thresholds.json) and its case scores."""
+    if not THRESHOLDS.exists():
+        return {}
+    runs: dict[str, str] = json.loads(THRESHOLDS.read_text()).get("from_runs", {})
+    found = {}
+    for family in families:
+        path = REPORTS / f"{runs.get(family)}.json"
+        if family in runs and path.exists():
+            found[family] = (runs[family], json.loads(path.read_text())["cases"])
+    return found
+
+
 def evaluate(args: argparse.Namespace) -> int:
+    started, spent_before = time.monotonic(), (None if args.records else spend())
     cases = [case for case in read_cases(DATASETS / f"{args.split}.jsonl") if case.family in (args.family or FAMILIES)]
     cases = sample(cases, args.sample, seed=SEED)
     run = args.run_name or f"{datetime.now(UTC):%Y%m%dT%H%M}-{args.system}-{args.split}" + (
@@ -155,7 +196,18 @@ def evaluate(args: argparse.Namespace) -> int:
             append_record(records_path, record)
             log.info("[%d/%d] %s %s", len(done), len(todo), record.id, "ok" if not record.error else record.error)
 
-        fresh = {r.id: r for r in run_system(SYSTEMS[args.system](), todo, workers=args.workers, on_record=progress)}
+        def over_budget() -> str | None:
+            if args.budget is None or spent_before is None:
+                return None
+            now = spend()
+            return f"budget of ${args.budget} spent" if now is not None and now - spent_before > args.budget else None
+
+        fresh = {
+            r.id: r
+            for r in run_system(
+                SYSTEMS[args.system](), todo, workers=args.workers, on_record=progress, stop=over_budget
+            )
+        }
         records = [kept.get(case.id) or fresh[case.id] for case in cases]
         write_records(records_path, records)
 
@@ -166,19 +218,46 @@ def evaluate(args: argparse.Namespace) -> int:
     print(table(lines))
 
     scores = case_scores(cases, records, promptfoo=promptfoo, ragas=ragas, judge=judge)
+    comparisons = compare(cases, scores, references([line.family for line in lines]), GATED)
+    # A threshold holds for a whole family: a sample is only compared with the reference on the same cases.
+    whole = not args.sample and not args.records
+    under = check_thresholds(lines, json.loads(THRESHOLDS.read_text())["families"]) if whole else []
+    spent_after = None if spent_before is None else settled_spend()
+    cost = None if spent_after is None or spent_before is None else round(spent_after - spent_before, 4)
+    minutes = round((time.monotonic() - started) / 60, 1)
+    ids = {case.id for case in cases}
+    errors = sum(bool(record.error) for record in records if record.id in ids)
+    summary = markdown(
+        comparisons,
+        title=f"Evaluation: {args.system} on the {args.split} set"
+        + (f", {args.sample} cases per family" if args.sample else ", every case"),
+        other_failures=[f"{failure} (threshold of the whole family)" for failure in under],
+        details=[
+            f"{len(cases)} cases, {errors} in error · {minutes} min"
+            + (f" · ${cost:.2f} spent by the gateway key" if cost is not None else ""),
+            f"Run `{run}`: the reference runs are named in `evals/thresholds.json` (`from_runs`).",
+        ],
+        marker="<!-- f1-eval -->",
+    )
+    workdir.mkdir(parents=True, exist_ok=True)
+    (workdir / "summary.md").write_text(summary)
     report = {
         "run": run,
         "system": args.system,
         "split": args.split,
         "sample_per_family": args.sample,
         "date": datetime.now(UTC).isoformat(timespec="seconds"),
+        "minutes": minutes,
+        "cost_usd": cost,
+        "comparison": [{**vars(c), "delta": c.delta, "regressed": c.regressed} for c in comparisons],
         "families": {line.family: {"cases": line.cases, "errors": line.errors, **line.metrics} for line in lines},
         "cases": scores,
         "judge": judge,
     }
     REPORTS.mkdir(parents=True, exist_ok=True)
     (REPORTS / f"{run}.json").write_text(json.dumps(report, ensure_ascii=False, indent=1) + "\n")
-    print(f"Report: {REPORTS / f'{run}.json'}  (records: {records_path})")
+    print(summary)
+    print(f"Report: {REPORTS / f'{run}.json'}  (records: {records_path}, summary: {workdir / 'summary.md'})")
 
     if args.push:
         from langfuse import Langfuse
@@ -195,11 +274,10 @@ def evaluate(args: argparse.Namespace) -> int:
         print(f"Langfuse: {linked} cases linked to the dataset run {run}")
 
     if args.check:
-        thresholds = json.loads(THRESHOLDS.read_text())
-        failures = check_thresholds(lines, thresholds["families"])
-        for failure in failures:
+        failures = [c for c in comparisons if c.regressed]
+        for failure in under:
             print(f"under threshold: {failure}")
-        return 1 if failures else 0
+        return 1 if failures or under else 0
     return 0
 
 
@@ -347,10 +425,8 @@ GATED = {
     "out_of_corpus": ["abstention"],
     "safety": ["safe"],
 }
-# Under the reference's score by more than this, a change made things worse: 0.05, or two cases of the family when
-# that is more, so that one case answered differently by the model (noise, at temperature 0 too) fails no one.
-MARGIN = 0.05
-NOISE_CASES = 2
+# Under the reference's score by more than MARGIN, or two cases of the family when that is more, a change made things
+# worse (core.evals.compare): the same margin sets the thresholds below.
 
 
 def thresholds(args: argparse.Namespace) -> int:
@@ -397,7 +473,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--no-ragas", action="store_true")
     parser.add_argument("--no-judge", action="store_true")
     parser.add_argument("--push", action="store_true", help="link the run to the Langfuse dataset, with its scores")
-    parser.add_argument("--check", action="store_true", help=f"exit 1 when a family is under {THRESHOLDS}")
+    parser.add_argument(
+        "--check", action="store_true", help=f"exit 1 when a family falls under its reference run or {THRESHOLDS}"
+    )
+    parser.add_argument("--budget", type=float, help="dollars the key may spend: the cases left are not run")
     args = parser.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
     for noisy in ("httpx", "httpx2", "openai", "langfuse"):
