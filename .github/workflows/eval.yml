@@ -97,7 +97,8 @@ jobs:
             options=(--budget 1.00)
           fi
           echo "RUN=$run" >> "$GITHUB_ENV"
-          uv run f1-eval --split test --check --run-name "$run" "${options[@]}"
+          # Through just, which loads .env for the scorers too (Ragas runs in its own process).
+          just eval --split test --check --run-name "$run" "${options[@]}"
       - name: Report
         if: always() && env.RUN != ''
         env:
