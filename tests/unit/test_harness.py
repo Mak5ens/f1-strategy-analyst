@@ -23,7 +23,7 @@ from core.evals.harness import (
     table,
     write_records,
 )
-from core.evals.judge import agreement, quadratic_kappa, spearman
+from core.evals.judge import agreement, calibration_markdown, quadratic_kappa, read_markdown_grades, spearman
 
 ORIGIN = Origin(method="computed", by="test", reviewed=False)
 ASSERTIONS = Path("evals/promptfoo/assertions.js").resolve()
@@ -187,3 +187,26 @@ def test_agreement_measures() -> None:
     assert spearman([1, 2, 2], [1, 2, 2]) == pytest.approx(1.0)
     with pytest.raises(ValueError, match="human"):
         agreement([])
+
+
+def test_a_readable_sheet_gives_its_grades_back(tmp_path: Path) -> None:
+    rows: list[dict[str, Any]] = [
+        {
+            "id": "a",
+            "question": "Pourquoi ?",
+            "reference": "Cause : x.\nFaits : y.",
+            "answer": "Parce que.",
+            "human": 4,
+        },
+        {"id": "b", "question": "Pourquoi ?", "reference": "Cause : z.", "answer": "", "human": None},
+    ]
+    sheet = tmp_path / "calibration.md"
+    calibration_markdown(sheet, rows)
+    text = sheet.read_text()
+    assert "- Cause : x.\n- Faits : y." in text and "> Parce que." in text
+    assert read_markdown_grades(sheet) == {"a": 4}
+    sheet.write_text(text.replace("**Grade (1 to 5):**\n", "**Grade (1 to 5):** 2\n"))
+    assert read_markdown_grades(sheet) == {"a": 4, "b": 2}
+    sheet.write_text(text.replace("**Grade (1 to 5):** 4", "**Grade (1 to 5):** 6"))
+    with pytest.raises(ValueError, match="1 to 5"):
+        read_markdown_grades(sheet)
