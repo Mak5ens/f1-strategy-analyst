@@ -58,6 +58,11 @@ jobs:
           path: data/lake
           key: eval-lake-${{ matrix.season }}-${{ github.run_id }}
           restore-keys: eval-lake-${{ matrix.season }}-
+      - name: Probe the sources (temporary)
+        run: |
+          for url in https://livetiming.formula1.com/static/2025/Index.json https://api.openf1.org/v1/sessions?year=2025 https://api.jolpi.ca/ergast/f1/2025.json https://www.fia.com/documents; do
+            echo "$url -> $(curl -s -o /dev/null -w '%{http_code}' -A 'Mozilla/5.0' "$url")"
+          done
       - run: uv run f1-ingest ${{ matrix.season }}
       # Under a key named by its content: a build that fetched nothing new saves nothing.
       - if: always()
