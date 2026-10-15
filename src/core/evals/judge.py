@@ -84,7 +84,8 @@ def calibration_markdown(
     for the grade. `read_markdown_grades` reads the grades back."""
     labels = labels or SheetLabels()
     split = split_reference or (lambda text: [line for line in text.splitlines() if line.strip()])
-    parts = [f"# {labels.title}\n", f"{labels.intro}\n"]
+    # Every answer has the same subheadings.
+    parts = ["<!-- markdownlint-disable MD024 -->\n", f"# {labels.title}\n", f"{labels.intro}\n"]
     if rubric:
         parts.append(f"{rubric.strip()}\n")
     for number, row in enumerate(rows, start=1):
@@ -94,13 +95,13 @@ def calibration_markdown(
             "---\n",
             f"## {number}/{len(rows)} · `{row['id']}`\n",
             f"**{labels.question} :** {row['question']}\n",
-            f"**{labels.reference}**\n",
+            f"### {labels.reference}\n",
             # A line the split already indents is a nested item; any other is an item of its own.
             "\n".join(line if line.startswith(" ") else f"- {line}" for line in split(row.get("reference") or ""))
             + "\n",
-            f"**{labels.answer}**\n",
+            f"### {labels.answer}\n",
             "\n".join(f"> {line}" if line.strip() else ">" for line in answer.splitlines()) + "\n",
-            f"**{labels.grade}** {grade if grade is not None else ''}".rstrip() + "\n",
+            f"{labels.grade} {grade if grade is not None else ''}".rstrip() + "\n",
         ]
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text("\n".join(parts))
@@ -110,7 +111,7 @@ def read_markdown_grades(path: Path, *, labels: SheetLabels | None = None) -> di
     """Case id -> the grade a person wrote in a sheet from `calibration_markdown`; ungraded cases are left out."""
     labels = labels or SheetLabels()
     heading = re.compile(r"^## \d+/\d+ · `([^`]+)`")
-    line = re.compile(r"^\*\*" + re.escape(labels.grade) + r"\*\*\s*(\S*)")
+    line = re.compile(r"^" + re.escape(labels.grade) + r"\s*(\S*)")
     grades: dict[str, int] = {}
     case_id = None
     for text in path.read_text().splitlines():

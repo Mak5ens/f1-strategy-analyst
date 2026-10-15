@@ -205,8 +205,8 @@ def test_a_readable_sheet_gives_its_grades_back(tmp_path: Path) -> None:
     text = sheet.read_text()
     assert "- Cause : x.\n- Faits : y." in text and "> Parce que." in text
     assert read_markdown_grades(sheet) == {"a": 4}
-    sheet.write_text(text.replace("**Grade (1 to 5):**\n", "**Grade (1 to 5):** 2\n"))
+    sheet.write_text(text.replace("Grade (1 to 5):\n", "Grade (1 to 5): 2\n"))
     assert read_markdown_grades(sheet) == {"a": 4, "b": 2}
-    sheet.write_text(text.replace("**Grade (1 to 5):** 4", "**Grade (1 to 5):** 6"))
+    sheet.write_text(text.replace("Grade (1 to 5): 4", "Grade (1 to 5): 6"))
     with pytest.raises(ValueError, match="1 to 5"):
         read_markdown_grades(sheet)

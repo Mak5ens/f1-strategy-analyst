@@ -1,3 +1,5 @@
+<!-- markdownlint-disable MD024 -->
+
 # Notation des réponses de stratégie
 
 Note chaque réponse de 1 à 5 sur la ligne « Note », sans regarder les notes du juge (`judge-grades.json`), puis lance `just eval agreement`.
@@ -18,7 +20,7 @@ Quand la référence commence par « Prémisse fausse », la correction est la c
 
 **Question :** Pourquoi Lewis Hamilton a-t-il perdu sa place face à Oliver Bearman lors de leurs premiers arrêts aux stands du Grand Prix de Mexico 2025 ?
 
-**Référence**
+### Référence
 
 - **Cause principale :** la pénalité de Lewis Hamilton : une pénalité de 10 s pour avoir gagné un avantage en sortant de la piste, purgée à son arrêt du tour 23, où ses mécaniciens ont dû attendre 10 s avant de toucher la voiture
   - Oliver Bearman est ressorti devant avec 7.9 s d'avance seulement, moins que la pénalité.
@@ -36,11 +38,11 @@ Quand la référence commence par « Prémisse fausse », la correction est la c
   - 21.7 s perdues au total sur les tours d'entrée et de sortie
 - Piste sèche, sans pluie pendant le cycle.
 
-**Réponse du système**
+### Réponse du système
 
 > Lewis Hamilton a perdu sa place face à Oliver Bearman lors de leurs premiers arrêts aux stands du Grand Prix de Mexico 2025 en raison d'un sous-virement. Hamilton a effectué son arrêt au stand au 23e tour, tandis que Bearman a attendu le tour suivant, au 24e tour. Avant leurs arrêts, Hamilton avait un avantage de 3,6 secondes sur Bearman. Après leurs arrêts, Bearman a pris 7,877 secondes d'avance sur Hamilton, ce qui a entraîné une perte totale de 11,477 secondes pour Hamilton. En conséquence, Hamilton est passé de la 3e à la 14e place, tandis que Bearman est passé de la 4e à la 9e place.
 
-**Note (1 à 5) :** 2
+Note (1 à 5) : 2
 
 ---
 
@@ -48,7 +50,7 @@ Quand la référence commence par « Prémisse fausse », la correction est la c
 
 **Question :** Au Grand Prix de Las Vegas 2024, qui de Lewis Hamilton ou de Charles Leclerc est sorti devant après leurs 2es arrêts aux stands, et pourquoi ?
 
-**Référence**
+### Référence
 
 - Lewis Hamilton est sorti devant Charles Leclerc.
 - **Cause principale :** l'undercut : Lewis Hamilton s'est arrêté le premier, au tour 27, 4 tours avant Charles Leclerc, et a gagné 7.4 s sur le cycle d'arrêts
@@ -67,11 +69,11 @@ Quand la référence commence par « Prémisse fausse », la correction est la c
   - 22.6 s perdues au total sur les tours d'entrée et de sortie
 - Piste sèche, sans pluie pendant le cycle.
 
-**Réponse du système**
+### Réponse du système
 
 > Au Grand Prix de Las Vegas 2024, Lewis Hamilton est sorti devant Charles Leclerc après leurs 2es arrêts aux stands. Hamilton a gagné 7.355 secondes sur Leclerc grâce à un undercut.
 
-**Note (1 à 5) :**
+Note (1 à 5) :
 
 ---
 
@@ -79,7 +81,7 @@ Quand la référence commence par « Prémisse fausse », la correction est la c
 
 **Question :** Pourquoi George Russell a-t-il perdu sa place face à Liam Lawson lors de leurs premiers arrêts aux stands du Grand Prix de Hongrie 2026 ?
 
-**Référence**
+### Référence
 
 - **Prémisse fausse :** George Russell n'a pas perdu sa place face à Liam Lawson, c'est l'inverse : George Russell a pris celle de Liam Lawson.
 - **Cause principale :** l'overcut : George Russell est resté en piste 6 tours de plus que Liam Lawson (arrêts aux tours 21 et 27), et a gagné 2.7 s sur le cycle d'arrêts
@@ -96,11 +98,11 @@ Quand la référence commence par « Prémisse fausse », la correction est la c
   - 24.6 s perdues au total sur les tours d'entrée et de sortie
 - Piste sèche, sans pluie pendant le cycle.
 
-**Réponse du système**
+### Réponse du système
 
 > George Russell a perdu sa place face à Liam Lawson lors de leurs premiers arrêts aux stands du Grand Prix de Hongrie 2026 car il a effectué son arrêt au stand plus tard, au 27e tour, alors que Liam Lawson a arrêté au 21e tour. Russell a gagné 2,718 secondes sur Lawson grâce à cette stratégie d'overcut, ce qui lui a permis de passer devant Lawson. Avant l'arrêt, Russell était en 8e position et Lawson en 7e position. Après l'arrêt, Russell a pris la 9e position et Lawson est passé en 10e position.
 
-**Note (1 à 5) :**
+Note (1 à 5) :
 
 ---
 
@@ -108,7 +110,7 @@ Quand la référence commence par « Prémisse fausse », la correction est la c
 
 **Question :** Pourquoi Lando Norris a-t-il perdu sa place face à Arvid Lindblad lors de leurs premiers arrêts aux stands du Grand Prix d'Australie 2026 ?
 
-**Référence**
+### Référence
 
 - **Prémisse fausse :** Lando Norris n'a pas perdu sa place face à Arvid Lindblad, c'est l'inverse : Lando Norris a pris celle d'Arvid Lindblad.
 - **Cause principale :** le moment de l'arrêt sous voiture de sécurité virtuelle (VSC) : Lando Norris s'est arrêté dès le tour 11, Arvid Lindblad seulement au tour 18, quand la neutralisation touchait à sa fin et que l'arrêt coûtait plus cher.
@@ -125,11 +127,11 @@ Quand la référence commence par « Prémisse fausse », la correction est la c
 - Drapeau jaune au tour 18.
 - Piste sèche, sans pluie pendant le cycle.
 
-**Réponse du système**
+### Réponse du système
 
 > Lando Norris a perdu sa place face à Arvid Lindblad lors de leurs premiers arrêts aux stands du Grand Prix d'Australie 2026 en raison d'un sous-coupe (undercut). Norris a effectué son arrêt au stand au 11e tour, tandis que Lindblad a attendu le 18e tour. Avant les arrêts, Norris était à 0,491 seconde devant Lindblad. Après les arrêts, Norris a gagné 7,743 secondes sur Lindblad, ce qui a inversé leur position sur la piste. Norris est passé de la 7e à la 5e place, tandis que Lindblad est resté 6e. La course a été neutralisée pendant cet épisode.
 
-**Note (1 à 5) :**
+Note (1 à 5) :
 
 ---
 
@@ -137,7 +139,7 @@ Quand la référence commence par « Prémisse fausse », la correction est la c
 
 **Question :** Pourquoi Carlos Sainz a-t-il perdu sa place face à George Russell lors de leurs premiers arrêts aux stands du Grand Prix d'Azerbaïdjan 2025 ?
 
-**Référence**
+### Référence
 
 - **Cause principale :** l'overcut : George Russell est resté en piste 12 tours de plus que Carlos Sainz (arrêts aux tours 27 et 39), et a gagné 4.5 s sur le cycle d'arrêts
   - sur ses durs de 39 tours, il a tourné 0.11 s plus vite par tour que Carlos Sainz, pourtant sur des pneus durs neufs, sur 10 tours comparables
@@ -155,11 +157,11 @@ Quand la référence commence par « Prémisse fausse », la correction est la c
   - 19.5 s perdues au total sur les tours d'entrée et de sortie
 - Piste sèche, sans pluie pendant le cycle.
 
-**Réponse du système**
+### Réponse du système
 
 > Carlos Sainz a perdu sa place face à George Russell lors de leurs premiers arrêts aux stands du Grand Prix d'Azerbaïdjan 2025 en raison d'un sous-virage (undercut). George Russell a effectué son arrêt au stand au 39e tour, alors que Carlos Sainz l'avait fait au 27e tour. Avant les arrêts, Sainz avait un avantage de 2,69 secondes sur Russell. Après les arrêts, Russell a pris l'avantage avec un écart de 1,84 secondes, gagnant ainsi 4,53 secondes sur Sainz. Cela a permis à Russell de passer devant Sainz, qui a ainsi perdu une position.
 
-**Note (1 à 5) :**
+Note (1 à 5) :
 
 ---
 
@@ -167,7 +169,7 @@ Quand la référence commence par « Prémisse fausse », la correction est la c
 
 **Question :** Pourquoi Max Verstappen a-t-il perdu sa place face à Isack Hadjar lors de leurs premiers arrêts aux stands du Grand Prix des Pays-Bas 2025 ?
 
-**Référence**
+### Référence
 
 - **Prémisse fausse :**
   - Max Verstappen n'a pas perdu sa place face à Isack Hadjar : il était devant avant leurs arrêts et l'est resté après. Les deux se sont arrêtés au tour 23 ; Isack Hadjar n'a rien repris
@@ -186,11 +188,11 @@ Quand la référence commence par « Prémisse fausse », la correction est la c
 - Drapeau jaune au tour 23.
 - Piste sèche, sans pluie pendant le cycle.
 
-**Réponse du système**
+### Réponse du système
 
 > (pas de réponse)
 
-**Note (1 à 5) :**
+Note (1 à 5) :
 
 ---
 
@@ -198,7 +200,7 @@ Quand la référence commence par « Prémisse fausse », la correction est la c
 
 **Question :** Pourquoi Oscar Piastri a-t-il perdu sa place face à George Russell lors de leurs premiers arrêts aux stands du Grand Prix du Japon 2026 ?
 
-**Référence**
+### Référence
 
 - **Prémisse fausse :**
   - Oscar Piastri n'a pas perdu sa place face à George Russell : il était devant avant leurs arrêts et l'est resté après. George Russell a tenté l'overcut en restant en piste 3 tours de plus qu'Oscar Piastri
@@ -219,11 +221,11 @@ Quand la référence commence par « Prémisse fausse », la correction est la c
 - Drapeau jaune au tour 22.
 - Piste sèche, sans pluie pendant le cycle.
 
-**Réponse du système**
+### Réponse du système
 
 > Oscar Piastri a perdu sa place face à George Russell lors de leurs premiers arrêts aux stands du Grand Prix du Japon 2026 en raison d'un undercut. George Russell a effectué son arrêt un tour après Oscar Piastri (au 21e tour contre le 18e tour pour Piastri), ce qui a permis à Russell de ressortir des stands avec un avantage de temps. L'écart entre les deux pilotes est passé de -1,83 seconde avant les arrêts à -2,276 secondes après les arrêts, ce qui représente une perte de 0,446 seconde pour Piastri. Malgré cela, aucun des deux pilotes n'a dépassé l'autre, et la course a été neutralisée pendant cette période.
 
-**Note (1 à 5) :**
+Note (1 à 5) :
 
 ---
 
@@ -231,7 +233,7 @@ Quand la référence commence par « Prémisse fausse », la correction est la c
 
 **Question :** Pourquoi Lance Stroll a-t-il perdu sa place face à Oliver Bearman lors de leurs premiers arrêts aux stands du Grand Prix de Chine 2025 ?
 
-**Référence**
+### Référence
 
 - **Cause principale :** l'undercut : Oliver Bearman s'est arrêté le premier, au tour 26, 10 tours avant Lance Stroll, et a gagné 8.7 s sur le cycle d'arrêts
   - sur ses pneus mediums neufs, il a tourné 0.81 s plus vite par tour que Lance Stroll, resté en piste sur des durs de 36 tours, sur 8 tours comparables
@@ -249,11 +251,11 @@ Quand la référence commence par « Prémisse fausse », la correction est la c
   - 22.9 s perdues au total sur les tours d'entrée et de sortie
 - Piste sèche, sans pluie pendant le cycle.
 
-**Réponse du système**
+### Réponse du système
 
 > Lance Stroll a perdu sa place face à Oliver Bearman lors de leurs premiers arrêts aux stands du Grand Prix de Chine 2025 car Bearman a réussi un overcut. Stroll a fait son arrêt au stand au 36e tour, alors que Bearman l'a fait au 26e tour. Avant les arrêts, Stroll était devant Bearman avec un écart de 0,651 seconde. Après les arrêts, Bearman a gagné 8,698 secondes sur Stroll, passant devant lui. Stroll est passé de la 7e à la 14e place, tandis que Bearman est passé de la 8e à la 11e place.
 
-**Note (1 à 5) :**
+Note (1 à 5) :
 
 ---
 
@@ -261,7 +263,7 @@ Quand la référence commence par « Prémisse fausse », la correction est la c
 
 **Question :** Pourquoi Oscar Piastri a-t-il perdu sa place face à Carlos Sainz lors de leurs premiers arrêts aux stands du Grand Prix d'Émilie-Romagne 2024 ?
 
-**Référence**
+### Référence
 
 - **Prémisse fausse :** Oscar Piastri n'a pas perdu sa place face à Carlos Sainz, c'est l'inverse : Oscar Piastri a pris celle de Carlos Sainz.
 - **Cause principale :** l'undercut : Oscar Piastri s'est arrêté le premier, au tour 23, 4 tours avant Carlos Sainz, et a gagné 5.8 s sur le cycle d'arrêts
@@ -280,11 +282,11 @@ Quand la référence commence par « Prémisse fausse », la correction est la c
   - 26.8 s perdues au total sur les tours d'entrée et de sortie
 - Piste sèche, sans pluie pendant le cycle.
 
-**Réponse du système**
+### Réponse du système
 
 > (pas de réponse)
 
-**Note (1 à 5) :**
+Note (1 à 5) :
 
 ---
 
@@ -292,7 +294,7 @@ Quand la référence commence par « Prémisse fausse », la correction est la c
 
 **Question :** Pourquoi Lando Norris a-t-il perdu sa place face à Kimi Antonelli lors de leurs premiers arrêts aux stands du Grand Prix d'Espagne 2026 ?
 
-**Référence**
+### Référence
 
 - **Cause principale :** le moment de l'arrêt sous voiture de sécurité virtuelle (VSC) : Kimi Antonelli s'est arrêté dès le tour 14, Lando Norris seulement au tour 15, quand la neutralisation touchait à sa fin et que l'arrêt coûtait plus cher.
 - **Écarts :** Lando Norris avait 6.2 s d'avance à la fin du tour 13 ; à la fin du tour 16, Kimi Antonelli était devant de 15.7 s, et l'est resté au moins 3 tours.
@@ -307,11 +309,11 @@ Quand la référence commence par « Prémisse fausse », la correction est la c
 - Drapeau jaune au tour 14.
 - Piste sèche, sans pluie pendant le cycle.
 
-**Réponse du système**
+### Réponse du système
 
 > Lando Norris a perdu sa place face à Kimi Antonelli lors de leurs premiers arrêts aux stands du Grand Prix d'Espagne 2026 car il a effectué son arrêt au stand un tour plus tard qu'Antonelli (au 15e tour contre le 14e tour). Avant l'arrêt, Norris était devant Antonelli avec un écart de -6.219 secondes. Après les arrêts, Antonelli a gagné 21.946 secondes sur Norris, ce qui a permis à Antonelli de passer devant Norris. La course a été neutralisée pendant ces arrêts, ce qui a influencé les écarts de temps.
 
-**Note (1 à 5) :**
+Note (1 à 5) :
 
 ---
 
@@ -319,7 +321,7 @@ Quand la référence commence par « Prémisse fausse », la correction est la c
 
 **Question :** Pourquoi George Russell a-t-il perdu sa place face à Yuki Tsunoda lors de leurs premiers arrêts aux stands du Grand Prix de Miami 2024 ?
 
-**Référence**
+### Référence
 
 - **Cause principale :** un arrêt sous voiture de sécurité : Yuki Tsunoda s'est arrêté au tour 28 pendant la neutralisation, quand le peloton roule au ralenti et qu'un arrêt coûte bien moins de temps sur les autres, alors que George Russell s'était déjà arrêté sous drapeau vert, au tour 24.
 - **Écarts :** George Russell avait 1.7 s d'avance à la fin du tour 23 ; à la fin du tour 29, Yuki Tsunoda était devant de 5.8 s, et l'est resté au moins 3 tours.
@@ -334,11 +336,11 @@ Quand la référence commence par « Prémisse fausse », la correction est la c
 - Drapeau jaune au tour 28.
 - Piste sèche, sans pluie pendant le cycle.
 
-**Réponse du système**
+### Réponse du système
 
 > George Russell a perdu sa place face à Yuki Tsunoda lors de leurs premiers arrêts aux stands du Grand Prix de Miami 2024 car Tsunoda a réalisé un "overcut" sur Russell. Tsunoda a effectué son arrêt au stand au 28e tour, alors que Russell l'a fait au 24e tour. Avant les arrêts, l'écart entre eux était de 1,678 seconde en faveur de Russell. Après les arrêts, Tsunoda a gagné 7,471 secondes sur Russell, ce qui lui a permis de passer devant et de gagner deux positions, passant de la 8e à la 7e place, tandis que Russell est passé de la 7e à la 9e place.
 
-**Note (1 à 5) :**
+Note (1 à 5) :
 
 ---
 
@@ -346,7 +348,7 @@ Quand la référence commence par « Prémisse fausse », la correction est la c
 
 **Question :** Pourquoi Lewis Hamilton a-t-il perdu sa place face à George Russell lors de leurs premiers arrêts aux stands du Grand Prix de Singapour 2024 ?
 
-**Référence**
+### Référence
 
 - **Cause principale :** l'overcut : George Russell est resté en piste 10 tours de plus que Lewis Hamilton (arrêts aux tours 17 et 27), et a gagné 6.0 s sur le cycle d'arrêts
   - sur ses mediums de 27 tours, il a tourné 0.40 s plus vite par tour que Lewis Hamilton, pourtant sur des pneus durs neufs, sur 8 tours comparables
@@ -362,11 +364,11 @@ Quand la référence commence par « Prémisse fausse », la correction est la c
   - 28.2 s perdues au total sur les tours d'entrée et de sortie
 - Piste sèche, sans pluie pendant le cycle.
 
-**Réponse du système**
+### Réponse du système
 
 > Lewis Hamilton a perdu sa place face à George Russell lors de leurs premiers arrêts aux stands du Grand Prix de Singapour 2024 en raison d'un undercut. George Russell a effectué son arrêt au 27e tour, alors que Lewis Hamilton l'avait fait au 17e tour. Avant les arrêts, Hamilton avait un avantage de 1,867 seconde sur Russell. Après les arrêts, Russell a pris un avantage de 4,096 secondes sur Hamilton, ce qui a entraîné une perte nette de 5,963 secondes pour Hamilton. En conséquence, Hamilton est passé de la 3e à la 8e place, tandis que Russell est passé de la 4e à la 7e place, Russell ayant dépassé Hamilton.
 
-**Note (1 à 5) :**
+Note (1 à 5) :
 
 ---
 
@@ -374,7 +376,7 @@ Quand la référence commence par « Prémisse fausse », la correction est la c
 
 **Question :** Pourquoi Max Verstappen a-t-il perdu sa place face à Lando Norris lors de leurs premiers arrêts aux stands du Grand Prix de Mexico 2024 ?
 
-**Référence**
+### Référence
 
 - **Cause principale :** la pénalité de Max Verstappen : une pénalité de 10 s pour avoir poussé un autre pilote hors de la piste, purgée à son arrêt du tour 26, où ses mécaniciens ont dû attendre 10 s avant de toucher la voiture
   - Lando Norris est ressorti devant avec 18.6 s d'avance seulement, moins que la pénalité.
@@ -393,11 +395,11 @@ Quand la référence commence par « Prémisse fausse », la correction est la c
   - 22.7 s perdues au total sur les tours d'entrée et de sortie
 - Piste sèche, sans pluie pendant le cycle.
 
-**Réponse du système**
+### Réponse du système
 
 > Max Verstappen a perdu sa place face à Lando Norris lors de leurs premiers arrêts aux stands du Grand Prix de Mexico 2024 en raison d'un écart de temps significatif après son arrêt. Avant son arrêt au stand au 26e tour, Verstappen avait un avantage de 0.777 secondes sur Norris. Après son arrêt, l'écart s'est inversé, avec Norris ayant désormais un avantage de 18.631 secondes sur Verstappen. Cet écart de 19.408 secondes en défaveur de Verstappen explique pourquoi il a perdu sa position face à Norris.
 
-**Note (1 à 5) :**
+Note (1 à 5) :
 
 ---
 
@@ -405,7 +407,7 @@ Quand la référence commence par « Prémisse fausse », la correction est la c
 
 **Question :** Pourquoi Daniel Ricciardo a-t-il perdu sa place face à Lance Stroll lors de leurs premiers arrêts aux stands du Grand Prix du Canada 2024 ?
 
-**Référence**
+### Référence
 
 - **Cause principale :** le moment de l'arrêt sous voiture de sécurité : Lance Stroll s'est arrêté dès le tour 25, Daniel Ricciardo 1 tour plus tard, au tour 26
   - resté en piste derrière la voiture de sécurité pendant que le peloton se regroupait, Daniel Ricciardo a perdu les 4.3 s d'avance qu'il avait et est ressorti derrière.
@@ -422,11 +424,11 @@ Quand la référence commence par « Prémisse fausse », la correction est la c
 - Drapeau jaune au tour 25.
 - Piste humide, pneus intermédiaires, sans pluie pendant le cycle.
 
-**Réponse du système**
+### Réponse du système
 
 > (pas de réponse)
 
-**Note (1 à 5) :**
+Note (1 à 5) :
 
 ---
 
@@ -434,7 +436,7 @@ Quand la référence commence par « Prémisse fausse », la correction est la c
 
 **Question :** Au Grand Prix de Grande-Bretagne 2025, qui d'Oscar Piastri ou de Lando Norris est sorti devant après leurs 2es arrêts aux stands, et pourquoi ?
 
-**Référence**
+### Référence
 
 - Lando Norris est sorti devant Oscar Piastri.
 - **Cause principale :** la pénalité d'Oscar Piastri : une pénalité de 10 s pour une infraction sous voiture de sécurité, purgée à son arrêt du tour 43, où ses mécaniciens ont dû attendre 10 s avant de toucher la voiture
@@ -454,11 +456,11 @@ Quand la référence commence par « Prémisse fausse », la correction est la c
 - Drapeau jaune aux tours 43 et 44.
 - Piste humide, pneus intermédiaires, sans pluie pendant le cycle.
 
-**Réponse du système**
+### Réponse du système
 
 > Lando Norris est sorti devant Oscar Piastri après leurs 2es arrêts aux stands. Oscar Piastri a effectué son arrêt au 43e tour, tandis que Lando Norris a effectué le sien au 44e tour. Après leurs arrêts, Lando Norris a gagné 6.128 secondes sur Oscar Piastri, passant ainsi devant lui.
 
-**Note (1 à 5) :**
+Note (1 à 5) :
 
 ---
 
@@ -466,7 +468,7 @@ Quand la référence commence par « Prémisse fausse », la correction est la c
 
 **Question :** Pourquoi Lewis Hamilton a-t-il perdu sa place face à George Russell lors de leurs 2es arrêts aux stands du Grand Prix d'Espagne 2025 ?
 
-**Référence**
+### Référence
 
 - **Cause principale :** l'undercut : George Russell s'est arrêté le premier, au tour 41, 5 tours avant Lewis Hamilton, et a gagné 14.4 s sur le cycle d'arrêts
   - sur ses pneus tendres neufs, il a tourné 2.23 s plus vite par tour que Lewis Hamilton, resté en piste sur des mediums de 30 tours, sur 3 tours comparables
@@ -484,11 +486,11 @@ Quand la référence commence par « Prémisse fausse », la correction est la c
   - 20.0 s perdues au total sur les tours d'entrée et de sortie
 - Piste sèche, sans pluie pendant le cycle.
 
-**Réponse du système**
+### Réponse du système
 
 > Lewis Hamilton a perdu sa place face à George Russell lors de leurs 2es arrêts aux stands du Grand Prix d'Espagne 2025 car George Russell a réussi un overcut. Avant l'arrêt, Lewis Hamilton était devant George Russell de 1,891 seconde. Après l'arrêt, George Russell a pris 12,551 secondes d'avance sur Lewis Hamilton, ce qui a permis à George Russell de le dépasser et de gagner 2 positions, passant de la 6e à la 5e place, tandis que Lewis Hamilton est passé de la 5e à la 7e place.
 
-**Note (1 à 5) :**
+Note (1 à 5) :
 
 ---
 
@@ -496,7 +498,7 @@ Quand la référence commence par « Prémisse fausse », la correction est la c
 
 **Question :** Pourquoi Franco Colapinto a-t-il perdu sa place face à Pierre Gasly lors de leurs premiers arrêts aux stands du Grand Prix de Barcelone 2026 ?
 
-**Référence**
+### Référence
 
 - **Prémisse fausse :**
   - Franco Colapinto n'a pas perdu sa place face à Pierre Gasly : il était devant avant leurs arrêts et l'est resté après. Pierre Gasly a tenté l'overcut en restant en piste 2 tours de plus que Franco Colapinto
@@ -515,11 +517,11 @@ Quand la référence commence par « Prémisse fausse », la correction est la c
   - 24.9 s perdues au total sur les tours d'entrée et de sortie
 - Piste sèche, sans pluie pendant le cycle.
 
-**Réponse du système**
+### Réponse du système
 
 > Franco Colapinto a perdu sa place face à Pierre Gasly lors de leurs premiers arrêts aux stands du Grand Prix de Barcelone 2026 en raison d'un sous-virement. Colapinto a effectué son arrêt au stand au 12e tour, tandis que Gasly a attendu le 14e tour. Malgré cela, Colapinto n'a pas réussi à dépasser Gasly, et l'écart entre eux a même augmenté, passant de -0.902 secondes avant les arrêts à -3.996 secondes après les arrêts, ce qui représente une perte de 3.094 secondes. Colapinto était 12e avant les arrêts et est passé à la 14e place après, tandis que Gasly est passé de la 13e à la 15e place.
 
-**Note (1 à 5) :**
+Note (1 à 5) :
 
 ---
 
@@ -527,7 +529,7 @@ Quand la référence commence par « Prémisse fausse », la correction est la c
 
 **Question :** Au Grand Prix du Canada 2024, qui de Max Verstappen ou de Lando Norris est sorti devant après leurs premiers arrêts aux stands, et pourquoi ?
 
-**Référence**
+### Référence
 
 - Max Verstappen est sorti devant Lando Norris.
 - **Cause principale :** le moment de l'arrêt sous voiture de sécurité : Max Verstappen s'est arrêté dès le tour 25, Lando Norris 1 tour plus tard, au tour 26
@@ -544,11 +546,11 @@ Quand la référence commence par « Prémisse fausse », la correction est la c
 - Drapeau jaune au tour 25.
 - Piste humide, pneus intermédiaires, sans pluie pendant le cycle.
 
-**Réponse du système**
+### Réponse du système
 
 > Max Verstappen est sorti devant Lando Norris après leurs premiers arrêts aux stands. Lando Norris a effectué son arrêt au 26e tour, tandis que Max Verstappen l'a fait au 25e tour. Après leurs arrêts, Max Verstappen a gagné 10.779 secondes sur Lando Norris, passant de la 2e à la 1re position, tandis que Lando Norris est passé de la 1re à la 3e position.
 
-**Note (1 à 5) :**
+Note (1 à 5) :
 
 ---
 
@@ -556,7 +558,7 @@ Quand la référence commence par « Prémisse fausse », la correction est la c
 
 **Question :** Pourquoi Lewis Hamilton a-t-il perdu sa place face à Max Verstappen lors de leurs premiers arrêts aux stands du Grand Prix de Hongrie 2024 ?
 
-**Référence**
+### Référence
 
 - **Prémisse fausse :** Lewis Hamilton n'a pas perdu sa place face à Max Verstappen, c'est l'inverse : Lewis Hamilton a pris celle de Max Verstappen.
 - **Cause principale :** l'undercut : Lewis Hamilton s'est arrêté le premier, au tour 16, 5 tours avant Max Verstappen, et a gagné 7.9 s sur le cycle d'arrêts
@@ -573,11 +575,11 @@ Quand la référence commence par « Prémisse fausse », la correction est la c
   - 19.7 s perdues au total sur les tours d'entrée et de sortie
 - Piste sèche, sans pluie pendant le cycle.
 
-**Réponse du système**
+### Réponse du système
 
 > (pas de réponse)
 
-**Note (1 à 5) :**
+Note (1 à 5) :
 
 ---
 
@@ -585,7 +587,7 @@ Quand la référence commence par « Prémisse fausse », la correction est la c
 
 **Question :** Pourquoi Arvid Lindblad a-t-il perdu sa place face à Gabriel Bortoleto lors de leurs premiers arrêts aux stands du Grand Prix de Grande-Bretagne 2026 ?
 
-**Référence**
+### Référence
 
 - **Prémisse fausse :**
   - Arvid Lindblad n'a pas perdu sa place face à Gabriel Bortoleto : il était devant avant leurs arrêts et l'est resté après. Gabriel Bortoleto a tenté l'undercut en s'arrêtant au tour 26
@@ -602,11 +604,11 @@ Quand la référence commence par « Prémisse fausse », la correction est la c
   - 21.2 s perdues au total sur les tours d'entrée et de sortie
 - Piste sèche, sans pluie pendant le cycle.
 
-**Réponse du système**
+### Réponse du système
 
 > Arvid Lindblad a perdu sa place face à Gabriel Bortoleto lors de leurs premiers arrêts aux stands du Grand Prix de Grande-Bretagne 2026 en raison d'un écart de temps qui s'est réduit, mais pas suffisamment pour dépasser son rival. Avant l'arrêt, l'écart était de -2.544 secondes, et après l'arrêt, il était de -0.978 secondes. Bien que l'écart se soit réduit de 1.566 secondes, cela n'a pas été suffisant pour que Lindblad dépasse Bortoleto.
 
-**Note (1 à 5) :**
+Note (1 à 5) :
 
 ---
 
@@ -614,7 +616,7 @@ Quand la référence commence par « Prémisse fausse », la correction est la c
 
 **Question :** Pourquoi George Russell a-t-il perdu sa place face à Oscar Piastri lors de leurs premiers arrêts aux stands du Grand Prix de São Paulo 2025 ?
 
-**Référence**
+### Référence
 
 - **Prémisse fausse :** George Russell n'a pas perdu sa place face à Oscar Piastri, c'est l'inverse : George Russell a pris celle d'Oscar Piastri.
 - **Cause principale :** l'undercut : George Russell s'est arrêté le premier, au tour 34, 4 tours avant Oscar Piastri, et a gagné 20.5 s sur le cycle d'arrêts
@@ -634,11 +636,11 @@ Quand la référence commence par « Prémisse fausse », la correction est la c
   - 21.7 s perdues au total sur les tours d'entrée et de sortie
 - Piste sèche, sans pluie pendant le cycle.
 
-**Réponse du système**
+### Réponse du système
 
 > George Russell a perdu sa place face à Oscar Piastri lors de leurs premiers arrêts aux stands du Grand Prix de São Paulo 2025 car Oscar Piastri a effectué son arrêt au stand au 38e tour, alors que George Russell l'a fait au 34e tour. Après leurs arrêts, George Russell a gagné 20.521 secondes sur Oscar Piastri, passant de la 2e à la 3e place, tandis qu'Oscar Piastri est passé de la 1re à la 7e place.
 
-**Note (1 à 5) :**
+Note (1 à 5) :
 
 ---
 
@@ -646,7 +648,7 @@ Quand la référence commence par « Prémisse fausse », la correction est la c
 
 **Question :** Pourquoi Max Verstappen a-t-il perdu sa place face à Lando Norris lors de leurs premiers arrêts aux stands du Grand Prix de Belgique 2024 ?
 
-**Référence**
+### Référence
 
 - **Prémisse fausse :** Max Verstappen n'a pas perdu sa place face à Lando Norris, c'est l'inverse : Max Verstappen a pris celle de Lando Norris.
 - **Cause principale :** l'undercut : Max Verstappen s'est arrêté le premier, au tour 10, 5 tours avant Lando Norris, et a gagné 6.1 s sur le cycle d'arrêts
@@ -664,11 +666,11 @@ Quand la référence commence par « Prémisse fausse », la correction est la c
 - Drapeau jaune au tour 15.
 - Piste sèche, sans pluie pendant le cycle.
 
-**Réponse du système**
+### Réponse du système
 
 > (pas de réponse)
 
-**Note (1 à 5) :**
+Note (1 à 5) :
 
 ---
 
@@ -676,7 +678,7 @@ Quand la référence commence par « Prémisse fausse », la correction est la c
 
 **Question :** Au Grand Prix d'Arabie saoudite 2025, qui de Max Verstappen ou d'Oscar Piastri est sorti devant après leurs premiers arrêts aux stands, et pourquoi ?
 
-**Référence**
+### Référence
 
 - Oscar Piastri est sorti devant Max Verstappen.
 - **Cause principale :** la pénalité de Max Verstappen : une pénalité de 5 s pour avoir gagné un avantage en sortant de la piste, purgée à son arrêt du tour 21, où ses mécaniciens ont dû attendre 5 s avant de toucher la voiture
@@ -695,11 +697,11 @@ Quand la référence commence par « Prémisse fausse », la correction est la c
   - 19.0 s perdues au total sur les tours d'entrée et de sortie
 - Piste sèche, sans pluie pendant le cycle.
 
-**Réponse du système**
+### Réponse du système
 
 > Après leurs premiers arrêts aux stands, Oscar Piastri est sorti devant Max Verstappen. Max Verstappen a perdu du temps à cause d'une pénalité de 5 secondes pour avoir quitté la piste et gagné un avantage durable, ce qui a permis à Oscar Piastri de le dépasser en piste.
 
-**Note (1 à 5) :**
+Note (1 à 5) :
 
 ---
 
@@ -707,7 +709,7 @@ Quand la référence commence par « Prémisse fausse », la correction est la c
 
 **Question :** Au Grand Prix d'Italie 2024, qui de Charles Leclerc ou de Lando Norris est sorti devant après leurs premiers arrêts aux stands, et pourquoi ?
 
-**Référence**
+### Référence
 
 - Lando Norris est sorti devant Charles Leclerc.
 - **Cause principale :** l'undercut : Lando Norris s'est arrêté le premier, au tour 14, 1 tour avant Charles Leclerc, et a gagné 3.3 s sur le cycle d'arrêts
@@ -724,11 +726,11 @@ Quand la référence commence par « Prémisse fausse », la correction est la c
   - 24.4 s perdues au total sur les tours d'entrée et de sortie
 - Piste sèche, sans pluie pendant le cycle.
 
-**Réponse du système**
+### Réponse du système
 
 > Après leurs premiers arrêts aux stands, Lando Norris est sorti devant Charles Leclerc. Charles Leclerc a effectué son premier arrêt au stand au 15e tour, tandis que Lando Norris l'a fait au 14e tour. Avant leurs arrêts, Charles Leclerc était en deuxième position et Lando Norris en troisième position. Après leurs arrêts, Charles Leclerc est passé en septième position et Lando Norris en sixième position, ce qui signifie que Lando Norris a gagné une position sur Charles Leclerc.
 
-**Note (1 à 5) :**
+Note (1 à 5) :
 
 ---
 
@@ -736,7 +738,7 @@ Quand la référence commence par « Prémisse fausse », la correction est la c
 
 **Question :** Au Grand Prix de Grande-Bretagne 2024, qui de Lewis Hamilton ou de Lando Norris est sorti devant après leurs 2es arrêts aux stands, et pourquoi ?
 
-**Référence**
+### Référence
 
 - Lewis Hamilton est sorti devant Lando Norris.
 - **Cause principale :** le bon moment pour changer de pneus sur une piste qui évoluait : Lewis Hamilton est passé aux pneus tendres dès le tour 38, Lando Norris seulement au tour 39.
@@ -751,11 +753,11 @@ Quand la référence commence par « Prémisse fausse », la correction est la c
   - 24.6 s perdues au total sur les tours d'entrée et de sortie
 - Pluie aux tours 38 et 39.
 
-**Réponse du système**
+### Réponse du système
 
 > Au Grand Prix de Grande-Bretagne 2024, Lewis Hamilton (HAM) est sorti devant Lando Norris (NOR) après leurs 2es arrêts aux stands. Hamilton a effectué son arrêt au stand au 38e tour, tandis que Norris a effectué le sien au 39e tour. Avant leurs arrêts, l'écart entre Hamilton et Norris était de 1,935 seconde en faveur de Norris. Après leurs arrêts, Hamilton a gagné 4,658 secondes sur Norris, ce qui lui a permis de passer devant et de prendre la première position, tandis que Norris est passé à la deuxième position.
 
-**Note (1 à 5) :**
+Note (1 à 5) :
 
 ---
 
@@ -763,7 +765,7 @@ Quand la référence commence par « Prémisse fausse », la correction est la c
 
 **Question :** Pourquoi George Russell a-t-il perdu sa place face à Max Verstappen lors de leurs premiers arrêts aux stands du Grand Prix du Canada 2025 ?
 
-**Référence**
+### Référence
 
 - **Prémisse fausse :**
   - George Russell n'a pas perdu sa place face à Max Verstappen : il était devant avant leurs arrêts et l'est resté après. Max Verstappen a tenté l'undercut en s'arrêtant au tour 12
@@ -783,11 +785,11 @@ Quand la référence commence par « Prémisse fausse », la correction est la c
   - 19.2 s perdues au total sur les tours d'entrée et de sortie
 - Piste sèche, sans pluie pendant le cycle.
 
-**Réponse du système**
+### Réponse du système
 
 > George Russell a perdu sa place face à Max Verstappen lors de leurs premiers arrêts aux stands du Grand Prix du Canada 2025 en raison d'un écart de temps qui s'est agrandi après leurs arrêts. Avant les arrêts, Russell avait un avantage de 2.27 secondes sur Verstappen. Après les arrêts, cet écart s'est transformé en un désavantage de 2.549 secondes, ce qui a entraîné une perte de positions pour Russell, passant de la 1ère à la 6ème place, tandis que Verstappen est passé de la 2ème à la 8ème place. Cependant, aucun des deux pilotes n'a dépassé l'autre lors de ces arrêts.
 
-**Note (1 à 5) :**
+Note (1 à 5) :
 
 ---
 
@@ -795,7 +797,7 @@ Quand la référence commence par « Prémisse fausse », la correction est la c
 
 **Question :** Pourquoi Carlos Sainz a-t-il perdu sa place face à Charles Leclerc lors de leurs premiers arrêts aux stands du Grand Prix de Las Vegas 2025 ?
 
-**Référence**
+### Référence
 
 - **Cause principale :** l'overcut : Charles Leclerc est resté en piste 2 tours de plus que Carlos Sainz (arrêts aux tours 22 et 24), et a gagné 1.4 s sur le cycle d'arrêts
   - son arrêt lui a aussi coûté 2.0 s de moins (20.6 s contre 22.5 s).
@@ -812,11 +814,11 @@ Quand la référence commence par « Prémisse fausse », la correction est la c
   - 20.6 s perdues au total sur les tours d'entrée et de sortie
 - Piste sèche, sans pluie pendant le cycle.
 
-**Réponse du système**
+### Réponse du système
 
 > Carlos Sainz a perdu sa place face à Charles Leclerc lors de leurs premiers arrêts aux stands du Grand Prix de Las Vegas 2025 en raison d'un undercut. Charles Leclerc a effectué son arrêt un tour plus tard, ce qui a permis de réduire l'écart de temps entre les deux pilotes. Avant les arrêts, Sainz avait un avantage de 0.563 secondes, mais après les arrêts, Leclerc a pris un avantage de 0.812 secondes, ce qui a entraîné une perte nette de 1.375 secondes pour Sainz. En conséquence, Leclerc a gagné une position, passant de la 4ème à la 9ème place, tandis que Sainz est passé de la 3ème à la 10ème place.
 
-**Note (1 à 5) :**
+Note (1 à 5) :
 
 ---
 
@@ -824,7 +826,7 @@ Quand la référence commence par « Prémisse fausse », la correction est la c
 
 **Question :** Pourquoi Kimi Antonelli a-t-il perdu sa place face à Carlos Sainz lors de leurs premiers arrêts aux stands du Grand Prix du Qatar 2025 ?
 
-**Référence**
+### Référence
 
 - **Cause principale :** un arrêt lent de Kimi Antonelli au tour 7 : 6.3 s immobile, contre 2.9 s pour Carlos Sainz, soit 3.4 s de plus, davantage que les 0.4 s qui les séparaient ensuite.
 - **Écarts :** Kimi Antonelli avait 1.7 s d'avance à la fin du tour 6 ; à la fin du tour 8, Carlos Sainz était devant de 0.4 s, et l'est resté au moins 3 tours.
@@ -841,11 +843,11 @@ Quand la référence commence par « Prémisse fausse », la correction est la c
 - Drapeau jaune au tour 7.
 - Piste sèche, sans pluie pendant le cycle.
 
-**Réponse du système**
+### Réponse du système
 
 > (pas de réponse)
 
-**Note (1 à 5) :**
+Note (1 à 5) :
 
 ---
 
@@ -853,7 +855,7 @@ Quand la référence commence par « Prémisse fausse », la correction est la c
 
 **Question :** Pourquoi Charles Leclerc a-t-il perdu sa place face à Isack Hadjar lors de leurs premiers arrêts aux stands du Grand Prix du Canada 2026 ?
 
-**Référence**
+### Référence
 
 - **Cause principale :** le double arrêt de l'écurie de Charles Leclerc : son coéquipier Lewis Hamilton est passé au stand juste avant lui au tour 31, et Charles Leclerc a dû attendre son tour : 4.8 s de plus que la médiane de la course dans la voie des stands.
 - **Écarts :** Charles Leclerc avait 5.2 s d'avance à la fin du tour 30 ; à la fin du tour 32, Isack Hadjar était devant de 1.9 s, et l'est resté au moins 3 tours.
@@ -871,11 +873,11 @@ Quand la référence commence par « Prémisse fausse », la correction est la c
   - derrière son coéquipier Max Verstappen
 - Piste sèche, sans pluie pendant le cycle.
 
-**Réponse du système**
+### Réponse du système
 
 > (pas de réponse)
 
-**Note (1 à 5) :**
+Note (1 à 5) :
 
 ---
 
@@ -883,7 +885,7 @@ Quand la référence commence par « Prémisse fausse », la correction est la c
 
 **Question :** Pourquoi Max Verstappen a-t-il perdu sa place face à Lewis Hamilton lors de leurs premiers arrêts aux stands du Grand Prix d'Abou Dabi 2024 ?
 
-**Référence**
+### Référence
 
 - **Cause principale :** la pénalité de Max Verstappen : une pénalité de 10 s pour avoir provoqué une collision, purgée à son arrêt du tour 29, où ses mécaniciens ont dû attendre 10 s avant de toucher la voiture
   - Lewis Hamilton est ressorti devant avec 2.1 s d'avance seulement, moins que la pénalité.
@@ -902,8 +904,8 @@ Quand la référence commence par « Prémisse fausse », la correction est la c
 - Drapeau jaune au tour 31.
 - Piste sèche, sans pluie pendant le cycle.
 
-**Réponse du système**
+### Réponse du système
 
 > (pas de réponse)
 
-**Note (1 à 5) :**
+Note (1 à 5) :
