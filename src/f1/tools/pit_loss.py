@@ -28,7 +28,9 @@ class StopLoss(BaseModel):
     )
     reference_lap_s: float | None = Field(description="Median of the normal laps around the stop")
     reference_laps: int
-    time_lost_s: float | None = Field(description="in_and_out_laps_s minus two reference laps: what the stop cost")
+    time_lost_s: float | None = Field(
+        description="in_and_out_laps_s minus two reference laps: what the stop cost; none under a red flag"
+    )
     compound_before: str | None
     compound_after: str | None
     neutralized: bool = Field(description="Safety car, VSC or red flag during the in- or out-lap: the stop cost less")
@@ -80,7 +82,10 @@ def stop_loss(laps: dict[int, dict[str, Any]], stop: dict[str, Any]) -> StopLoss
         in_and_out_laps_s=in_and_out,
         reference_lap_s=reference,
         reference_laps=len(reference_times),
-        time_lost_s=round(in_and_out - 2 * reference, 3) if in_and_out is not None and reference is not None else None,
+        # Under a red flag, the two laps hold the stoppage: no cost to compare (a debrief quoted "1539 s" lost).
+        time_lost_s=round(in_and_out - 2 * reference, 3)
+        if in_and_out is not None and reference is not None and not stop["red_flag"]
+        else None,
         compound_before=stop["compound_before"] if isinstance(stop["compound_before"], str) else None,
         compound_after=stop["compound_after"] if isinstance(stop["compound_after"], str) else None,
         neutralized=any(is_neutralized(laps[lap]["track_status"]) for lap in (in_lap, out_lap) if lap in laps),

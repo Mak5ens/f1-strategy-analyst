@@ -58,7 +58,7 @@ What each stop of a driver (or one `stop_number`) cost.
 - `in_and_out_laps_s`: from the line before the in-lap to the end of the out-lap.
 - `reference_lap_s`: median of the clean laps up to 5 laps before the in-lap and 5 laps after the out-lap.
 - **`time_lost_s` = `in_and_out_laps_s` − 2 × `reference_lap_s`**: the time lost against two normal laps, which is what decides an undercut. It is larger than the pit lane time minus the time to drive past the pit lane, because the in- and out-laps include slowing down, cold tyres and traffic.
-- `neutralized`: a safety car, VSC or red flag during the in- or out-lap; such a stop costs much less, and is not comparable with the others. `red_flag`: tyres changed while the race was stopped.
+- `neutralized`: a safety car, VSC or red flag during the in- or out-lap; such a stop costs much less, and is not comparable with the others. `red_flag`: tyres changed while the race was stopped; such a stop has no `time_lost_s`, since its two laps hold the stoppage (a debrief once quoted 1,539 s "lost" at São Paulo 2024).
 
 ## pit_cycle
 

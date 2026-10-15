@@ -52,13 +52,17 @@ class Tracer:
     def enabled(self) -> bool:
         return self._client is not None
 
+    def new_trace_id(self) -> str | None:
+        return self._client.create_trace_id() if self._client is not None else None
+
     @contextmanager
-    def trace(self, name: str, input: Any) -> Iterator[str | None]:
-        """Root span of a request; yields its trace id (None when tracing is off), to pass as session id."""
+    def trace(self, name: str, input: Any, *, trace_id: str | None = None) -> Iterator[str | None]:
+        """Root span of a request; yields its trace id (None when tracing is off), to pass as session id. With
+        `trace_id`, the span joins that trace: a request that waits for a person and resumes keeps one trace."""
         if self._client is None:
             yield None
             return
-        trace_id = self._client.create_trace_id()
+        trace_id = trace_id or self._client.create_trace_id()
         with (
             self._client.start_as_current_observation(
                 name=name, as_type="chain", input=input, trace_context={"trace_id": trace_id}

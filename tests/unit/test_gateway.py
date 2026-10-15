@@ -6,7 +6,7 @@ from typing import Any, cast
 import httpx2
 import pytest
 from openai import OpenAI
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, SecretStr, ValidationError
 
 from core.gateway import (
     GatewaySettings,
@@ -157,3 +157,26 @@ def test_sdk_calls_go_through_the_transport(monkeypatch: pytest.MonkeyPatch) -> 
     client.embeddings.create(model="embed", input=["x"])
 
     assert json.loads(requests[0].read())["user"] == "f1-rag"
+
+
+def test_a_usage_scope_counts_the_chat_calls_and_their_tokens() -> None:
+    from core.gateway import usage_scope
+
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        if request.url.path.endswith("/embeddings"):
+            data = [{"object": "embedding", "index": 0, "embedding": [0.1]}]
+            return httpx2.Response(200, json={"data": data, "model": "embed", "object": "list",
+                                              "usage": {"prompt_tokens": 50, "total_tokens": 50}})  # fmt: skip
+        body = {"choices": [{"message": {"role": "assistant", "content": "ok"}, "index": 0}], "model": "m",
+                "id": "1", "object": "chat.completion", "created": 0,
+                "usage": {"prompt_tokens": 12, "completion_tokens": 3, "total_tokens": 15}}  # fmt: skip
+        return httpx2.Response(200, json=body)
+
+    settings = GatewaySettings(url="http://gateway.test", api_key=SecretStr("sk"))
+    client = gateway_client(settings, transport=httpx2.MockTransport(handler))
+    client.chat.completions.create(model="m", messages=[{"role": "user", "content": "hors scope"}])
+    with usage_scope() as usage:
+        for _ in range(2):
+            client.chat.completions.create(model="m", messages=[{"role": "user", "content": "?"}])
+        client.embeddings.create(model="embed", input="x")
+    assert (usage.calls, usage.prompt_tokens, usage.completion_tokens, usage.tokens) == (2, 24, 6, 30)

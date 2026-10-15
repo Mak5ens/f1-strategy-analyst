@@ -8,7 +8,6 @@ import pytest
 
 from f1.evals.strategy import (
     Duel,
-    Penalty,
     RaceFacts,
     StopFacts,
     _paired,
@@ -16,10 +15,9 @@ from f1.evals.strategy import (
     elide,
     list_fr,
     neutralization,
-    penalties,
-    reason_fr,
     served_at,
 )
+from f1.tools.penalties import Penalty, penalties, reason_fr
 from f1.tools.pit_cycle import PitCycleOutput
 from f1.tools.pit_loss import StopLoss
 

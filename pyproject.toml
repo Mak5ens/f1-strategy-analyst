@@ -21,8 +21,11 @@ dependencies = [
     "httpx>=0.28.1",
     "httpx2>=2.13.1",
     "langfuse>=4.9.1",
+    "langgraph>=1.2.12",
+    "langgraph-checkpoint-postgres>=3.1.2",
     "openai>=3.28.0",
     "pandas>=2.3.3",
+    "psycopg[binary]>=3.3.6",
     "pyarrow>=26.0.0",
     "pydantic-settings>=2.15.0",
     "pypdf>=6.20.0",
@@ -39,6 +42,7 @@ f1-season-jobs = "f1.jobs.season:main"
 f1-eval-dataset = "f1.evals.build:main"
 f1-baseline = "f1.baseline.ask:main"
 f1-eval = "f1.evals.run:main"
+f1-debrief = "f1.agent.cli:main"
 
 [dependency-groups]
 dev = [
