@@ -24,7 +24,7 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: quick (10 cases per family, about 10 minutes) or full (the whole test set, about 40 minutes)
+        description: quick (20 cases per family, about 20 minutes) or full (the whole test set, about 40 minutes)
         type: choice
         options: [quick, full]
         default: quick
@@ -91,7 +91,7 @@ jobs:
         run: |
           if [ "$MODE" = quick ]; then
             run="ci-${{ github.event.pull_request.number && format('pr{0}', github.event.pull_request.number) || 'quick' }}-${GITHUB_SHA::7}"
-            options=(--sample 10 --budget 0.25)
+            options=(--sample 20 --budget 0.40)
           else
             run="ci-full-$(date -u +%Y-%m-%d)-${GITHUB_SHA::7}"
             options=(--budget 1.00)
