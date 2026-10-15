@@ -5,6 +5,7 @@
 ```bash
 just eval                         # the baseline on the test set
 just eval --sample 8              # at most 8 cases per family: a quick look within the rate limit
+just eval --family strategy       # one family; `thresholds --from` then updates that family alone
 just eval --split dev --push      # the development set, and the run in Langfuse
 just eval --check                 # exit 1 when a family is under its threshold (evals/thresholds.json)
 just eval --records .cache/evals/<run>/records.jsonl   # score a recorded run again, without the system's calls
@@ -64,7 +65,7 @@ promptfoo and Ragas run apart: promptfoo with `npx` (pinned, `promptfoo@0.123.1`
 
 ## The judge
 
-The `strategy` family asks why a driver lost a place: no assertion checks that. A judge (`core.evals.judge`, `chat-pro`) grades the answer against the reference cause on a rubric of five levels, in JSON validated by code: 5, the main cause with its supporting facts and nothing false; 4, the main cause with partial facts; 3, the cause mentioned but not as the main one, or a false detail; 2, another cause; 1, wrong, invented or no answer.
+The `strategy` family asks why a driver came out of a pit cycle ahead of another: no assertion checks that. A judge (`core.evals.judge`, `chat-pro`) grades the answer against the reference cause on a rubric of five levels, in JSON validated by code: 5, the main cause with its supporting facts and nothing false; 4, the main cause with partial facts; 3, the cause mentioned but not as the main one, or a false detail; 2, another cause; 1, wrong, invented or no answer. When the reference says the question rests on a false premise (LAB-201), the correction is the main cause: an answer that accepts the premise is a 1.
 
 A judge is only trusted once it agrees with a person. `just eval judge-sheet` answers 30 strategy cases with the system and has the judge grade them: the answers go to `evals/judge/calibration.jsonl`, the judge's grades apart to `evals/judge/judge-grades.json`, so that a person sets `human` on each line without seeing them; then `just eval agreement` measures exact agreement, agreement within one point, agreement on "4 or more", Cohen's quadratic weighted kappa and Spearman's correlation (`evals/judge/agreement.json`). The rubric is adjusted until the agreement is good enough to rely on (a weighted kappa of 0.6 or more is a common bar).
 
@@ -74,5 +75,5 @@ A judge is only trusted once it agrees with a person. `just eval judge-sheet` an
 
 - **The judge and Ragas run on `chat-pro`, the model of the systems they score.** A model grading its own kind of answers can be lenient with its own errors. The calibration against a person measures that; a judge on another provider is the fix if it shows.
 - **The rate limit sets the duration.** The f1 key allows 60 requests a minute and a case takes 3 to 6 calls: the 248 cases of the test set take about 25 minutes, over the 15 aimed at. The evaluation key of LAB-195 (300 a minute) brings it under. Until then, `--sample` gives a quick look; the client waits out a 429 instead of counting a failure.
-- **Strategy references are a rule's guess** until reviewed (`evals/README.md`): the judge's grade is only as good as the reference. The calibration found them too thin and sometimes wrong: penalties served at a stop taken for slow stops, a neutralization not named, a stop compared with the wrong stop of the rival, a passing position taken for an overtake.
+- **Strategy references are a rule's reading of the data** (`evals/README.md`): the judge's grade is only as good as the reference. The calibration found the first ones too thin and sometimes wrong: penalties served at a stop taken for slow stops, a neutralization not named, a stop compared with the wrong stop of the rival, a passing position taken for an overtake, questions that always assumed the premise. LAB-201 rewrote the rule on each point; the calibration of 2026-10-14 was measured on the old references.
 - **`retrieval` and `regulation` metrics measure the passages the system retrieved.** For the baseline, the passages themselves; the ablation of the production pipeline, stage by stage, is `just rag-eval`.

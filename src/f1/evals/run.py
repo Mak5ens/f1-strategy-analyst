@@ -2,6 +2,7 @@
 
     just eval                          # the baseline on the test set
     just eval --sample 8               # at most 8 cases per family: a quick look, within the rate limit
+    just eval --family strategy        # one family only (its thresholds are updated alone)
     just eval --split dev --push       # the development set, and the run in Langfuse
     just eval --check                  # fail when a family falls under its threshold (evals/thresholds.json)
     just eval --run-name <run> --resume   # go on with an interrupted run: only the missing or failed cases
@@ -25,7 +26,7 @@ from pathlib import Path
 from typing import Any
 
 from core.baseline import Baseline
-from core.evals.dataset import Case, read_cases
+from core.evals.dataset import FAMILIES, Case, read_cases
 from core.evals.harness import (
     Record,
     append_record,
@@ -103,10 +104,11 @@ def judge_records(cases: Sequence[Case], records: Sequence[Record]) -> dict[str,
 
 
 def evaluate(args: argparse.Namespace) -> int:
-    cases = sample(read_cases(DATASETS / f"{args.split}.jsonl"), args.sample, seed=SEED)
+    cases = [case for case in read_cases(DATASETS / f"{args.split}.jsonl") if case.family in (args.family or FAMILIES)]
+    cases = sample(cases, args.sample, seed=SEED)
     run = args.run_name or f"{datetime.now(UTC):%Y%m%dT%H%M}-{args.system}-{args.split}" + (
-        f"-sample{args.sample}" if args.sample else ""
-    )
+        f"-{'-'.join(args.family)}" if args.family else ""
+    ) + (f"-sample{args.sample}" if args.sample else "")
     workdir = WORK / run
     records_path = workdir / "records.jsonl"
     if args.records:  # score a run recorded earlier, without paying the system's calls again
@@ -236,22 +238,27 @@ NOISE_CASES = 2
 
 
 def thresholds(args: argparse.Namespace) -> int:
-    """Initial thresholds from a reference run: its score on each gated metric, less the margin, rounded down."""
-    margins: dict[str, float] = {}
+    """Thresholds from a reference run: its score on each gated metric, less the margin, rounded down. A family the
+    run did not score keeps its threshold, and the run it came from."""
     report = json.loads(Path(args.from_report).read_text())
-    limits: dict[str, dict[str, float]] = {}
+    current = json.loads(THRESHOLDS.read_text()) if THRESHOLDS.exists() else {}
+    sources: dict[str, str] = current.get("from_runs") or {family: current["from"] for family in current["families"]}
+    margins: dict[str, float] = dict(current.get("margins", {}))
+    limits: dict[str, dict[str, float]] = dict(current.get("families", {}))
     for family, metrics in GATED.items():
         scores = report["families"].get(family, {})
         if not scores:
             continue
         margin = max(MARGIN, NOISE_CASES / scores["cases"])
         margins[family] = round(margin, 3)
+        sources[family] = report["run"]
+        limits[family] = {}
         for metric in metrics:
             if metric in scores:
                 scale = 5.0 if metric == "grade/5" else 1.0
                 value = max(0.0, scores[metric] - margin * scale)
                 limits.setdefault(family, {})[metric] = math.floor(value * 100) / 100
-    THRESHOLDS.write_text(json.dumps({"from": report["run"], "margins": margins, "families": limits}, indent=1) + "\n")
+    THRESHOLDS.write_text(json.dumps({"from_runs": sources, "margins": margins, "families": limits}, indent=1) + "\n")
     print(json.dumps(limits, indent=1))
     return 0
 
@@ -263,6 +270,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--system", default="baseline", choices=sorted(SYSTEMS))
     parser.add_argument("--split", default="test", choices=["dev", "test"])
     parser.add_argument("--sample", type=int, help="at most this many cases per family")
+    parser.add_argument("--family", action="append", choices=FAMILIES, help="only this family (repeatable)")
     parser.add_argument("--workers", type=int, default=4, help="cases run at once (the rate limit sets the pace)")
     parser.add_argument("--records", help="score this records.jsonl instead of running the system")
     parser.add_argument("--run-name")

@@ -146,7 +146,8 @@ def dataset_items(cases: Iterable[Case]) -> list[dict[str, Any]]:
 
 def push_to_langfuse(name: str, cases: Sequence[Case], *, description: str, client: Any = None) -> int:
     """Create or update the Langfuse dataset `name` with the cases. Items keep a stable id (the dataset's name and the
-    case's), so a second push updates them instead of adding copies. Returns the number of items sent."""
+    case's), so a second push updates them instead of adding copies; an item whose case left the set is archived,
+    so that runs keep their history but new runs skip it. Returns the number of items sent."""
     if client is None:
         from langfuse import Langfuse
 
@@ -168,5 +169,16 @@ def push_to_langfuse(name: str, cases: Sequence[Case], *, description: str, clie
             expected_output=item["expected_output"],
             metadata=item["metadata"],
         )
+    kept = {f"{name}:{item['id']}" for item in items}
+    for old in client.get_dataset(name).items:
+        if old.id not in kept and old.status != "ARCHIVED":
+            client.create_dataset_item(
+                dataset_name=name,
+                id=old.id,
+                input=old.input,
+                expected_output=old.expected_output,
+                metadata=old.metadata,
+                status="ARCHIVED",
+            )
     client.flush()
     return len(items)
