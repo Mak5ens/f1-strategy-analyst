@@ -10,6 +10,7 @@
     just eval judge-sheet              # 30 strategy answers graded by the judge, for a person to grade too
     just eval agreement                # how the judge agrees with the person's grades (latest round)
     just eval thresholds --from evals/reports/<run>.json   # initial thresholds from a reference run
+    just eval models                   # chat-small, chat-medium and chat-pro side by side (LAB-150, about 3 hours)
 
 The system runs once per case; promptfoo, Ragas and the judge then score what it recorded (`core.evals.harness`).
 Work files go to `.cache/evals/<run>/`, the report to `evals/reports/<run>.json`, and its summary, for a pull
@@ -21,6 +22,7 @@ import json
 import logging
 import math
 import random
+import statistics
 import sys
 import time
 from collections.abc import Sequence
@@ -29,7 +31,7 @@ from pathlib import Path
 from typing import Any
 
 from core.baseline import Baseline
-from core.evals.compare import MARGIN, NOISE_CASES, CaseScores, compare, markdown
+from core.evals.compare import MARGIN, NOISE_CASES, CaseScores, compare, markdown, side_by_side
 from core.evals.dataset import FAMILIES, Case, read_cases
 from core.evals.harness import (
     Record,
@@ -85,10 +87,12 @@ END_USER = "f1-evals"  # the judge's calls, apart from the system's
 class BaselineSystem:
     name = "baseline"
 
-    def __init__(self, system: Baseline | None = None) -> None:
+    def __init__(self, system: Baseline | None = None, *, model: str | None = None) -> None:
+        from core.baseline import BaselineConfig
         from f1.baseline import baseline
 
-        self.system = system or baseline()
+        self.system = system or baseline(BaselineConfig(model=model) if model else None)
+        self.model = self.system.config.model
 
     def run(self, case: Case) -> Record:
         result = self.system.answer(case.question)
@@ -152,6 +156,27 @@ def settled_spend(*, pause: float = 15.0, tries: int = 6) -> float | None:
     return last
 
 
+def latency(cases: Sequence[Case], records: Sequence[Record]) -> dict[str, dict[str, float]]:
+    """Median and 95th percentile of a case's duration (every call of the system), by family and over all cases."""
+    by_id = {record.id: record for record in records}
+
+    def stats(seconds: list[float]) -> dict[str, float]:
+        ordered = sorted(seconds)
+        return {
+            "p50": round(statistics.median(ordered), 2),
+            "p95": round(ordered[min(len(ordered) - 1, math.ceil(0.95 * len(ordered)) - 1)], 2),
+        }
+
+    families: dict[str, list[float]] = {}
+    for case in cases:
+        if case.id in by_id:
+            families.setdefault(case.family, []).append(by_id[case.id].seconds)
+    result = {family: stats(seconds) for family, seconds in families.items()}
+    if families:
+        result["all"] = stats([second for seconds in families.values() for second in seconds])
+    return result
+
+
 def references(families: Sequence[str]) -> dict[str, tuple[str, CaseScores]]:
     """Each family's reference run on the main branch (`from_runs` of evals/thresholds.json) and its case scores."""
     if not THRESHOLDS.exists():
@@ -174,6 +199,7 @@ def evaluate(args: argparse.Namespace) -> int:
     ) + (f"-sample{args.sample}" if args.sample else "")
     workdir = WORK / run
     records_path = workdir / "records.jsonl"
+    model, system_cost = args.model, None
     if args.records:  # score a run recorded earlier, without paying the system's calls again
         records = read_records(Path(args.records))
         cases = [case for case in cases if case.id in {record.id for record in records}]
@@ -196,20 +222,21 @@ def evaluate(args: argparse.Namespace) -> int:
             append_record(records_path, record)
             log.info("[%d/%d] %s %s", len(done), len(todo), record.id, "ok" if not record.error else record.error)
 
+        system = SYSTEMS[args.system](model=args.model)
+        model = system.model
+
         def over_budget() -> str | None:
             if args.budget is None or spent_before is None:
                 return None
             now = spend()
             return f"budget of ${args.budget} spent" if now is not None and now - spent_before > args.budget else None
 
-        fresh = {
-            r.id: r
-            for r in run_system(
-                SYSTEMS[args.system](), todo, workers=args.workers, on_record=progress, stop=over_budget
-            )
-        }
+        fresh = {r.id: r for r in run_system(system, todo, workers=args.workers, on_record=progress, stop=over_budget)}
         records = [kept.get(case.id) or fresh[case.id] for case in cases]
         write_records(records_path, records)
+        # The system's own spend, before the judge and Ragas spend theirs: the cost of answering.
+        if spent_before is not None and (after_system := settled_spend()) is not None:
+            system_cost = round(after_system - spent_before, 4)
 
     promptfoo = promptfoo_scores(cases, records, workdir)
     ragas = {} if args.no_ragas else ragas_scores(cases, records, workdir)
@@ -247,8 +274,11 @@ def evaluate(args: argparse.Namespace) -> int:
         "split": args.split,
         "sample_per_family": args.sample,
         "date": datetime.now(UTC).isoformat(timespec="seconds"),
+        "model": model,
         "minutes": minutes,
         "cost_usd": cost,
+        "system_cost_usd": system_cost,
+        "latency_s": latency(cases, records),
         "comparison": [{**vars(c), "delta": c.delta, "regressed": c.regressed} for c in comparisons],
         "families": {line.family: {"cases": line.cases, "errors": line.errors, **line.metrics} for line in lines},
         "cases": scores,
@@ -353,7 +383,7 @@ def judge_sheet(args: argparse.Namespace) -> int:
     cases = [case for case in read_cases(DATASETS / "dev.jsonl") + read_cases(DATASETS / "test.jsonl")]
     strategy = sheet_cases([case for case in cases if case.family == "strategy"])
     random.Random(SEED).shuffle(strategy)  # the kinds mixed, so that the order says nothing
-    records = run_system(SYSTEMS[args.system](), strategy, workers=args.workers)
+    records = run_system(SYSTEMS[args.system](model=args.model), strategy, workers=args.workers)
     grades = judge_records(strategy, records)
     rows = [
         {
@@ -455,17 +485,60 @@ def thresholds(args: argparse.Namespace) -> int:
     return 0
 
 
+# The models of LAB-150: a small local model as the floor, the larger local one, and the commercial one.
+MODELS = ["chat-small", "chat-medium", "chat-pro"]
+# Served by Ollama on this machine: the gateway counts them at an internal price, not a real one.
+LOCAL_MODELS = {"chat-small", "chat-large", "chat-medium"}
+
+
+def compare_models(args: argparse.Namespace) -> int:
+    """Each model of --models as the baseline's, on the whole split, then one table side by side
+    (`evals/reports/models-<split>-<date>.md`). `--runs` builds the table again from earlier runs, without a call.
+
+    One case at a time by default (`--workers 1`): with several, a question's latency would count the wait for the
+    others (one Ollama model answers one request at a time, the key allows 60 requests a minute)."""
+    date = f"{datetime.now(UTC):%Y-%m-%d}"
+    runs = list(args.runs or [])
+    if not runs:
+        for model in args.models:
+            run = f"models-{args.split}-{date}-{model}"
+            evaluate(argparse.Namespace(**{**vars(args), "model": model, "run_name": run, "check": False}))
+            runs.append(run)
+    reports = [json.loads((REPORTS / f"{run}.json").read_text()) for run in runs]
+    table = side_by_side(reports, GATED, priced=lambda model: model not in LOCAL_MODELS)
+    lines = [
+        f"# Models on the {args.split} set, {date}",
+        "",
+        "The baseline (LAB-147) with each model; the judge and Ragas stay on `chat-pro`. Runs: "
+        + ", ".join(f"`{run}`" for run in runs)
+        + ".",
+        "",
+        table,
+    ]
+    path = REPORTS / f"models-{args.split}-{date}.md"
+    path.write_text("\n".join(lines))
+    print(table)
+    print(path)
+    return 0
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="f1-eval", description=__doc__.splitlines()[0] if __doc__ else None)
     parser.add_argument(
-        "command", nargs="?", default="run", choices=["run", "judge-sheet", "judge-markdown", "agreement", "thresholds"]
+        "command",
+        nargs="?",
+        default="run",
+        choices=["run", "models", "judge-sheet", "judge-markdown", "agreement", "thresholds"],
     )
     parser.add_argument("--from", dest="from_report", help="thresholds: the reference run's report")
     parser.add_argument("--system", default="baseline", choices=sorted(SYSTEMS))
+    parser.add_argument("--model", help="the system's model, a gateway alias (the baseline's BASELINE_MODEL otherwise)")
     parser.add_argument("--split", default="test", choices=["dev", "test"])
     parser.add_argument("--sample", type=int, help="at most this many cases per family")
     parser.add_argument("--family", action="append", choices=FAMILIES, help="only this family (repeatable)")
-    parser.add_argument("--workers", type=int, default=4, help="cases run at once (the rate limit sets the pace)")
+    parser.add_argument("--workers", type=int, help="cases run at once (the rate limit sets the pace): 4, 1 for models")
+    parser.add_argument("--models", nargs="+", default=MODELS, help="models: the gateway aliases to compare")
+    parser.add_argument("--runs", nargs="+", help="models: the table from these runs' reports, without running")
     parser.add_argument("--records", help="score this records.jsonl instead of running the system")
     parser.add_argument("--run-name")
     parser.add_argument("--round", help="judge-sheet, agreement: the calibration round (a date by default)")
@@ -478,11 +551,13 @@ def main(argv: Sequence[str] | None = None) -> int:
     )
     parser.add_argument("--budget", type=float, help="dollars the key may spend: the cases left are not run")
     args = parser.parse_args(argv)
+    args.workers = args.workers or (1 if args.command == "models" else 4)
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
     for noisy in ("httpx", "httpx2", "openai", "langfuse"):
         logging.getLogger(noisy).setLevel(logging.WARNING)
     commands = {
         "run": evaluate,
+        "models": compare_models,
         "judge-sheet": judge_sheet,
         "judge-markdown": judge_markdown,
         "agreement": judge_agreement,

@@ -6,8 +6,9 @@ change fails when it loses more than a margin: 5 points, or two of the cases com
 answer the model words differently (at temperature 0 too) fails no one.
 """
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
+from typing import Any
 
 from core.evals.dataset import Case
 
@@ -118,4 +119,41 @@ def markdown(
         lines += [f"- {failure}" for failure in other_failures]
     if details:
         lines += ["", *details]
+    return "\n".join(lines) + "\n"
+
+
+def side_by_side(
+    reports: Sequence[Mapping[str, Any]],
+    gated: Mapping[str, Sequence[str]],
+    *,
+    priced: Callable[[str], bool] = lambda model: True,
+) -> str:
+    """Runs of several models on the same cases, one column each: the gated metric of every family, the share of
+    questions answered, the latency of a question and the cost of answering. `priced` tells a model whose cost is a
+    real price from one the gateway counts at an internal price (a local model: its cost is the hardware's)."""
+    models = [str(report.get("model") or report["run"]) for report in reports]
+    lines = [
+        "| Family | Metric | " + " | ".join(f"`{model}`" for model in models) + " |",
+        "| -- | -- |" + " --: |" * len(models),
+    ]
+    for family, metrics in gated.items():
+        for metric in [*metrics, "answered"]:
+            values = [report["families"].get(family, {}).get(metric) for report in reports]
+            if all(value is None for value in values):
+                continue
+            cells = ["-" if value is None else f"{value:.2f}" for value in values]
+            lines.append(f"| {family} | {metric} | " + " | ".join(cells) + " |")
+    for key in ("p50", "p95"):
+        cells = [f"{report['latency_s']['all'][key]:.1f} s" for report in reports]
+        lines.append(f"| all | latency {key} | " + " | ".join(cells) + " |")
+    cells = []
+    for model, report in zip(models, reports, strict=True):
+        cost, cases = report.get("system_cost_usd"), sum(f["cases"] for f in report["families"].values())
+        if cost is None:
+            cells.append("-")
+        elif priced(model):
+            cells.append(f"${cost:.2f} (${1000 * cost / cases:.2f} / 1,000 questions)")
+        else:
+            cells.append("local: the hardware's")
+    lines.append("| all | cost of answering | " + " | ".join(cells) + " |")
     return "\n".join(lines) + "\n"

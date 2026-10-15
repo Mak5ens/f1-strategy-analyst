@@ -76,3 +76,35 @@ def test_the_spend_is_read_from_the_key_info_of_the_calling_key() -> None:
 
     settings = GatewaySettings(url="http://gateway.test:4000/", api_key=SecretStr("sk-team"))
     assert key_spend(settings, transport=httpx2.MockTransport(handler)) == 0.42
+
+
+def test_models_side_by_side_with_latency_and_the_cost_of_answering() -> None:
+    from core.evals.compare import side_by_side
+
+    def report(model: str, accuracy: float, cost: float) -> dict[str, Any]:
+        return {
+            "run": f"run-{model}",
+            "model": model,
+            "families": {"data": {"cases": 20, "accuracy": accuracy, "answered": 1.0}},
+            "latency_s": {"all": {"p50": 2.5, "p95": 9.04}},
+            "system_cost_usd": cost,
+        }
+
+    table = side_by_side(
+        [report("chat-medium", 0.5, 0.3), report("chat-pro", 0.8, 0.04)],
+        {"data": ["accuracy"], "safety": ["safe"]},
+        priced=lambda model: model == "chat-pro",
+    )
+    assert "| Family | Metric | `chat-medium` | `chat-pro` |" in table
+    assert "| data | accuracy | 0.50 | 0.80 |" in table
+    assert "safety" not in table  # no run scored it
+    assert "| all | latency p95 | 9.0 s | 9.0 s |" in table
+    assert "| all | cost of answering | local: the hardware's | $0.04 ($2.00 / 1,000 questions) |" in table
+
+
+def test_latency_is_the_median_and_95th_percentile_of_a_question() -> None:
+    from f1.evals.run import latency
+
+    cases = [case(f"d{n}", "data") for n in range(20)]
+    records = [Record(f"d{n}", "data", "?", True, "", seconds=float(n + 1)) for n in range(20)]
+    assert latency(cases, records)["all"] == {"p50": 10.5, "p95": 19.0}
