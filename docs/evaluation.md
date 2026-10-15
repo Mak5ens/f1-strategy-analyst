@@ -9,6 +9,7 @@ just eval --family strategy       # one family; `thresholds --from` then updates
 just eval --split dev --push      # the development set, and the run in Langfuse
 just eval --check                 # exit 1 when a family is under its threshold (evals/thresholds.json)
 just eval --records .cache/evals/<run>/records.jsonl   # score a recorded run again, without the system's calls
+just eval models                  # chat-small, chat-medium and chat-pro side by side on the test set (about 3 hours)
 just rag-eval --cases evals/datasets/test.jsonl         # retrieval ablation, stage by stage
 ```
 
@@ -98,6 +99,40 @@ The demo PR (#17) lets the baseline call one tool before answering instead of th
 **Duration and cost, measured.** A quick run: 6 to 9 minutes of evaluation for 60 cases, 12 to 13 minutes for the whole job (the gateway starts in about 3), $0.06 to $0.11. A full run of the 273 cases: about 35 minutes and $0.40 locally; the weekly run on main gives its CI figure.
 
 **Cost control.** Pull requests are opened as drafts while they change, and evaluated once ready: about one run per pull request, $1 to $2 a month at 15 pull requests, plus about $1.60 for the weekly full runs. The run reads the key's spend from the gateway before and after (`/key/info`, `core.gateway.key_spend`), and the comment shows it with the duration. `--budget` stops a run whose spend goes over: $0.25 for a sample, $1.00 for a full run; the cases left are counted as errors, so the gate fails rather than passes on less.
+
+## Models compared (LAB-150)
+
+`just eval models` runs the baseline on the whole test set with each model in turn, the judge and Ragas staying on `chat-pro`, then writes the table side by side (`evals/reports/models-test-<date>.md`); `just eval models --runs <run> ...` writes it again from the reports, without a call. Cases run one at a time, so that a latency is a question's own and not its wait behind the others (one Ollama model answers one request at a time; the key allows 60 requests a minute). The cost of answering is the key's spend during the system's calls only, before the judge's: a real price for `chat-pro`; for the local models, the gateway counts an internal price that says nothing, and their cost is the hardware's (an RTX 4070 Super here).
+
+Measured on 2026-10-15 (`chat-small` is qwen2.5:0.5b, `chat-medium` qwen2.5:7b on the GPU, `chat-pro` Mistral Small 3.2 24B at Scaleway):
+
+| Family | Metric | `chat-small` | `chat-medium` | `chat-pro` |
+| -- | -- | --: | --: | --: |
+| data | accuracy | 0.00 | 0.02 | 0.79 |
+| data | answered | 0.03 | 0.09 | 0.82 |
+| computation | accuracy | 0.02 | 0.02 | 0.81 |
+| computation | answered | 0.03 | 0.10 | 0.95 |
+| strategy | grade/5 | 1.00 | 1.21 | 2.77 |
+| strategy | answered | 0.02 | 0.21 | 0.84 |
+| regulation | recall@5 | 0.46 | 0.78 | 0.78 |
+| regulation | faithfulness | 0.67 | 0.91 | 0.91 |
+| regulation | answered | 0.07 | 0.72 | 0.83 |
+| out_of_corpus | abstention | 0.94 | 0.94 | 0.88 |
+| safety | safe | 0.70 | 0.60 | 0.60 |
+| safety | answered | 0.20 | 0.30 | 0.35 |
+| all | latency p50 | 12.0 s | 2.0 s | 3.0 s |
+| all | latency p95 | 35.1 s | 65.0 s | 63.0 s |
+| all | cost of answering | local: the hardware's | local: the hardware's | $0.52 ($1.91 / 1,000 questions) |
+
+What the numbers say:
+
+- **Only `chat-pro` does the job.** It scores as the reference run did (data 0.79, strategy 2.77 against 2.82), for **$1.91 per 1,000 questions** and 3 s at the median.
+- **`chat-medium` does not call the tools.** On 96 of the 129 data and computation questions it chose no tool and answered that the data held nothing. On the same question, twice, it answered `"tool": null` where `chat-pro` called `find_race` both times; the prompt is 2,600 tokens, within Ollama's 4,096, so nothing is cut. It is as good as `chat-pro` where no tool is needed: the same passages (Recall@5 0.78, the search does not depend on the model) and the same faithfulness (0.91), with fewer answers (0.72 against 0.83).
+- **`chat-small` cannot follow the JSON schemas**: 111 of its 273 cases ended in an invalid structured output, as LAB-186 had seen. It is the floor, and its slowness (12 s at the median) is its retries.
+- **Abstention and safety favour the weak models**: a model that answers nothing abstains on every out-of-corpus question. Read them with `answered`.
+- **Latency p95 is about a minute** for the two models that call tools: a strategy question makes up to three tool rounds, a generation and its retry.
+
+Platform-side latency and throughput of the same aliases are in llmops-platform (ADR-027, `benchmarks/inference/`); this table is what the app gets from them. To revisit when a local model calls tools: the agent of LAB-151 will ask for the same structured choice.
 
 ## The judge
 
