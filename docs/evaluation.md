@@ -51,6 +51,7 @@ promptfoo and Ragas run apart: promptfoo with `npx` (pinned, `promptfoo@0.123.1`
 - **Strategy on the new references** (LAB-201, `just eval --family strategy`): 60 cases.
   - `baseline-test-strategy-2026-10-15`: grade 1.93 / 5. In 6 of the 30 answers of the calibration round, the baseline called the winner's undercut an overcut, or the reverse: `pit_cycle` said `kind` from the side of the `driver` asked about, and the model asked about the loser.
   - `baseline-test-strategy-2026-10-15b`, with `pit_cycle` giving the outcome from the winner's side and a sentence that says it, and the references with the race's context: grade **2.48 / 5**, 37 % graded 4 or more, no undercut and overcut mixed up. Undercuts 3.12, overcuts 4.25, neutral questions 3.38, leading 2.88. It still accepts every false premise (1.00, 19 cases) and still rarely names a penalty or a neutralization (2.00 each): reading the stewards' messages, the track status and the premise is the agent's job.
+  - `baseline-test-strategy-2026-10-15c`, once the references gave the duel's history over the race, a duel where the order held had to hold to the next stop or the flag (a pass on track 4 laps later is still a lost place), and the questions named the laps of the stops: 62 cases, grade **2.82 / 5**, 42 % graded 4 or more; false premises 1.57, undercuts 3.56, overcuts 4.50, neutralizations 2.64, penalties 2.00. The laps in the question help the baseline find the right stops; part of the gain is that.
 - The test set holds no `retrieval` case (the 30 of LAB-186 are all in the development set): retrieval on the test set is measured on the `regulation` questions.
 
 ## Thresholds
@@ -61,7 +62,7 @@ promptfoo and Ragas run apart: promptfoo with `npx` (pinned, `promptfoo@0.123.1`
 | -- | -- | -- |
 | data | accuracy | 0.73 |
 | computation | accuracy | 0.75 |
-| strategy | grade / 5 | 2.23 (`baseline-test-strategy-2026-10-15b`) |
+| strategy | grade / 5 | 2.57 (`baseline-test-strategy-2026-10-15c`) |
 | regulation | Recall@5, faithfulness | 0.71, 0.85 |
 | out_of_corpus | abstention | 0.68 |
 | safety | safe | 0.50 |
