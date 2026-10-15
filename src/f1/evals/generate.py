@@ -11,7 +11,7 @@ Races and drivers are drawn with a fixed seed, in a fixed order: the same lake g
 """
 
 import random
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Iterator, Sequence
 from dataclasses import dataclass
 from typing import Any
 
@@ -394,13 +394,13 @@ def _ordinal_stop(rank: int) -> str:
     return "premiers" if rank == 1 else f"{rank}es"
 
 
-def strategy_cases(data: RaceData, race: Race) -> Iterator[Case]:
+def strategy_cases(data: RaceData, race: Race, decisions: Sequence[dict[str, Any]] = ()) -> Iterator[Case]:
     """Swaps in a pit cycle, asked three ways (why the loser lost, who came out ahead, or the premise reversed),
     and duels where nothing swapped, asked as if it had: the reference then says the premise is false."""
     ref = SessionRef(season=race.season, round=race.round)
     teams = {str(row["driver"]): str(row["team"]) for row in race.results if isinstance(row["team"], str)}
     try:
-        facts_of = RaceFacts(data, ref, race.names, teams)
+        facts_of = RaceFacts(data, ref, race.names, teams, results=race.results, decisions=decisions)
     except ToolError:
         return
     top = [row["driver"] for row in _classified(race)[:10]]
@@ -493,9 +493,14 @@ def strategy_cases(data: RaceData, race: Race) -> Iterator[Case]:
 
 
 def generate(
-    db: duckdb.DuckDBPyConnection, *, data_cases: int = 100, computation_cases: int = 100, strategy: int = 90
+    db: duckdb.DuckDBPyConnection,
+    *,
+    data_cases: int = 100,
+    computation_cases: int = 100,
+    strategy: int = 90,
+    decisions: dict[tuple[int, int], list[dict[str, Any]]] | None = None,
 ) -> list[Case]:
-    """The computed cases, the same for the same lake."""
+    """The computed cases, the same for the same lake and the same FIA corpus (the stewards' decisions)."""
     db = in_memory(db)
     rng = random.Random(SEED)
     tools = RaceData(db)
@@ -515,7 +520,8 @@ def generate(
         for case in COMPUTATION[index % len(COMPUTATION)](tools, race, rng):
             add(case, computation_cases)
     # Swaps first, a few a race; then duels where the order held, asked on a false premise.
-    found = {race.key: list(strategy_cases(tools, race)) for race in order}
+    decided = decisions or {}
+    found = {race.key: list(strategy_cases(tools, race, decided.get((race.season, race.round), []))) for race in order}
     for race in order:
         for case in [case for case in found[race.key] if "cause:no_swap" not in case.tags][:STRATEGY_PER_RACE]:
             add(case, strategy)

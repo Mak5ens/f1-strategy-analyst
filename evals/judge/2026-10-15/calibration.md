@@ -73,7 +73,7 @@ Note (1 à 5) : 2
 
 > Au Grand Prix de Las Vegas 2024, Lewis Hamilton est sorti devant Charles Leclerc après leurs 2es arrêts aux stands. Hamilton a gagné 7.355 secondes sur Leclerc grâce à un undercut.
 
-Note (1 à 5) :
+Note (1 à 5) : 4
 
 ---
 
@@ -102,7 +102,7 @@ Note (1 à 5) :
 
 > George Russell a perdu sa place face à Liam Lawson lors de leurs premiers arrêts aux stands du Grand Prix de Hongrie 2026 car il a effectué son arrêt au stand plus tard, au 27e tour, alors que Liam Lawson a arrêté au 21e tour. Russell a gagné 2,718 secondes sur Lawson grâce à cette stratégie d'overcut, ce qui lui a permis de passer devant Lawson. Avant l'arrêt, Russell était en 8e position et Lawson en 7e position. Après l'arrêt, Russell a pris la 9e position et Lawson est passé en 10e position.
 
-Note (1 à 5) :
+Note (1 à 5) : 2
 
 ---
 
@@ -131,7 +131,7 @@ Note (1 à 5) :
 
 > Lando Norris a perdu sa place face à Arvid Lindblad lors de leurs premiers arrêts aux stands du Grand Prix d'Australie 2026 en raison d'un sous-coupe (undercut). Norris a effectué son arrêt au stand au 11e tour, tandis que Lindblad a attendu le 18e tour. Avant les arrêts, Norris était à 0,491 seconde devant Lindblad. Après les arrêts, Norris a gagné 7,743 secondes sur Lindblad, ce qui a inversé leur position sur la piste. Norris est passé de la 7e à la 5e place, tandis que Lindblad est resté 6e. La course a été neutralisée pendant cet épisode.
 
-Note (1 à 5) :
+Note (1 à 5) : 2
 
 ---
 
@@ -161,7 +161,7 @@ Note (1 à 5) :
 
 > Carlos Sainz a perdu sa place face à George Russell lors de leurs premiers arrêts aux stands du Grand Prix d'Azerbaïdjan 2025 en raison d'un sous-virage (undercut). George Russell a effectué son arrêt au stand au 39e tour, alors que Carlos Sainz l'avait fait au 27e tour. Avant les arrêts, Sainz avait un avantage de 2,69 secondes sur Russell. Après les arrêts, Russell a pris l'avantage avec un écart de 1,84 secondes, gagnant ainsi 4,53 secondes sur Sainz. Cela a permis à Russell de passer devant Sainz, qui a ainsi perdu une position.
 
-Note (1 à 5) :
+Note (1 à 5) : 2
 
 ---
 
@@ -192,7 +192,7 @@ Note (1 à 5) :
 
 > (pas de réponse)
 
-Note (1 à 5) :
+Note (1 à 5) : 1
 
 ---
 
@@ -225,7 +225,7 @@ Note (1 à 5) :
 
 > Oscar Piastri a perdu sa place face à George Russell lors de leurs premiers arrêts aux stands du Grand Prix du Japon 2026 en raison d'un undercut. George Russell a effectué son arrêt un tour après Oscar Piastri (au 21e tour contre le 18e tour pour Piastri), ce qui a permis à Russell de ressortir des stands avec un avantage de temps. L'écart entre les deux pilotes est passé de -1,83 seconde avant les arrêts à -2,276 secondes après les arrêts, ce qui représente une perte de 0,446 seconde pour Piastri. Malgré cela, aucun des deux pilotes n'a dépassé l'autre, et la course a été neutralisée pendant cette période.
 
-Note (1 à 5) :
+Note (1 à 5) : 1
 
 ---
 
@@ -255,7 +255,7 @@ Note (1 à 5) :
 
 > Lance Stroll a perdu sa place face à Oliver Bearman lors de leurs premiers arrêts aux stands du Grand Prix de Chine 2025 car Bearman a réussi un overcut. Stroll a fait son arrêt au stand au 36e tour, alors que Bearman l'a fait au 26e tour. Avant les arrêts, Stroll était devant Bearman avec un écart de 0,651 seconde. Après les arrêts, Bearman a gagné 8,698 secondes sur Stroll, passant devant lui. Stroll est passé de la 7e à la 14e place, tandis que Bearman est passé de la 8e à la 11e place.
 
-Note (1 à 5) :
+Note (1 à 5) : 2
 
 ---
 
@@ -286,7 +286,7 @@ Note (1 à 5) :
 
 > (pas de réponse)
 
-Note (1 à 5) :
+Note (1 à 5) : 1
 
 ---
 
@@ -313,7 +313,7 @@ Note (1 à 5) :
 
 > Lando Norris a perdu sa place face à Kimi Antonelli lors de leurs premiers arrêts aux stands du Grand Prix d'Espagne 2026 car il a effectué son arrêt au stand un tour plus tard qu'Antonelli (au 15e tour contre le 14e tour). Avant l'arrêt, Norris était devant Antonelli avec un écart de -6.219 secondes. Après les arrêts, Antonelli a gagné 21.946 secondes sur Norris, ce qui a permis à Antonelli de passer devant Norris. La course a été neutralisée pendant ces arrêts, ce qui a influencé les écarts de temps.
 
-Note (1 à 5) :
+Note (1 à 5) : 5
 
 ---
 
@@ -340,7 +340,7 @@ Note (1 à 5) :
 
 > George Russell a perdu sa place face à Yuki Tsunoda lors de leurs premiers arrêts aux stands du Grand Prix de Miami 2024 car Tsunoda a réalisé un "overcut" sur Russell. Tsunoda a effectué son arrêt au stand au 28e tour, alors que Russell l'a fait au 24e tour. Avant les arrêts, l'écart entre eux était de 1,678 seconde en faveur de Russell. Après les arrêts, Tsunoda a gagné 7,471 secondes sur Russell, ce qui lui a permis de passer devant et de gagner deux positions, passant de la 8e à la 7e place, tandis que Russell est passé de la 7e à la 9e place.
 
-Note (1 à 5) :
+Note (1 à 5) : 3
 
 ---
 
@@ -368,7 +368,7 @@ Note (1 à 5) :
 
 > Lewis Hamilton a perdu sa place face à George Russell lors de leurs premiers arrêts aux stands du Grand Prix de Singapour 2024 en raison d'un undercut. George Russell a effectué son arrêt au 27e tour, alors que Lewis Hamilton l'avait fait au 17e tour. Avant les arrêts, Hamilton avait un avantage de 1,867 seconde sur Russell. Après les arrêts, Russell a pris un avantage de 4,096 secondes sur Hamilton, ce qui a entraîné une perte nette de 5,963 secondes pour Hamilton. En conséquence, Hamilton est passé de la 3e à la 8e place, tandis que Russell est passé de la 4e à la 7e place, Russell ayant dépassé Hamilton.
 
-Note (1 à 5) :
+Note (1 à 5) : 1
 
 ---
 
@@ -399,7 +399,7 @@ Note (1 à 5) :
 
 > Max Verstappen a perdu sa place face à Lando Norris lors de leurs premiers arrêts aux stands du Grand Prix de Mexico 2024 en raison d'un écart de temps significatif après son arrêt. Avant son arrêt au stand au 26e tour, Verstappen avait un avantage de 0.777 secondes sur Norris. Après son arrêt, l'écart s'est inversé, avec Norris ayant désormais un avantage de 18.631 secondes sur Verstappen. Cet écart de 19.408 secondes en défaveur de Verstappen explique pourquoi il a perdu sa position face à Norris.
 
-Note (1 à 5) :
+Note (1 à 5) : 2
 
 ---
 
@@ -428,7 +428,7 @@ Note (1 à 5) :
 
 > (pas de réponse)
 
-Note (1 à 5) :
+Note (1 à 5) : 1
 
 ---
 
@@ -460,7 +460,7 @@ Note (1 à 5) :
 
 > Lando Norris est sorti devant Oscar Piastri après leurs 2es arrêts aux stands. Oscar Piastri a effectué son arrêt au 43e tour, tandis que Lando Norris a effectué le sien au 44e tour. Après leurs arrêts, Lando Norris a gagné 6.128 secondes sur Oscar Piastri, passant ainsi devant lui.
 
-Note (1 à 5) :
+Note (1 à 5) : 2
 
 ---
 
@@ -490,7 +490,7 @@ Note (1 à 5) :
 
 > Lewis Hamilton a perdu sa place face à George Russell lors de leurs 2es arrêts aux stands du Grand Prix d'Espagne 2025 car George Russell a réussi un overcut. Avant l'arrêt, Lewis Hamilton était devant George Russell de 1,891 seconde. Après l'arrêt, George Russell a pris 12,551 secondes d'avance sur Lewis Hamilton, ce qui a permis à George Russell de le dépasser et de gagner 2 positions, passant de la 6e à la 5e place, tandis que Lewis Hamilton est passé de la 5e à la 7e place.
 
-Note (1 à 5) :
+Note (1 à 5) : 2
 
 ---
 
@@ -521,7 +521,7 @@ Note (1 à 5) :
 
 > Franco Colapinto a perdu sa place face à Pierre Gasly lors de leurs premiers arrêts aux stands du Grand Prix de Barcelone 2026 en raison d'un sous-virement. Colapinto a effectué son arrêt au stand au 12e tour, tandis que Gasly a attendu le 14e tour. Malgré cela, Colapinto n'a pas réussi à dépasser Gasly, et l'écart entre eux a même augmenté, passant de -0.902 secondes avant les arrêts à -3.996 secondes après les arrêts, ce qui représente une perte de 3.094 secondes. Colapinto était 12e avant les arrêts et est passé à la 14e place après, tandis que Gasly est passé de la 13e à la 15e place.
 
-Note (1 à 5) :
+Note (1 à 5) : 3
 
 ---
 
@@ -550,7 +550,7 @@ Note (1 à 5) :
 
 > Max Verstappen est sorti devant Lando Norris après leurs premiers arrêts aux stands. Lando Norris a effectué son arrêt au 26e tour, tandis que Max Verstappen l'a fait au 25e tour. Après leurs arrêts, Max Verstappen a gagné 10.779 secondes sur Lando Norris, passant de la 2e à la 1re position, tandis que Lando Norris est passé de la 1re à la 3e position.
 
-Note (1 à 5) :
+Note (1 à 5) : 2
 
 ---
 
@@ -579,7 +579,7 @@ Note (1 à 5) :
 
 > (pas de réponse)
 
-Note (1 à 5) :
+Note (1 à 5) : 1
 
 ---
 
@@ -608,7 +608,7 @@ Note (1 à 5) :
 
 > Arvid Lindblad a perdu sa place face à Gabriel Bortoleto lors de leurs premiers arrêts aux stands du Grand Prix de Grande-Bretagne 2026 en raison d'un écart de temps qui s'est réduit, mais pas suffisamment pour dépasser son rival. Avant l'arrêt, l'écart était de -2.544 secondes, et après l'arrêt, il était de -0.978 secondes. Bien que l'écart se soit réduit de 1.566 secondes, cela n'a pas été suffisant pour que Lindblad dépasse Bortoleto.
 
-Note (1 à 5) :
+Note (1 à 5) : 1
 
 ---
 
@@ -640,7 +640,7 @@ Note (1 à 5) :
 
 > George Russell a perdu sa place face à Oscar Piastri lors de leurs premiers arrêts aux stands du Grand Prix de São Paulo 2025 car Oscar Piastri a effectué son arrêt au stand au 38e tour, alors que George Russell l'a fait au 34e tour. Après leurs arrêts, George Russell a gagné 20.521 secondes sur Oscar Piastri, passant de la 2e à la 3e place, tandis qu'Oscar Piastri est passé de la 1re à la 7e place.
 
-Note (1 à 5) :
+Note (1 à 5) : 1
 
 ---
 
@@ -670,7 +670,7 @@ Note (1 à 5) :
 
 > (pas de réponse)
 
-Note (1 à 5) :
+Note (1 à 5) : 1
 
 ---
 
@@ -701,7 +701,7 @@ Note (1 à 5) :
 
 > Après leurs premiers arrêts aux stands, Oscar Piastri est sorti devant Max Verstappen. Max Verstappen a perdu du temps à cause d'une pénalité de 5 secondes pour avoir quitté la piste et gagné un avantage durable, ce qui a permis à Oscar Piastri de le dépasser en piste.
 
-Note (1 à 5) :
+Note (1 à 5) : 4
 
 ---
 
@@ -730,7 +730,7 @@ Note (1 à 5) :
 
 > Après leurs premiers arrêts aux stands, Lando Norris est sorti devant Charles Leclerc. Charles Leclerc a effectué son premier arrêt au stand au 15e tour, tandis que Lando Norris l'a fait au 14e tour. Avant leurs arrêts, Charles Leclerc était en deuxième position et Lando Norris en troisième position. Après leurs arrêts, Charles Leclerc est passé en septième position et Lando Norris en sixième position, ce qui signifie que Lando Norris a gagné une position sur Charles Leclerc.
 
-Note (1 à 5) :
+Note (1 à 5) : 3
 
 ---
 
@@ -757,7 +757,7 @@ Note (1 à 5) :
 
 > Au Grand Prix de Grande-Bretagne 2024, Lewis Hamilton (HAM) est sorti devant Lando Norris (NOR) après leurs 2es arrêts aux stands. Hamilton a effectué son arrêt au stand au 38e tour, tandis que Norris a effectué le sien au 39e tour. Avant leurs arrêts, l'écart entre Hamilton et Norris était de 1,935 seconde en faveur de Norris. Après leurs arrêts, Hamilton a gagné 4,658 secondes sur Norris, ce qui lui a permis de passer devant et de prendre la première position, tandis que Norris est passé à la deuxième position.
 
-Note (1 à 5) :
+Note (1 à 5) : 5
 
 ---
 
@@ -789,7 +789,7 @@ Note (1 à 5) :
 
 > George Russell a perdu sa place face à Max Verstappen lors de leurs premiers arrêts aux stands du Grand Prix du Canada 2025 en raison d'un écart de temps qui s'est agrandi après leurs arrêts. Avant les arrêts, Russell avait un avantage de 2.27 secondes sur Verstappen. Après les arrêts, cet écart s'est transformé en un désavantage de 2.549 secondes, ce qui a entraîné une perte de positions pour Russell, passant de la 1ère à la 6ème place, tandis que Verstappen est passé de la 2ème à la 8ème place. Cependant, aucun des deux pilotes n'a dépassé l'autre lors de ces arrêts.
 
-Note (1 à 5) :
+Note (1 à 5) : 1
 
 ---
 
@@ -847,7 +847,7 @@ Note (1 à 5) :
 
 > (pas de réponse)
 
-Note (1 à 5) :
+Note (1 à 5) : 1
 
 ---
 
@@ -877,7 +877,7 @@ Note (1 à 5) :
 
 > (pas de réponse)
 
-Note (1 à 5) :
+Note (1 à 5) : 1
 
 ---
 
@@ -908,4 +908,4 @@ Note (1 à 5) :
 
 > (pas de réponse)
 
-Note (1 à 5) :
+Note (1 à 5) : 1

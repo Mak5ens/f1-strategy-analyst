@@ -189,14 +189,26 @@ class StopFacts:
 class RaceFacts:
     """What the strategy rule reads of one race, loaded once."""
 
-    def __init__(self, data: RaceData, ref: SessionRef, names: dict[str, str], teams: dict[str, str]) -> None:
+    def __init__(
+        self,
+        data: RaceData,
+        ref: SessionRef,
+        names: dict[str, str],
+        teams: dict[str, str],
+        *,
+        results: Sequence[dict[str, Any]] = (),
+        decisions: Sequence[dict[str, Any]] = (),
+    ) -> None:
         self.data, self.ref, self.names, self.teams = data, ref, names, teams
+        self.results = {str(row["driver"]): row for row in results}
+        self.decisions = decisions  # the stewards' decisions of the weekend, as the FIA corpus holds them
         laps = data.laps(ref)
         self.laps: dict[str, dict[int, dict[str, Any]]] = {}
         for lap in laps:
             self.laps.setdefault(str(lap["driver"]), {})[int(lap["lap_number"])] = lap
         self.raw_stops = [stop for driver in self.laps for stop in data.pit_stops(ref, driver)]
         given, served = penalties(data.race_control_messages(ref))
+        self.given = given
         self.penalties = served_at(self.raw_stops, given, served)
         lanes = [
             value
@@ -635,4 +647,279 @@ def facts(race: RaceFacts, duel: Duel) -> list[str]:
         lines.append(f"Piste humide, pneus {' et '.join(wet_tyres)}, sans pluie pendant le cycle.")
     elif race.rain is not None:
         lines.append("Piste sèche, sans pluie pendant le cycle.")
+    return lines + context(race, duel)
+
+
+# ---- the race around the duel -----------------------------------------------------------------------------------
+# What a person looks at before saying why: the start, the finish, each driver's strategy, the car each was stuck
+# behind, the other penalties of the race, and the stewards' decisions of the weekend (from the FIA corpus).
+
+SESSIONS_FR = {
+    "Race": "en course",
+    "Qualifying": "en qualifications",
+    "Sprint Qualifying": "en qualifications sprint",
+    "Sprint Shootout": "en qualifications sprint",
+    "Sprint": "au sprint",
+    "Practice 1": "aux essais libres 1",
+    "Free Practice 1": "aux essais libres 1",
+    "Practice 2": "aux essais libres 2",
+    "Free Practice 2": "aux essais libres 2",
+    "Practice 3": "aux essais libres 3",
+    "Free Practice 3": "aux essais libres 3",
+    "Reconnaissance Laps": "aux tours de reconnaissance",
+}
+
+# The facts of the stewards' decisions, by the start of the title's last part.
+FACTS_FR = [
+    ("unsafe release", "remise en piste dangereuse"),
+    ("released in an unsafe", "remise en piste dangereuse"),
+    ("pit lane speeding", "excès de vitesse dans la voie des stands"),
+    ("speeding in the pit lane", "excès de vitesse dans la voie des stands"),
+    ("changes made during parc ferme", "modifications en parc fermé"),
+    ("parc ferme", "infraction au parc fermé"),
+    ("pu elements", "éléments du moteur changés au-delà du quota"),
+    ("changes to pu elements", "éléments du moteur changés au-delà du quota"),
+    ("causing a collision", "collision provoquée"),
+    ("leaving the track and gaining", "avantage pris en sortant de la piste"),
+    ("leaving the track multiple", "dépassements répétés des limites de la piste"),
+    ("leaving the track without", "sortie de piste sans raison valable"),
+    ("failing to follow race director", "instructions du directeur de course non suivies"),
+    ("failure to follow race director", "instructions du directeur de course non suivies"),
+    ("failing to set a lap time with", "aucun temps dans les 107 %"),
+    ("impeding", "a gêné un autre pilote"),
+    ("forcing another driver", "a poussé un autre pilote hors de la piste"),
+    ("yellow flag", "drapeau jaune non respecté"),
+    ("failing to slow", "drapeau jaune non respecté"),
+    ("failure to slow", "drapeau jaune non respecté"),
+    ("qualifying sc2-sc1", "temps entre les lignes de voiture de sécurité dépassé"),
+    ("sprint qualifying sc2-sc1", "temps entre les lignes de voiture de sécurité dépassé"),
+    ("sc1", "temps entre les lignes de voiture de sécurité dépassé"),
+    ("scl1", "temps entre les lignes de voiture de sécurité dépassé"),
+    ("ignoring blue flags", "drapeaux bleus ignorés"),
+    ("aborted start", "incident au départ avorté"),
+    ("media commitment", "obligation médiatique manquée"),
+    ("permission to start", "autorisation de prendre le départ"),
+    ("driving unnecessarily slowly", "conduite inutilement lente"),
+    ("driving erratically", "conduite erratique"),
+    ("dangerous driving", "conduite dangereuse"),
+    ("unsafe condition", "voiture laissée dans un état dangereux"),
+    ("collision with car", "collision"),
+    ("incident with car", "incident avec un autre pilote"),
+    ("right of review", "demande de révision"),
+    ("protest", "réclamation d'une écurie"),
+    ("technical non-conformity", "non-conformité technique"),
+    ("change to pu elements", "éléments du moteur changés au-delà du quota"),
+    ("changes made under parc ferme", "modifications en parc fermé"),
+    ("start procedure", "procédure de départ non respectée"),
+    ("tyre operating", "procédure d'utilisation des pneus non respectée"),
+    ("track limits", "dépassements répétés des limites de la piste"),
+    ("forcing car", "a poussé un autre pilote hors de la piste"),
+    ("red flag", "drapeau rouge non respecté"),
+    ("failure to comply with red flag", "drapeau rouge non respecté"),
+    ("technical non-compliance", "non-conformité technique"),
+    ("technical regulations", "non-conformité technique"),
+    ("overtaking under safety car", "dépassement sous voiture de sécurité"),
+    ("change to pu element", "éléments du moteur changés au-delà du quota"),
+    ("crossing the line at pit", "ligne blanche des stands franchie"),
+    ("erratic driving", "conduite erratique"),
+    ("driving in an unsafe condition", "voiture conduite dans un état dangereux"),
+    ("incorrect starting position", "mauvaise position sur la grille de départ"),
+    ("overtaking under yellow", "dépassement sous drapeau jaune"),
+    ("virtual safety car", "infraction sous VSC"),
+    ("safety car", "infraction sous voiture de sécurité"),
+    ("false start", "faux départ"),
+    ("moving before", "faux départ"),
+    ("starting procedure", "procédure de départ non respectée"),
+    ("practice start", "essai de départ hors de la zone prévue"),
+    ("red light at pit exit", "feu rouge en sortie des stands"),
+    ("pit lane incident", "incident dans la voie des stands"),
+    ("pit lane infringement", "infraction dans la voie des stands"),
+    ("pit entry", "infraction à l'entrée des stands"),
+    ("pit exit", "infraction à la sortie des stands"),
+    ("abnormal change of direction", "changement de direction anormal"),
+    ("failing to maintain distance", "distance non respectée derrière la voiture de sécurité"),
+]
+
+PENALTIES_FR: list[tuple[str, str]] = [
+    (r"(\d+)\s*second (?:time )?penalty", "pénalité de {0} s"),
+    (r"(\d+)\s*(?:grid )?(?:place|position)s? (?:grid )?penalty", "recul de {0} place(s) sur la grille"),
+    (r"drop of (\d+) grid (?:places?|positions?)", "recul de {0} place(s) sur la grille"),
+    (r"back of the (?:starting )?grid", "départ en fond de grille"),
+    (r"start the sprint from the pit ?lane", "départ du sprint depuis la voie des stands"),
+    (r"pit ?lane start|start (?:the race )?from the pit ?lane", "départ depuis la voie des stands"),
+    (r"start the race behind any other", "départ en fond de grille"),
+    (r"(\d+) penalty laps?", "{0} tour(s) de pénalité"),
+    (r"drive[- ]through", "drive-through"),
+    (r"stop[- ](?:and[- ])?go", "stop and go"),
+    (r"disqualif", "disqualification"),
+    (r"fined?\D{0,12}€\s*([\d,.]+)", "amende de {0} €"),
+    (r"€\s*([\d,.]+)\s*fine", "amende de {0} €"),
+    (r"(\d+)\s*penalty points?", "{0} point(s) de pénalité"),
+    (r"reprimand", "réprimande"),
+    (r"warning", "avertissement"),
+    (r"lap time[s]? .*deleted|deletion of (?:the )?lap time", "temps au tour supprimé"),
+    (r"no further action|no penalty (?:is )?applied", "aucune sanction"),
+]
+HARMLESS = ("amende", "réprimande", "avertissement", "aucune sanction", "point(s) de pénalité")
+
+
+def fact_fr(title: str) -> str:
+    last = re.sub(r"^alleged\s+", "", title.split(" - ")[-1].strip(), flags=re.IGNORECASE)
+    if turn := re.match(r"turn (\d+) incident", last, flags=re.IGNORECASE):
+        return f"incident au virage {turn[1]}"
+    for start, french in FACTS_FR:
+        if last.lower().startswith(start):
+            return french
+    return f"« {last.lower()} »"
+
+
+def penalty_fr(text: str) -> list[str]:
+    found = []
+    for pattern, french in PENALTIES_FR:
+        if match := re.search(pattern, text, flags=re.IGNORECASE):
+            value = french.format(*(group.replace(",", " ").rstrip(".") for group in match.groups()))
+            if value not in found:
+                found.append(value)
+    return found
+
+
+def decision_lines(race: RaceFacts, code: str) -> list[str]:
+    """The weekend's decisions on a driver, the race's time penalties left out (race control already gives them)."""
+    number = integer(race.results.get(code, {}).get("driver_number"))
+    lines, seen = [], set()
+    for decision in race.decisions:
+        if number is None or decision.get("car_number") != number:
+            continue
+        session = str(decision.get("session") or "")
+        penalty = str(decision.get("penalty") or "")
+        found = penalty_fr(penalty)
+        if session == "Race" and any(p.startswith(("pénalité de", "drive-through", "stop and go")) for p in found):
+            continue
+        what = fact_fr(str(decision.get("document_title") or ""))
+        key = (session, what, penalty)
+        if key in seen:
+            continue
+        seen.add(key)
+        sanction = ", ".join(found) if found else f"« {penalty.strip()} »" if penalty else "décision sans sanction lue"
+        effect = " (sans effet sur la course)" if found and session != "Race" and all(
+            p.startswith(HARMLESS) for p in found) else ""  # fmt: skip
+        lines.append(f"{what} {SESSIONS_FR.get(session, f'({session})' if session else '')}".strip()
+                     + f" : {sanction}{effect}")  # fmt: skip
     return lines
+
+
+def _start(race: RaceFacts, code: str) -> str | None:
+    row = race.results.get(code)
+    grid = integer(row.get("grid_position")) if row else None
+    first = integer(race.laps.get(code, {}).get(1, {}).get("position"))
+    if grid is None or first is None:
+        return None
+    start = "depuis la voie des stands" if grid == 0 else f"{grid}e sur la grille"
+    if grid == 0:
+        return f"{race.name(code)}, parti {start}, {first}e au premier tour"
+    moved = grid - first
+    change = (
+        f"{moved} place{'s' if moved > 1 else ''} gagnée{'s' if moved > 1 else ''}"
+        if moved > 0
+        else f"{-moved} place{'s' if moved < -1 else ''} perdue{'s' if moved < -1 else ''}"
+        if moved < 0
+        else "aucune place perdue ni gagnée"
+    )
+    return f"{race.name(code)}, {start}, {first}e au premier tour ({change})"
+
+
+def _strategy(race: RaceFacts, code: str) -> str | None:
+    laps = race.laps.get(code, {})
+    first = laps.get(min(laps)) if laps else None
+    if not first or not isinstance(first["compound"], str):
+        return None
+    tyres = [COMPOUNDS_FR.get(first["compound"], first["compound"].lower())]
+    for stop in (s for s in race.raw_stops if s["driver"] == code and not s["red_flag"]):
+        if isinstance(stop["compound_after"], str):
+            tyres.append(COMPOUNDS_FR.get(stop["compound_after"], stop["compound_after"].lower()))
+    stops = len(race.stops(code))
+    return f"{race.name(code)}, {stops} arrêt{'s' if stops > 1 else ''} ({' → '.join(tyres)})"
+
+
+def _finish(race: RaceFacts, code: str) -> str | None:
+    row = race.results.get(code)
+    if not row:
+        return None
+    place = str(row.get("classified_position") or "")
+    return f"{race.name(code)} {place}e" if place.isdigit() else f"{race.name(code)} non classé ({row.get('status')})"
+
+
+def _behind_before(race: RaceFacts, code: str, lap: int, rival: str) -> str | None:
+    """The car right in front of a driver at the end of a lap, within TRAFFIC_S, other than the rival."""
+    row = race.laps.get(code, {}).get(lap)
+    if not row or integer(row["position"]) in (None, 1):
+        return None
+    position, end = integer(row["position"]), number(row["lap_end_session_s"])
+    for other, laps in race.laps.items():
+        ahead = laps.get(lap)
+        if other in (code, rival) or not ahead or integer(ahead["position"]) != (position or 0) - 1:
+            continue
+        reference = number(ahead["lap_end_session_s"])
+        if end is not None and reference is not None and end - reference <= TRAFFIC_S:
+            return f"{race.name(code)} était à {end - reference:.1f} s de {race.name(other)}"
+    return None
+
+
+def context(race: RaceFacts, duel: Duel) -> list[str]:
+    codes = [duel.ahead_before, next(c for c in duel.stops if c != duel.ahead_before)]
+    lines = []
+    starts = [line for code in codes if (line := _start(race, code))]
+    if starts:
+        lines.append(f"Départ : {' ; '.join(starts)}.")
+    behind = [line for code in codes if (line := _behind_before(race, code, duel.cycle.lap_before, next(
+        c for c in codes if c != code)))]  # fmt: skip
+    if behind:
+        lines.append(f"Avant les arrêts (tour {duel.cycle.lap_before}) : {' ; '.join(behind)}.")
+    strategies = [line for code in codes if (line := _strategy(race, code))]
+    if strategies:
+        lines.append(f"Stratégies : {' ; '.join(strategies)}.")
+    finishes = [line for code in codes if (line := _finish(race, code))]
+    if finishes:
+        lines.append(f"Arrivée : {', '.join(finishes)}.")
+    cycle_stops = {(stop.driver, stop.loss.stop_number) for stop in duel.stops.values()}
+    served_in_cycle = {id(p) for key in cycle_stops for p in race.penalties.get(key, [])}
+    others = [
+        f"{race.name(p.driver)}, {p.french()} au tour {p.lap}"
+        for p in race.given
+        if p.driver in codes and id(p) not in served_in_cycle
+    ]
+    if others:
+        lines.append(f"Autres pénalités de la course : {' ; '.join(others)}.")
+    decided = [f"{race.name(code)}, {line}" for code in codes for line in decision_lines(race, code)]
+    if decided:
+        lines.append(f"Décisions des commissaires du week-end : {' ; '.join(decided)}.")
+    return lines
+
+
+def load_decisions() -> dict[tuple[int, int], list[dict[str, Any]]]:
+    """Every stewards' decision of the FIA corpus, by (season, round). The corpus must be indexed (`just corpus`)."""
+    from qdrant_client import models
+
+    from core.retrieval.qdrant import qdrant_client
+
+    client = qdrant_client()
+    if not client.collection_exists("fia_parents"):
+        raise RuntimeError("no FIA corpus in Qdrant: run `just corpus 2024 2025 2026` first")
+    found: dict[tuple[int, int], list[dict[str, Any]]] = {}
+    offset = None
+    only = models.Filter(
+        must=[models.FieldCondition(key="doc_type", match=models.MatchValue(value="stewards_decision"))]
+    )
+    fields = ["season", "round", "session", "car_number", "document_title", "penalty", "published", "document_number"]
+    while True:
+        points, offset = client.scroll("fia_parents", scroll_filter=only, limit=500, offset=offset, with_payload=fields)
+        for point in points:
+            payload = dict(point.payload or {})
+            if payload.get("round") is not None:
+                found.setdefault((int(payload["season"]), int(payload["round"])), []).append(payload)
+        if offset is None:
+            break
+    for decisions in found.values():  # a fixed order, whatever Qdrant's
+        decisions.sort(key=lambda d: (str(d.get("published")), int(d.get("document_number") or 0),
+                                      str(d.get("document_title"))))  # fmt: skip
+    return found

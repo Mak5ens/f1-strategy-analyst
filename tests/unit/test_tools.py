@@ -151,7 +151,8 @@ def test_pit_stop_loss(tools: dict[str, Any]) -> None:
 
 def test_pit_cycle_overcut_that_failed(tools: dict[str, Any]) -> None:
     result = run(tools, "pit_cycle", driver="LEC", rival="VER")
-    assert result["kind"] == "overcut"
+    assert (result["first_to_stop"], result["ahead_after"], result["outcome"]) == ("VER", "VER", "order_held")
+    assert result["summary"].startswith("VER stayed ahead of LEC: LEC's overcut (stopped later)")
     assert (result["lap_before"], result["lap_after"]) == (2, 6)
     assert (result["gap_before_s"], result["gap_after_s"], result["gained_s"]) == (1.5, 3.5, -2.0)
     assert not result["driver_passed_rival"] and not result["rival_passed_driver"]
@@ -159,7 +160,7 @@ def test_pit_cycle_overcut_that_failed(tools: dict[str, Any]) -> None:
 
 def test_pit_cycle_from_the_other_side(tools: dict[str, Any]) -> None:
     result = run(tools, "pit_cycle", driver="VER", rival="LEC")
-    assert result["kind"] == "undercut"
+    assert (result["first_to_stop"], result["outcome"]) == ("VER", "order_held")
     assert result["gained_s"] == 2.0
 
 

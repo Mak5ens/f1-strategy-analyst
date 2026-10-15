@@ -126,10 +126,11 @@ def duel(nor: StopFacts, pia: StopFacts, *, before: float, after: float) -> Duel
     """NOR against PIA; a gap is NOR's time minus PIA's: positive, NOR behind."""
     cycle = PitCycleOutput(
         season=2025, round=1, session="R", driver="NOR", rival="PIA", driver_stop_lap=nor.lap,
-        rival_stop_lap=pia.lap, kind="undercut" if nor.lap < pia.lap else "overcut", lap_before=19, lap_after=26,
+        rival_stop_lap=pia.lap, first_to_stop="NOR" if nor.lap < pia.lap else "PIA", lap_before=19, lap_after=26,
         gap_before_s=before, gap_after_s=after, gained_s=round(before - after, 3), position_before=2,
         rival_position_before=1, position_after=1, rival_position_after=2, driver_passed_rival=before > 0 > after,
-        rival_passed_driver=before < 0 < after, neutralized=False,
+        rival_passed_driver=before < 0 < after, neutralized=False, ahead_before="PIA" if before > 0 else "NOR",
+        ahead_after="NOR" if after < 0 else "PIA", outcome="order_held", summary="",
     )  # fmt: skip
     return Duel("NOR", "PIA", 1, cycle, {"NOR": nor, "PIA": pia})
 
@@ -185,3 +186,37 @@ def test_a_calibration_round_draws_the_hard_cases_first() -> None:
     assert sum("cause:no_swap" in case.tags for case in chosen) >= 5
     assert sum("cause:penalty" in case.tags for case in chosen) == 2  # all there are
     assert sheet_cases(cases) == chosen
+
+
+def test_the_stewards_decisions_of_the_weekend_read_in_french() -> None:
+    from f1.evals.strategy import fact_fr, penalty_fr
+
+    assert fact_fr("Infringement - Car 41 - Unsafe release") == "remise en piste dangereuse"
+    assert fact_fr("Decision - Car 44 - Alleged yellow flag infringement") == "drapeau jaune non respecté"
+    assert fact_fr("Infringement - Car 1 - Turn 4 incident") == "incident au virage 4"
+    assert fact_fr("Infringement - Car 1 - Something new") == "« something new »"
+    assert penalty_fr("The competitor (Visa Cash App Racing Bulls F1 Team) is fined €5,000.") == ["amende de 5 000 €"]
+    assert penalty_fr("Drop of 3 grid positions for the next Race in which the driver participates.") == [
+        "recul de 3 place(s) sur la grille"
+    ]
+    assert penalty_fr("Required to start the Sprint from the pit lane.") == [
+        "départ du sprint depuis la voie des stands"
+    ]
+
+
+def test_a_fine_in_qualifying_is_said_to_change_nothing_in_the_race() -> None:
+    from f1.evals.strategy import decision_lines
+
+    facts = cast(RaceFacts, FakeRace())
+    facts.results = {"LIN": {"driver_number": "41"}}
+    facts.decisions = [
+        {"car_number": 41, "session": "Qualifying", "document_title": "Infringement - Car 41 - Unsafe release",
+         "penalty": "The competitor is fined €5,000."},
+        {"car_number": 41, "session": "Race", "document_title": "Infringement - Car 41 - Causing a collision",
+         "penalty": "5 Second Time Penalty."},  # race control already gives it
+        {"car_number": 10, "session": "Race", "document_title": "Infringement - Car 10 - Impeding",
+         "penalty": "Drop of 3 grid positions."},
+    ]  # fmt: skip
+    assert decision_lines(facts, "LIN") == [
+        "remise en piste dangereuse en qualifications : amende de 5 000 € (sans effet sur la course)"
+    ]

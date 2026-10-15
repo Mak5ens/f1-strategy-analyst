@@ -16,6 +16,7 @@ from pathlib import Path
 from core.evals.dataset import FAMILIES, Case, check_unique, push_to_langfuse, read_cases, split_cases, write_cases
 from f1.data import connect
 from f1.evals.generate import SEED, generate
+from f1.evals.strategy import load_decisions
 
 DATASETS = Path("evals/datasets")
 HANDWRITTEN = DATASETS / "handwritten"
@@ -25,7 +26,8 @@ DEV_SHARE = 0.3
 
 def build() -> list[Case]:
     handwritten = [case for path in sorted(HANDWRITTEN.glob("*.jsonl")) for case in read_cases(path)]
-    cases = split_cases([*generate(connect()), *handwritten], seed=SEED, dev_share=DEV_SHARE)
+    computed = generate(connect(), decisions=load_decisions())
+    cases = split_cases([*computed, *handwritten], seed=SEED, dev_share=DEV_SHARE)
     check_unique(cases)
     return cases
 

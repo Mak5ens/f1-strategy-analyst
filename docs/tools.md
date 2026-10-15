@@ -66,7 +66,7 @@ Undercut or overcut between `driver` and `rival`: `driver_stop` (1 by default) a
 
 - `lap_before`: the lap before the first of the two in-laps; `lap_after`: the out-lap of the later stopper. Both stops happen in between.
 - `gap_before_s`, `gap_after_s`, `gained_s` (positive: the driver gained), positions before and after.
-- `kind`: `undercut` if the driver stopped first, `overcut` if later, `same_lap`.
+- `first_to_stop`, `ahead_before`, `ahead_after`, and `outcome` from the side of whoever came out ahead: `undercut_worked` (the first to stop passed the other), `overcut_worked` (the later one did), `same_lap_swap`, `order_held`. `summary` says it in one sentence with the names and the gain. A field from the `driver`'s side only (the former `kind`) led a model to call the winner's undercut an overcut whenever it asked about the loser (LAB-201).
 - `driver_passed_rival` / `rival_passed_driver`: the order at the line changed.
 - `neutralized`: a safety car, VSC or red flag between the two laps; the stops were cheap and the gain says little about strategy.
 

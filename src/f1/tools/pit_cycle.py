@@ -26,9 +26,7 @@ class PitCycleOutput(BaseModel):
     rival: str
     driver_stop_lap: int
     rival_stop_lap: int
-    kind: Literal["undercut", "overcut", "same_lap"] = Field(
-        description="undercut: driver stopped first; overcut: driver stopped later"
-    )
+    first_to_stop: str | None = Field(description="Who stopped first; None when both stopped on the same lap")
     lap_before: int = Field(description="Last lap before either stopped")
     lap_after: int = Field(description="Out-lap of the later stopper: both stops are behind")
     gap_before_s: float = Field(description="Gap at the end of lap_before. Positive: driver behind rival")
@@ -44,6 +42,15 @@ class PitCycleOutput(BaseModel):
         description="Safety car, VSC or red flag between lap_before and lap_after: "
         "the stops were cheaper than usual, the gain says little about strategy"
     )
+    ahead_before: str = Field(description="Who was ahead at the end of lap_before")
+    ahead_after: str = Field(description="Who was ahead at the end of lap_after")
+    outcome: Literal["undercut_worked", "overcut_worked", "same_lap_swap", "order_held"] = Field(
+        description="From the side of whoever came out ahead: undercut_worked, the one who stopped FIRST passed the "
+        "other; overcut_worked, the one who stopped LATER passed the other; same_lap_swap, a pass with both stops on "
+        "the same lap; order_held, no pass"
+    )
+    summary: str = Field(description="The outcome in one sentence, names and numbers included: quote it, never swap "
+                         "undercut and overcut")  # fmt: skip
 
 
 def pit_cycle(data: RaceData, request: PitCycleInput) -> PitCycleOutput:
@@ -71,6 +78,11 @@ def pit_cycle(data: RaceData, request: PitCycleInput) -> PitCycleOutput:
     position_before, rival_before = _position(mine, lap_before), _position(theirs, lap_before)
     position_after, rival_after = _position(mine, lap_after), _position(theirs, lap_after)
     gap_before, gap_after = gaps[lap_before], gaps[lap_after]
+    ahead_before = request.driver if gap_before < 0 else request.rival
+    ahead_after = request.driver if gap_after < 0 else request.rival
+    first = request.driver if my_lap < their_lap else request.rival if my_lap > their_lap else None
+    outcome, summary = _outcome(request.driver, request.rival, my_lap, their_lap, ahead_before, ahead_after,
+                                gap_before - gap_after)  # fmt: skip
     return PitCycleOutput(
         season=request.season,
         round=request.round,
@@ -79,7 +91,7 @@ def pit_cycle(data: RaceData, request: PitCycleInput) -> PitCycleOutput:
         rival=request.rival,
         driver_stop_lap=my_lap,
         rival_stop_lap=their_lap,
-        kind="undercut" if my_lap < their_lap else "overcut" if my_lap > their_lap else "same_lap",
+        first_to_stop=first,
         lap_before=lap_before,
         lap_after=lap_after,
         gap_before_s=gap_before,
@@ -97,6 +109,49 @@ def pit_cycle(data: RaceData, request: PitCycleInput) -> PitCycleOutput:
             for lap in range(lap_before + 1, lap_after + 1)
             if lap in laps
         ),
+        ahead_before=ahead_before,
+        ahead_after=ahead_after,
+        outcome=outcome,
+        summary=summary,
+    )
+
+
+Outcome = Literal["undercut_worked", "overcut_worked", "same_lap_swap", "order_held"]
+
+
+def _outcome(
+    driver: str, rival: str, my_lap: int, their_lap: int, ahead_before: str, ahead_after: str, gained: float
+) -> tuple[Outcome, str]:
+    """The outcome from the side of whoever came out ahead, and a sentence that says it with the numbers."""
+    laps = {driver: my_lap, rival: their_lap}
+    other = {driver: rival, rival: driver}
+    gain = {driver: round(gained, 1), rival: round(-gained, 1)}  # what each gained on the other
+    if my_lap == their_lap:
+        if ahead_before == ahead_after:
+            return "order_held", f"Both stopped on lap {my_lap}; {ahead_after} stayed ahead of {other[ahead_after]}."
+        return "same_lap_swap", (
+            f"Both stopped on lap {my_lap}; {ahead_after} came out ahead of {ahead_before}: the stops themselves "
+            f"decided (time in the box, order in the pit lane), {ahead_after} gained {gain[ahead_after]} s."
+        )
+    first = driver if my_lap < their_lap else rival
+    apart = abs(my_lap - their_lap)
+    if ahead_before != ahead_after:
+        winner = ahead_after
+        if winner == first:
+            return "undercut_worked", (
+                f"{winner} stopped first (lap {laps[winner]}, {apart} lap(s) before {other[winner]}) and came out "
+                f"ahead: {winner}'s undercut worked, {winner} gained {gain[winner]} s on the pit cycle."
+            )
+        return "overcut_worked", (
+            f"{winner} stopped later (lap {laps[winner]}, {apart} lap(s) after {other[winner]}) and came out ahead: "
+            f"{winner}'s overcut worked, {winner} gained {gain[winner]} s on the pit cycle."
+        )
+    behind = other[ahead_after]
+    move = "undercut (stopped first)" if behind == first else "overcut (stopped later)"
+    result = f"gained only {gain[behind]} s" if gain[behind] > 0 else f"lost {-gain[behind]} s more"
+    return "order_held", (
+        f"{ahead_after} stayed ahead of {behind}: {behind}'s {move}, lap {laps[behind]} against lap "
+        f"{laps[ahead_after]}, did not work; {behind} {result} on the pit cycle."
     )
 
 

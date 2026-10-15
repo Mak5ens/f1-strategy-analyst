@@ -43,7 +43,7 @@ def run(tools: dict[str, Any], name: str, **arguments: Any) -> dict[str, Any]:
 
 def test_hungary_2024_norris_undercut(tools: dict[str, Any]) -> None:
     cycle = run(tools, "pit_cycle", season=2024, round=13, driver="NOR", rival="PIA", driver_stop=2)
-    assert (cycle["driver_stop_lap"], cycle["rival_stop_lap"], cycle["kind"]) == (45, 47, "undercut")
+    assert (cycle["driver_stop_lap"], cycle["rival_stop_lap"], cycle["first_to_stop"]) == (45, 47, cycle["driver"])
     assert cycle["driver_passed_rival"]
     assert cycle["gained_s"] > 3
     assert not cycle["neutralized"]
