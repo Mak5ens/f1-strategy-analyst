@@ -1,6 +1,6 @@
 name: Images
 
-# Releases and image of the app, as in llmops-gateway (ADR-023 in llmops-platform).
+# Releases and images of the app (API and front), as in llmops-gateway (ADR-023 in llmops-platform).
 #
 # On main, release-please keeps a release PR open from the Conventional Commits merged since the last release (fix:
 # patch, feat: minor, feat!: major), with the version and CHANGELOG.md. Merging that PR tags vX.Y.Z and creates the
@@ -53,5 +53,20 @@ jobs:
     with:
       image: ghcr.io/mak5ens/f1-strategy-analyst/api
       context: .
+      version: ${{ needs.release.outputs.version }}
+      push: ${{ github.event_name == 'push' }}
+
+  # Front of the app (web/Dockerfile, LAB-187), on the same version.
+  web:
+    needs: release
+    if: ${{ !failure() && !cancelled() }}
+    uses: Mak5ens/llmops-platform/.github/workflows/build-image.yml@f8edb94ba2638e2f2e1dc40f6725a83cfd8548c9
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+    with:
+      image: ghcr.io/mak5ens/f1-strategy-analyst/web
+      context: web
       version: ${{ needs.release.outputs.version }}
       push: ${{ github.event_name == 'push' }}

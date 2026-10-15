@@ -14,8 +14,8 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
-lib64/
+/lib/
+/lib64/
 parts/
 sdist/
 var/
@@ -222,3 +222,11 @@ __marimo__/
 
 # llmops-gateway, checked out at a release by the evaluation CI (.github/actions/gateway).
 /.gateway/
+
+# Front (web/): dependencies, Next.js builds, Playwright reports.
+/web/node_modules/
+/web/.next/
+/web/next-env.d.ts
+/web/*.tsbuildinfo
+/web/playwright-report/
+/web/test-results/
