@@ -48,6 +48,11 @@ rag-eval *args: _env
 baseline question: _env
     uv run f1-baseline "$1"
 
+# Evaluate a system on the dataset, one table per family: `just eval --sample 8`, `just eval --check`,
+# `just eval judge-sheet`, `just eval agreement` (docs/evaluation.md)
+eval *args: _env
+    uv run f1-eval "$@"
+
 # Build the evaluation dataset (evals/datasets/): `just eval-dataset`, `check`, `push` (Langfuse), `draft-regulation`
 eval-dataset *args: _env
     uv run f1-eval-dataset "$@"

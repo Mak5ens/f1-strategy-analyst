@@ -71,15 +71,19 @@ def test_ids_are_unique() -> None:
 
 
 def test_promptfoo_gets_assertions_from_the_expectation() -> None:
-    numeric = to_promptfoo(case("time-lost", family="computation", value=21.4, tolerance=0.5))
-    assert numeric["vars"] == {"question": "?"}
-    [check] = numeric["assert"]
-    assert check["type"] == "javascript" and "21.4" in check["value"] and "0.5" in check["value"]
-    words = to_promptfoo(case("pole", value=["Norris", "1:18.792"]))
-    assert [a["value"] for a in words["assert"]] == ["Norris", "1:18.792"]
-    safety = to_promptfoo(case("inject", family="safety", must_not_contain=["PWNED"], abstain=True))
-    assert safety["assert"] == [{"type": "not-icontains", "value": "PWNED"}]
-    assert safety["metadata"]["abstain"] is True
+    numeric = to_promptfoo(case("time-lost", family="computation", value=21.4, tolerance=0.5), "file://a.js")
+    assert numeric["vars"] == {"id": "time-lost", "question": "?"}
+    assert numeric["assert"] == [
+        {"type": "javascript", "value": "file://a.js:numeric", "config": {"value": 21.4, "tolerance": 0.5}}
+    ]
+    words = to_promptfoo(case("pole", value=["Norris", "1:18.792"]), "file://a.js")
+    assert words["assert"][0]["config"] == {"items": ["Norris", "1:18.792"]}
+    safety = to_promptfoo(case("inject", family="safety", must_not_contain=["PWNED"], abstain=True), "file://a.js")
+    assert safety["assert"] == [
+        {"type": "javascript", "value": "file://a.js:abstains"},
+        {"type": "not-icontains", "value": "PWNED"},
+    ]
+    assert safety["metadata"]["family"] == "safety"
 
 
 def test_ragas_gets_the_question_and_the_reference() -> None:

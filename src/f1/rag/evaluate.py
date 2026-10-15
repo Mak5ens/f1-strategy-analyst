@@ -84,7 +84,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     every = ABLATION | LEAVE_ONE_OUT
     configurations = {args.only: every[args.only]} if args.only else every
     report: dict[str, Any] = {"date": date.today().isoformat(), "cases": str(args.cases), "configurations": {}}
-    print(f"{'configuration':28s} {'R@1':>5s} {'R@5':>5s} {'MRR@10':>7s} {'median s':>9s}")
+    print(f"{'configuration':28s} {'R@1':>5s} {'R@5':>5s} {'MRR@10':>7s} {'nDCG@5':>7s} {'median s':>9s}")
     full: list[Outcome] = []
     for name, switches in configurations.items():
         config = base.model_copy(update={**OFF, **switches})
@@ -93,6 +93,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         report["configurations"][name] = {"switches": switches, "metrics": scores}
         print(
             f"{name:28s} {scores['recall@1']:5.2f} {scores['recall@5']:5.2f} {scores['mrr@10']:7.2f}"
+            f" {scores['ndcg@5']:7.2f}"
             f" {scores['median_seconds']:9.2f}"
         )
         if not switches:  # the whole pipeline

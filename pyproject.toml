@@ -38,6 +38,7 @@ f1-rag-eval = "f1.rag.evaluate:main"
 f1-season-jobs = "f1.jobs.season:main"
 f1-eval-dataset = "f1.evals.build:main"
 f1-baseline = "f1.baseline.ask:main"
+f1-eval = "f1.evals.run:main"
 
 [dependency-groups]
 dev = [

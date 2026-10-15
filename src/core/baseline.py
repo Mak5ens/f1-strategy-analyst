@@ -9,7 +9,7 @@ be. Two rules are kept even here, since without them a comparison would measure 
   problems listed; then the answer is withheld rather than shown with a number nobody computed.
 
 Tools are chosen in JSON validated by code rather than by native tool calling: it works on every alias of the
-gateway (chat-pro drops `tools`, LAB-199), and it is the way the agent's nodes work (LAB-151).
+gateway (chat-pro dropped `tools` without an error until LAB-199), and it is the way the agent's nodes work (LAB-151).
 """
 
 import json

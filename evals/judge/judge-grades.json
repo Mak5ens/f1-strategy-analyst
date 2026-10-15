@@ -1,0 +1,122 @@
+{
+ "strategy-2025-r05-ANT-NOR": {
+  "judge": 5,
+  "reason": "The answer correctly identifies the main cause (the overcut) and provides supporting facts, including the time difference gained by Norris and the specific lap numbers. There are no false claims."
+ },
+ "strategy-2026-r07-LIN-GAS": {
+  "judge": 1,
+  "reason": "The answer did not provide any explanation for why Arvid Lindblad lost his position to Pierre Gasly during the pit stops."
+ },
+ "strategy-2026-r01-GAS-BEA": {
+  "judge": 2,
+  "reason": "The answer states that Pierre Gasly lost his position due to an undercut, which is not the main cause mentioned in the reference. The reference indicates that the main cause was the stops happening during a neutralisation, which changed their cost."
+ },
+ "strategy-2024-r15-PIA-LEC": {
+  "judge": 5,
+  "reason": "The answer correctly identifies the undercut as the main cause and provides the supporting facts, including the timing data and the positions before and after the stops. There are no false claims."
+ },
+ "strategy-2026-r05-LEC-HAD": {
+  "judge": 1,
+  "reason": "The answer did not provide any explanation for why Charles Leclerc lost his position to Isack Hadjar during the pit stops."
+ },
+ "strategy-2026-r14-NOR-ANT": {
+  "judge": 2,
+  "reason": "L'answer ne mentionne pas la neutralisation, qui est la cause principale selon la référence. Elle donne des détails faux sur les tours et le gain de temps."
+ },
+ "strategy-2024-r21-LEC-VER": {
+  "judge": 1,
+  "reason": "The answer did not provide any explanation for why Charles Leclerc lost his position to Max Verstappen during the pit stops at the São Paulo Grand Prix 2024."
+ },
+ "strategy-2024-r13-RUS-PER": {
+  "judge": 5,
+  "reason": "The answer correctly identifies the main cause (the undercut) and provides supporting facts, including the timing data and the positions before and after the stops. Nothing is false."
+ },
+ "strategy-2024-r12-PIA-HAM": {
+  "judge": 5,
+  "reason": "The answer correctly identifies the main cause (the undercut) and provides the supporting facts (Hamilton stopped one lap earlier and gained 17.438 seconds). It also gives additional context (positions before and after the stops) without any false details."
+ },
+ "strategy-2025-r09-HAD-HUL": {
+  "judge": 5,
+  "reason": "The answer correctly identifies the undercut as the main cause and provides the supporting facts, including the timing data and the positions before and after the stops. There are no false claims."
+ },
+ "strategy-2026-r16-ALO-HAM": {
+  "judge": 2,
+  "reason": "L'answer mentionne une stratégie d'undercut comme cause principale, mais la référence indique que la cause principale était une neutralisation pendant les arrêts aux stands. De plus, les détails sur les tours et le gain de temps sont faux."
+ },
+ "strategy-2025-r17-ANT-RUS": {
+  "judge": 4,
+  "reason": "The answer correctly identifies the main cause (the overcut) and provides supporting facts, but it incorrectly mentions the undercut as the reason."
+ },
+ "strategy-2024-r24-VER-HAM": {
+  "judge": 2,
+  "reason": "The answer states that Verstappen lost his position due to an undercut, which is not the main cause. The main cause was the slow stop, which is not mentioned."
+ },
+ "strategy-2024-r09-NOR-VER": {
+  "judge": 2,
+  "reason": "The answer states that Verstappen made his stop one lap earlier and performed an overcut, which are not the main causes according to the reference. The main cause is the neutralisation that changed the cost of the stops."
+ },
+ "strategy-2025-r20-HAM-BEA": {
+  "judge": 2,
+  "reason": "The answer states that an undercut caused Hamilton to lose his position, which is not the main cause according to the reference. The reference indicates that the main cause was a slow stop, with Hamilton being stationary for 13.5 seconds compared to Bearman's 2.7 seconds. The answer does not mention this key detail."
+ },
+ "strategy-2024-r07-SAI-PIA": {
+  "judge": 1,
+  "reason": "The answer did not provide any explanation for why Carlos Sainz lost his position to Oscar Piastri during the pit stops."
+ },
+ "strategy-2025-r05-VER-PIA": {
+  "judge": 2,
+  "reason": "The answer does not mention the main cause (the slow stop) and instead focuses on the strategy of overcut, which is not the main cause according to the reference. The answer also incorrectly states that Verstappen dropped to fifth place, which is not mentioned in the reference."
+ },
+ "strategy-2024-r16-LEC-NOR": {
+  "judge": 5,
+  "reason": "The answer correctly identifies the undercut as the main cause and provides the supporting facts, including the timing data and the positions before and after the stops. There are no false claims."
+ },
+ "strategy-2025-r18-ALO-BEA": {
+  "judge": 2,
+  "reason": "The answer does not mention the main cause (slow stop) and instead attributes the position loss to an overcut, which is not the main cause according to the reference. The details about the timing and positions are correct but do not address the primary reason for the loss of position."
+ },
+ "strategy-2024-r15-GAS-HAM": {
+  "judge": 1,
+  "reason": "The answer did not provide any explanation for why Pierre Gasly lost his position to Lewis Hamilton during the pit stops."
+ },
+ "strategy-2024-r12-ALO-STR": {
+  "judge": 1,
+  "reason": "The answer does not provide any information about why Fernando Alonso lost his position to Lance Stroll during the pit stops."
+ },
+ "strategy-2025-r23-NOR-ANT": {
+  "judge": 2,
+  "reason": "L'answer mentionne une pénalité reçue par Kimi Antonelli comme cause principale, ce qui est faux selon la référence. La référence indique que la cause principale était la neutralisation pendant les arrêts aux stands."
+ },
+ "strategy-2026-r10-VER-LEC": {
+  "judge": 1,
+  "reason": "The answer did not provide any explanation for why Max Verstappen lost his position to Charles Leclerc during the pit stops at the Belgian Grand Prix 2026."
+ },
+ "strategy-2026-r13-PIA-COL": {
+  "judge": 1,
+  "reason": "The answer did not provide any explanation for why Oscar Piastri lost his position to Franco Colapinto during the pit stops."
+ },
+ "strategy-2026-r09-GAS-COL": {
+  "judge": 1,
+  "reason": "The answer did not provide any explanation for why Pierre Gasly lost his position to Franco Colapinto during the pit stops."
+ },
+ "strategy-2026-r07-LIN-COL": {
+  "judge": 1,
+  "reason": "The answer did not provide any explanation for why Arvid Lindblad lost his position to Franco Colapinto during the pit stops."
+ },
+ "strategy-2025-r10-RUS-LEC": {
+  "judge": 3,
+  "reason": "The answer states the main cause (undercut) but includes several false claims about the timing and positions of the drivers."
+ },
+ "strategy-2026-r05-BEA-SAI": {
+  "judge": 2,
+  "reason": "The answer incorrectly states that Sainz performed an undercut and provides incorrect timing for the pit stops. The main cause mentioned in the reference is not addressed."
+ },
+ "strategy-2024-r24-RUS-LEC": {
+  "judge": 5,
+  "reason": "The answer correctly identifies the main cause (undercut) and provides supporting facts, including the time difference gained by Leclerc. It also mentions the specific lap numbers and time differences, which align with the reference. There are no false claims."
+ },
+ "strategy-2025-r06-ANT-RUS": {
+  "judge": 2,
+  "reason": "The answer states that the loss of position was due to an undercut, which is not the main cause according to the reference. The reference mentions that the stops occurred during a neutralisation, which changed their cost, but the answer does not mention this."
+ }
+}

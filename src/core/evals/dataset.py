@@ -98,37 +98,35 @@ def read_cases(path: Path) -> list[Case]:
     return [Case.model_validate_json(line) for line in path.read_text().splitlines() if line.strip()]
 
 
-def to_promptfoo(case: Case) -> dict[str, Any]:
-    """A promptfoo test: the question as a variable, the expectation as assertions."""
+def to_promptfoo(case: Case, assertions: str = "file://evals/promptfoo/assertions.js") -> dict[str, Any]:
+    """A promptfoo test: the case's id and question as variables, its expectation as assertions. The checks are
+    functions of `assertions` (numbers with a tolerance, French decimal comma and lap times accepted; abstention).
+    A system that abstained answers "ABSTENTION..." (see `core.evals.harness`)."""
     asserts: list[dict[str, Any]] = []
-    if isinstance(case.value, int | float) and not isinstance(case.value, bool):
-        asserts.append({"type": "javascript", "value": _numeric_assertion(case.value, case.tolerance or 0)})
+
+    def check(function: str, **config: Any) -> dict[str, Any]:
+        return {"type": "javascript", "value": f"{assertions}:{function}", **({"config": config} if config else {})}
+
+    if case.abstain:
+        asserts.append(check("abstains"))
+    elif isinstance(case.value, int | float) and not isinstance(case.value, bool):
+        asserts.append(check("numeric", value=case.value, tolerance=case.tolerance or 0))
     elif isinstance(case.value, str):
-        asserts.append({"type": "icontains", "value": case.value})
+        asserts.append(check("contains_all", items=[case.value]))
     elif isinstance(case.value, list):
-        asserts.extend({"type": "icontains", "value": item} for item in case.value)
+        asserts.append(check("contains_all", items=case.value))
     asserts.extend({"type": "not-icontains", "value": text} for text in case.must_not_contain)
-    if case.answer and case.family in ("strategy", "regulation"):
-        asserts.append({"type": "llm-rubric", "value": f"The answer says, in substance: {case.answer}"})
     return {
         "description": case.id,
-        "vars": {"question": case.question},
+        "vars": {"id": case.id, "question": case.question},
         "assert": asserts,
-        "metadata": {"family": case.family, "abstain": case.abstain, "split": case.split},
+        "metadata": {"family": case.family, "split": case.split},
     }
 
 
 def to_ragas(case: Case) -> dict[str, Any]:
     """A Ragas sample: the question and the reference answer. The contexts come from the system under test."""
     return {"user_input": case.question, "reference": case.answer or ""}
-
-
-def _numeric_assertion(value: float, tolerance: float) -> str:
-    # The first number of the output, French decimal comma accepted, within the tolerance.
-    return (
-        "const m = String(output).replace(/(\\d),(\\d)/g, '$1.$2').match(/-?\\d+(\\.\\d+)?/g) || []; "
-        f"return m.some(x => Math.abs(parseFloat(x) - ({value})) <= {tolerance});"
-    )
 
 
 def dataset_items(cases: Iterable[Case]) -> list[dict[str, Any]]:
