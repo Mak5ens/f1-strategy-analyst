@@ -36,7 +36,7 @@ class BaselineConfig(BaseSettings):
 
     model: str = "chat-pro"  # the production pipeline's model: the comparison measures the orchestration
     passages: int = 5
-    tool_rounds: int = 3  # tool calls before answering, at most
+    tool_rounds: int = 1  # one tool call is enough for most questions, and answers come faster
     max_tokens: int = 800
     attempts: int = 2  # the answer, then one retry with its problems
 
