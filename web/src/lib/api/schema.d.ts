@@ -44,6 +44,87 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/seasons": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List Seasons
+     * @description The seasons with races in the data, the latest first.
+     */
+    get: operations["list_seasons_seasons_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/races": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List Races
+     * @description The calendar of a season, as far as the data goes: every round, with its winner once raced.
+     */
+    get: operations["list_races_races_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/races/featured": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Featured Races
+     * @description The races to put forward: the last one raced, then the latest with a debrief, then the rounds before.
+     */
+    get: operations["featured_races_races_featured_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/races/{season}/{round_number}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Race
+     * @description What a Grand Prix's page shows: result, grid, best laps, strategies, stops, neutralizations, penalties,
+     *     standings after the round, weather. Read from the lake: no model is called.
+     */
+    get: operations["get_race_races__season___round_number__get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/debriefs": {
     parameters: {
       query?: never;
@@ -53,7 +134,8 @@ export interface paths {
     };
     /**
      * List Debriefs
-     * @description The requests, the latest first: those waiting for a person with `status=waiting`.
+     * @description The requests, the latest first: those waiting for a person with `status=waiting`, those on a race with
+     *     `season` and `round`.
      */
     get: operations["list_debriefs_debriefs_get"];
     put?: never;
@@ -170,6 +252,19 @@ export interface components {
        */
       selected: boolean;
     };
+    /** BestLap */
+    BestLap: {
+      driver: components["schemas"]["Driver"];
+      /** Lap */
+      lap: number;
+      /** Lap Time S */
+      lap_time_s: number;
+      /**
+       * Gap S
+       * @description Behind the fastest lap of the race
+       */
+      gap_s: number;
+    };
     /**
      * Clarification
      * @description What the agent will not guess: the request is ambiguous or names something unknown.
@@ -191,6 +286,56 @@ export interface components {
        * @description The label of the option chosen
        */
       option: string;
+    };
+    /** Classified */
+    Classified: {
+      /**
+       * Position
+       * @description Finishing order, also for drivers not classified
+       */
+      position: number | null;
+      /**
+       * Position Text
+       * @description A number, or R retired, D disqualified, W withdrawn, N not classified
+       */
+      position_text: string;
+      driver: components["schemas"]["Driver"];
+      /** Number */
+      number: string | null;
+      /**
+       * Grid
+       * @description Starting position; 0 for a pit lane start
+       */
+      grid: number | null;
+      /**
+       * Places Gained
+       * @description Grid minus finish: positive when the driver gained places
+       */
+      places_gained: number | null;
+      /** Laps */
+      laps: number | null;
+      /**
+       * Time S
+       * @description Race time, the winner only
+       */
+      time_s: number | null;
+      /**
+       * Gap S
+       * @description Gap to the winner, finishers on the lead lap only
+       */
+      gap_s: number | null;
+      /**
+       * Laps Behind
+       * @description Laps down on the winner, finishers lapped only
+       */
+      laps_behind: number | null;
+      /** Status */
+      status: string | null;
+      /**
+       * Points
+       * @default 0
+       */
+      points: number;
     };
     /**
      * Debrief
@@ -282,6 +427,21 @@ export interface components {
        */
       colour: string | null;
     };
+    /** DriverStanding */
+    DriverStanding: {
+      /** Position */
+      position: number | null;
+      driver: components["schemas"]["Driver"];
+      /** Points */
+      points: number;
+      /** Wins */
+      wins: number;
+      /**
+       * Change
+       * @description Places gained in the championship with this round
+       */
+      change: number | null;
+    };
     /** HTTPValidationError */
     HTTPValidationError: {
       /** Detail */
@@ -298,6 +458,20 @@ export interface components {
       name: string;
       /** Version */
       version: string;
+    };
+    /** Neutralization */
+    Neutralization: {
+      /**
+       * Kind
+       * @enum {string}
+       */
+      kind: "safety_car" | "virtual_safety_car" | "red_flag";
+      /** Start Lap */
+      start_lap: number;
+      /** End Lap */
+      end_lap: number;
+      /** Duration S */
+      duration_s: number;
     };
     /** NewDebrief */
     NewDebrief: {
@@ -318,6 +492,27 @@ export interface components {
       value?: {
         [key: string]: unknown;
       };
+    };
+    /** Penalty */
+    Penalty: {
+      driver: components["schemas"]["Driver"];
+      /**
+       * Kind
+       * @enum {string}
+       */
+      kind: "time" | "drive_through" | "stop_go";
+      /** Seconds */
+      seconds: number | null;
+      /**
+       * Reason
+       * @description In French
+       */
+      reason: string;
+      /**
+       * Lap
+       * @description Lap race control announced it
+       */
+      lap: number;
     };
     /** PlanAnswer */
     PlanAnswer: {
@@ -355,10 +550,137 @@ export interface components {
       /** Problems */
       problems?: string[];
     };
+    /**
+     * Race
+     * @description A Grand Prix as its page shows it. A section without data is empty, never filled with a guess.
+     */
+    Race: {
+      summary: components["schemas"]["RaceSummary"];
+      /** Total Laps */
+      total_laps: number | null;
+      /** Classification */
+      classification: components["schemas"]["Classified"][];
+      fastest_lap: components["schemas"]["BestLap"] | null;
+      /**
+       * Best Laps
+       * @description Each driver's best lap, fastest first
+       */
+      best_laps: components["schemas"]["BestLap"][];
+      /**
+       * Strategies
+       * @description In finishing order
+       */
+      strategies: components["schemas"]["Strategy"][];
+      /** Neutralizations */
+      neutralizations: components["schemas"]["Neutralization"][];
+      /** Penalties */
+      penalties: components["schemas"]["Penalty"][];
+      /**
+       * Driver Standings
+       * @description After this round
+       */
+      driver_standings: components["schemas"]["DriverStanding"][];
+      /**
+       * Team Standings
+       * @description After this round
+       */
+      team_standings: components["schemas"]["TeamStanding"][];
+      weather: components["schemas"]["Weather"] | null;
+    };
+    /** RaceSummary */
+    RaceSummary: {
+      /** Season */
+      season: number;
+      /** Round */
+      round: number;
+      /**
+       * Grand Prix
+       * @description In French
+       */
+      grand_prix: string;
+      /**
+       * Event
+       * @description The official name in English, as the data names it
+       */
+      event: string;
+      /** Location */
+      location: string | null;
+      /** Country */
+      country: string | null;
+      /**
+       * Date
+       * @description Start of the race, UTC
+       */
+      date: string | null;
+      /**
+       * Sprint
+       * @description A sprint weekend
+       * @default false
+       */
+      sprint: boolean;
+      /** @description None until the race has results */
+      winner: components["schemas"]["Driver"] | null;
+    };
     /** ReviewAnswer */
     ReviewAnswer: {
       /** Decisions */
       decisions: components["schemas"]["Decision"][];
+    };
+    /** Stint */
+    Stint: {
+      /** Stint */
+      stint: number;
+      /**
+       * Compound
+       * @description SOFT, MEDIUM, HARD, INTERMEDIATE or WET
+       */
+      compound: string | null;
+      /** Start Lap */
+      start_lap: number;
+      /** End Lap */
+      end_lap: number;
+      /** Laps */
+      laps: number;
+      /**
+       * Fresh
+       * @description A new set, rather than one used in an earlier session
+       */
+      fresh: boolean | null;
+    };
+    /** Stop */
+    Stop: {
+      /** Stop Number */
+      stop_number: number;
+      /**
+       * Lap
+       * @description In-lap
+       */
+      lap: number;
+      /** Pit Lane Time S */
+      pit_lane_time_s: number | null;
+      /** Stationary Time S */
+      stationary_time_s: number | null;
+      /**
+       * Time Lost S
+       * @description What the stop cost against two normal laps (pit_stop_loss)
+       */
+      time_lost_s: number | null;
+      /** Compound After */
+      compound_after: string | null;
+      /**
+       * Neutralized
+       * @description Under safety car, VSC or red flag: the stop cost less
+       * @default false
+       */
+      neutralized: boolean;
+    };
+    /** Strategy */
+    Strategy: {
+      driver: components["schemas"]["Driver"];
+      /** Stints */
+      stints: components["schemas"]["Stint"][];
+      /** Stops */
+      stops: components["schemas"]["Stop"][];
     };
     /**
      * Subject
@@ -389,6 +711,24 @@ export interface components {
        */
       colour: string | null;
     };
+    /** TeamStanding */
+    TeamStanding: {
+      /** Position */
+      position: number | null;
+      /** Team */
+      team: string;
+      /** Colour */
+      colour: string | null;
+      /** Points */
+      points: number;
+      /** Wins */
+      wins: number;
+      /**
+       * Change
+       * @description Places gained in the championship with this round
+       */
+      change: number | null;
+    };
     /** ValidationError */
     ValidationError: {
       /** Location */
@@ -401,6 +741,30 @@ export interface components {
       input?: unknown;
       /** Context */
       ctx?: Record<string, never>;
+    };
+    /** Weather */
+    Weather: {
+      /**
+       * Air Temp Min C
+       * @description Lowest during the race
+       */
+      air_temp_min_c: number;
+      /** Air Temp Max C */
+      air_temp_max_c: number;
+      /** Track Temp Min C */
+      track_temp_min_c: number;
+      /** Track Temp Max C */
+      track_temp_max_c: number;
+      /**
+       * Humidity Pct
+       * @description Average
+       */
+      humidity_pct: number;
+      /**
+       * Rainfall
+       * @description Rain at some point of the race
+       */
+      rainfall: boolean;
     };
   };
   responses: never;
@@ -451,11 +815,119 @@ export interface operations {
       };
     };
   };
+  list_seasons_seasons_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": number[];
+        };
+      };
+    };
+  };
+  list_races_races_get: {
+    parameters: {
+      query?: {
+        /** @description The latest season if omitted */
+        season?: number | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["RaceSummary"][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  featured_races_races_featured_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["RaceSummary"][];
+        };
+      };
+    };
+  };
+  get_race_races__season___round_number__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        season: number;
+        round_number: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Race"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
   list_debriefs_debriefs_get: {
     parameters: {
       query?: {
         /** @description Only the requests of this status */
         status?: ("running" | "waiting" | "stopped" | "published") | null;
+        /** @description Only the requests on a race of this season */
+        season?: number | null;
+        /** @description Only those on this round */
+        round?: number | null;
         limit?: number;
       };
       header?: never;

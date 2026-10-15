@@ -4,6 +4,8 @@ The colours are the teams' livery colours as FastF1 gives them for its plots (`f
 teams apart, never with a logo. The lake does not store them: a team missing here gets no colour, not a guess.
 """
 
+from pydantic import BaseModel, ConfigDict, Field
+
 GRAND_PRIX_FR: dict[str, str] = {
     "Bahrain Grand Prix": "Grand Prix de Bahreïn",
     "Saudi Arabian Grand Prix": "Grand Prix d'Arabie saoudite",
@@ -35,6 +37,8 @@ GRAND_PRIX_FR: dict[str, str] = {
 TEAM_COLOURS: dict[str, str] = {
     "Alpine": "#00a1e8",
     "Aston Martin": "#229971",
+    "Audi": "#ff2d00",
+    "Cadillac": "#444444",
     "Ferrari": "#e8002d",
     "Haas F1 Team": "#b6babd",
     "Kick Sauber": "#52e252",
@@ -53,3 +57,21 @@ def grand_prix_fr(name: str) -> str:
 
 def team_colour(team: str | None) -> str | None:
     return TEAM_COLOURS.get(team) if team else None
+
+
+class Response(BaseModel):
+    """What the API returns: every field always present, its default included, so the generated client needs no
+    `?? []`."""
+
+    model_config = ConfigDict(json_schema_serialization_defaults_required=True)
+
+
+class Driver(Response):
+    code: str
+    name: str
+    team: str | None = None
+    colour: str | None = Field(None, description="The team's colour, #rrggbb, when known")
+
+
+def driver(code: str, name: str | None, team: str | None) -> Driver:
+    return Driver(code=code, name=name or code, team=team, colour=team_colour(team))

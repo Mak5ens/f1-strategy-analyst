@@ -31,8 +31,14 @@ class FakeRequests:
             updated_at=now,
         )
 
-    def list(self, *, status: str | None = None, limit: int = 50) -> list[dict[str, Any]]:
-        rows = [row for row in self.rows.values() if status is None or row["status"] == status]
+    def list(
+        self, *, status: str | None = None, subject: dict[str, Any] | None = None, limit: int = 50
+    ) -> list[dict[str, Any]]:
+        rows = [
+            row
+            for row in self.rows.values()
+            if (status is None or row["status"] == status) and (subject or {}).items() <= row["subject"].items()
+        ]
         return sorted(rows, key=lambda row: row["updated_at"], reverse=True)[:limit]
 
 

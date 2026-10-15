@@ -1,12 +1,14 @@
-"""HTTP API of the app: the debrief agent's requests, their three stops, and the published debriefs (LAB-152).
+"""HTTP API of the app: the races of the lake (LAB-202), the debrief agent's requests, their three stops, and the
+published debriefs (LAB-152).
 
 The front in `web/` calls it through a client generated from this app's OpenAPI document, committed as
 `web/openapi.json` (`just web-gen-client`): `tests/unit/test_api.py` fails while the two differ.
 
     uv run python -m f1.api > web/openapi.json
 
-A request runs inside the HTTP call that starts or answers it, until its next stop: a few seconds to the plan, up to
-half a minute from the plan to the review when rules are needed.
+The races' pages are read from the lake, without a model. A request runs inside the HTTP call that starts or
+answers it, until its next stop: a few seconds to the plan, up to half a minute from the plan to the review when
+rules are needed.
 """
 
 import json
@@ -19,11 +21,12 @@ from importlib.metadata import version
 from typing import Annotated, Any, Literal
 
 from fastapi import Depends, FastAPI, HTTPException, Query
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, Field
 
 from core.agent import Agent, Analysis, Clarification, Decision, Point, Run
 from core.agent.store import RequestStore
-from f1.display import grand_prix_fr, team_colour
+from f1.display import Driver, Response, grand_prix_fr, team_colour
+from f1.grand_prix import GrandPrix, Race, RaceSummary
 
 # The version of the API contract, not the app's: release-please bumps the app's on every release, and the OpenAPI
 # document, and the front's generated client, would change with it.
@@ -33,13 +36,6 @@ Status = Literal["running", "waiting", "stopped", "published"]
 Stop = Literal["clarification", "plan", "review"]
 
 
-class Response(BaseModel):
-    """What the API returns: every field always present, its default included, so the generated client needs no
-    `?? []`."""
-
-    model_config = ConfigDict(json_schema_serialization_defaults_required=True)
-
-
 class Health(BaseModel):
     status: str
 
@@ -47,13 +43,6 @@ class Health(BaseModel):
 class Info(BaseModel):
     name: str
     version: str
-
-
-class Driver(Response):
-    code: str
-    name: str
-    team: str | None = None
-    colour: str | None = Field(None, description="The team's colour, #rrggbb, when known")
 
 
 class Subject(Response):
@@ -117,6 +106,7 @@ _resources = ExitStack()
 _lock = threading.Lock()
 _agent: Agent | None = None
 _requests: RequestStore | None = None
+_grand_prix: GrandPrix | None = None
 
 
 def get_agent() -> Agent:
@@ -137,8 +127,19 @@ def get_requests() -> RequestStore:
     return _requests
 
 
+def get_grand_prix() -> GrandPrix:
+    global _grand_prix
+    with _lock:
+        if _grand_prix is None:
+            from f1.data import connect
+
+            _grand_prix = GrandPrix(connect())
+    return _grand_prix
+
+
 AgentDep = Annotated[Agent, Depends(get_agent)]
 RequestsDep = Annotated[RequestStore, Depends(get_requests)]
+GrandPrixDep = Annotated[GrandPrix, Depends(get_grand_prix)]
 
 
 @app.get("/healthz")
@@ -153,13 +154,53 @@ def info() -> Info:
     return Info(name="f1-strategy-analyst", version=version("f1-strategy-analyst"))
 
 
+@app.get("/seasons")
+def list_seasons(grand_prix: GrandPrixDep) -> list[int]:
+    """The seasons with races in the data, the latest first."""
+    return grand_prix.seasons()
+
+
+@app.get("/races")
+def list_races(
+    grand_prix: GrandPrixDep, season: Annotated[int | None, Query(description="The latest season if omitted")] = None
+) -> list[RaceSummary]:
+    """The calendar of a season, as far as the data goes: every round, with its winner once raced."""
+    seasons = grand_prix.seasons()
+    return grand_prix.calendar(season or seasons[0]) if seasons else []
+
+
+@app.get("/races/featured")
+def featured_races(grand_prix: GrandPrixDep, requests: RequestsDep) -> list[RaceSummary]:
+    """The races to put forward: the last one raced, then the latest with a debrief, then the rounds before."""
+    debriefed = [
+        (row["subject"]["season"], row["subject"]["round"])
+        for row in requests.list(limit=200)
+        if row["subject"].get("season") and row["subject"].get("round")
+    ]
+    return grand_prix.featured(debriefed)
+
+
+@app.get("/races/{season}/{round_number}")
+def get_race(season: int, round_number: int, grand_prix: GrandPrixDep) -> Race:
+    """What a Grand Prix's page shows: result, grid, best laps, strategies, stops, neutralizations, penalties,
+    standings after the round, weather. Read from the lake: no model is called."""
+    race = grand_prix.race(season, round_number)
+    if race is None:
+        raise HTTPException(404, f"no data for round {round_number} of {season}")
+    return race
+
+
 @app.get("/debriefs")
 def list_debriefs(
     requests: RequestsDep,
     status: Annotated[Status | None, Query(description="Only the requests of this status")] = None,
+    season: Annotated[int | None, Query(description="Only the requests on a race of this season")] = None,
+    round_number: Annotated[int | None, Query(alias="round", description="Only those on this round")] = None,
     limit: Annotated[int, Query(ge=1, le=200)] = 50,
 ) -> list[DebriefSummary]:
-    """The requests, the latest first: those waiting for a person with `status=waiting`."""
+    """The requests, the latest first: those waiting for a person with `status=waiting`, those on a race with
+    `season` and `round`."""
+    race = {key: value for key, value in (("season", season), ("round", round_number)) if value is not None}
     return [
         DebriefSummary(
             id=row["thread_id"],
@@ -170,7 +211,7 @@ def list_debriefs(
             created_at=row["created_at"],
             updated_at=row["updated_at"],
         )
-        for row in requests.list(status=status, limit=limit)
+        for row in requests.list(status=status, subject=race, limit=limit)
     ]
 
 
