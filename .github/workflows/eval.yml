@@ -1,0 +1,145 @@
+name: Evaluation
+
+# The evaluation as a quality gate (LAB-149, docs/evaluation.md): a pull request that changes what the system answers
+# (code, prompts, configuration, dataset, scorers) runs the baseline on a sample of the test set, comments the score of
+# each family against the main branch's reference runs, and fails when a family falls by more than its margin.
+# Every case runs on llmops-gateway started from a pinned release (.github/actions/gateway), with the data that
+# eval-data.yml builds. A full run of the test set runs once a week on main, or on demand.
+on:
+  pull_request:
+    paths:
+      - src/**
+      - evals/datasets/**
+      - evals/promptfoo/**
+      - evals/ragas/**
+      - evals/thresholds.json
+      - pyproject.toml
+      - uv.lock
+      - .github/workflows/eval.yml
+      - .github/actions/gateway/**
+  schedule:
+    - cron: "41 2 * * 2"
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: quick (10 cases per family, about 10 minutes) or full (the whole test set, about 40 minutes)
+        type: choice
+        options: [quick, full]
+        default: quick
+
+permissions:
+  contents: read
+
+concurrency:
+  group: eval-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  GATEWAY_VERSION: 0.5.3
+
+jobs:
+  eval:
+    # A fork's pull request gets no secret, so no chat-pro: it is not evaluated.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    permissions:
+      contents: read
+      pull-requests: write
+    env:
+      MODE: ${{ (github.event_name == 'schedule' || inputs.mode == 'full') && 'full' || 'quick' }}
+      LAKE_URI: data/lake
+      # chat-medium (qwen2.5:7b) is too slow on a runner's CPU: rewriting runs on chat-pro, as answers do.
+      RAG_REWRITE_MODEL: chat-pro
+      # The traces stay in the runner's Langfuse, gone with it.
+      LANGFUSE_PUBLIC_KEY: ""
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+      - uses: extractions/setup-just@53165ef7e734c5c07cb06b3c8e7b647c5aa16db3 # v4
+      - name: Check the Scaleway key
+        env:
+          SCW_SECRET_KEY: ${{ secrets.SCW_SECRET_KEY }}
+        run: |
+          if [ -z "$SCW_SECRET_KEY" ]; then
+            echo "::error::The SCW_SECRET_KEY secret is missing: chat-pro cannot answer (docs/evaluation.md, CI)."
+            exit 1
+          fi
+      # The latest data of eval-data.yml: run it first when a cache is missing.
+      - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: data/lake
+          key: eval-lake-2024-
+          restore-keys: eval-lake-2024-
+          fail-on-cache-miss: true
+      - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: data/lake
+          key: eval-lake-2025-
+          restore-keys: eval-lake-2025-
+          fail-on-cache-miss: true
+      - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: data/lake
+          key: eval-lake-2026-
+          restore-keys: eval-lake-2026-
+          fail-on-cache-miss: true
+      - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: .cache/index
+          key: eval-index-
+          restore-keys: eval-index-
+          fail-on-cache-miss: true
+      - uses: ./.github/actions/gateway
+        with:
+          version: ${{ env.GATEWAY_VERSION }}
+          scaleway-key: ${{ secrets.SCW_SECRET_KEY }}
+      - name: Restore the index
+        run: |
+          cp .env.example .env
+          docker compose up --detach --wait qdrant
+          start=$(date +%s%N)
+          just index-load .cache/index
+          echo "Index restored in $(( ($(date +%s%N) - start) / 1000000 )) ms." >> "$GITHUB_STEP_SUMMARY"
+      - name: Evaluate
+        run: |
+          if [ "$MODE" = quick ]; then
+            run="ci-${{ github.event.pull_request.number && format('pr{0}', github.event.pull_request.number) || 'quick' }}-${GITHUB_SHA::7}"
+            options=(--sample 10 --budget 0.25)
+          else
+            run="ci-full-$(date -u +%Y-%m-%d)-${GITHUB_SHA::7}"
+            options=(--budget 1.00)
+          fi
+          echo "RUN=$run" >> "$GITHUB_ENV"
+          uv run f1-eval --split test --check --run-name "$run" "${options[@]}"
+      - name: Report
+        if: always() && env.RUN != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          summary=".cache/evals/$RUN/summary.md"
+          [ -f "$summary" ] || exit 0
+          echo "[Run log and report]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID)" >> "$summary"
+          cat "$summary" >> "$GITHUB_STEP_SUMMARY"
+          [ -n "$PR" ] || exit 0
+          # One comment per pull request, edited by each run.
+          id=$(gh api "repos/$GITHUB_REPOSITORY/issues/$PR/comments" --paginate \
+            --jq '.[] | select(.body | startswith("<!-- f1-eval -->")) | .id' | tail -n 1)
+          if [ -n "$id" ]; then
+            gh api --method PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$id" -F "body=@$summary" > /dev/null
+          else
+            gh pr comment "$PR" --body-file "$summary"
+          fi
+      # The report holds the scores and the judge's reasons, not the answers (records.jsonl quotes the FIA's texts).
+      - if: always() && env.RUN != ''
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: eval-${{ env.RUN }}
+          path: |
+            evals/reports/${{ env.RUN }}.json
+            .cache/evals/${{ env.RUN }}/summary.md
+          if-no-files-found: ignore
+      - if: failure()
+        working-directory: .gateway
+        run: docker compose logs --tail 200 litellm

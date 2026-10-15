@@ -1,0 +1,113 @@
+name: Evaluation data
+
+# The data the evaluation CI (eval.yml) answers from, built on a runner and kept in the Actions cache: the race data
+# lake (Parquet files, one cache per season) and the Qdrant index of the FIA corpus (snapshots of `just index-save`).
+# Nothing of it is committed: the FIA's documents stay out of the repository.
+#
+# The first build downloads everything: FastF1 allows 500 calls an hour (a season takes a few hours, so the seasons run
+# in parallel), and fia.com asks for 10 seconds between requests (about 900 documents). The HTTP caches of both are
+# saved even when a job fails or times out, so a rerun goes on from there. Later builds only fetch new rounds and new
+# documents, and the index is rebuilt from the cached corpus, which measures a rebuild against a restore.
+#
+# The Actions cache drops an entry unused for 7 days: two builds a week keep every entry alive.
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 3 * * 1,4"
+  push:
+    branches: [main]
+    paths:
+      - src/f1/data/**
+      - src/f1/corpus/**
+      - src/core/lake.py
+      - src/core/retrieval/index.py
+      - .github/workflows/eval-data.yml
+  pull_request:
+    paths:
+      - .github/workflows/eval-data.yml
+
+permissions:
+  contents: read
+
+env:
+  # Renovate does not follow it: a new release of the gateway is adopted here by hand, with its evaluation.
+  GATEWAY_VERSION: 0.5.3
+
+jobs:
+  lake:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    strategy:
+      fail-fast: false
+      matrix:
+        season: [2024, 2025, 2026]
+    env:
+      LAKE_URI: data/lake
+      # FastF1's limit stops a season several times: wait it out as often as it takes.
+      INGEST_MAX_RATE_LIMIT_PAUSES: "30"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+      - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: .cache/fastf1
+          key: fastf1-${{ matrix.season }}-${{ github.run_id }}
+          restore-keys: fastf1-${{ matrix.season }}-
+      - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: data/lake
+          key: eval-lake-${{ matrix.season }}-${{ github.run_id }}
+          restore-keys: eval-lake-${{ matrix.season }}-
+      - run: uv run f1-ingest ${{ matrix.season }}
+      # Under a key named by its content: a build that fetched nothing new saves nothing.
+      - if: always()
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: .cache/fastf1
+          key: fastf1-${{ matrix.season }}-${{ hashFiles('.cache/fastf1/**') }}
+      # Only a complete season: the evaluation restores the latest one.
+      - uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: data/lake
+          key: eval-lake-${{ matrix.season }}-${{ hashFiles('data/lake/**') }}
+
+  index:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+      - uses: extractions/setup-just@53165ef7e734c5c07cb06b3c8e7b647c5aa16db3 # v4
+      # Embeddings only: no chat model, no Scaleway key.
+      - uses: ./.github/actions/gateway
+        with:
+          version: ${{ env.GATEWAY_VERSION }}
+      - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: .cache/fia
+          key: fia-${{ github.run_id }}
+          restore-keys: fia-
+      - name: Start Qdrant
+        run: |
+          cp .env.example .env
+          docker compose up --detach --wait qdrant
+      - name: Index the corpus
+        run: |
+          start=$(date +%s)
+          uv run f1-corpus 2024 2025 2026
+          echo "Corpus indexed in $(( ($(date +%s) - start) / 60 )) min (downloads included on a first build)." \
+            >> "$GITHUB_STEP_SUMMARY"
+      - if: always()
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: .cache/fia
+          # The season pages are fetched again on every build: only the documents name the entry.
+          key: fia-${{ hashFiles('.cache/fia/**', '!.cache/fia/*.html') }}
+      - run: just index-save .cache/index | tee -a "$GITHUB_STEP_SUMMARY"
+      - uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: .cache/index
+          key: eval-index-${{ github.run_id }}
+      - if: failure()
+        working-directory: .gateway
+        run: docker compose logs --tail 200 litellm ollama

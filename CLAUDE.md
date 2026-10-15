@@ -51,7 +51,7 @@ Tasks run with [just](https://just.systems/) (`justfile`, which loads `.env`); t
 
 ## CI and releases
 
-`.github/workflows/ci.yml` runs pre-commit, a full-history gitleaks scan, the unit tests and the PR title check (PRs are squash-merged). The integration tests do not run in CI yet: they need the gateway stack. `.github/workflows/images.yml` runs release-please and builds the image with llmops-platform's shared workflow (Trivy, then on main: GHCR, SBOM, cosign), pinned to a commit of its main branch. `CHANGELOG.md` is written by release-please: never edit it by hand.
+`.github/workflows/ci.yml` runs pre-commit, a full-history gitleaks scan, the unit tests and the PR title check (PRs are squash-merged). The integration tests do not run in CI yet. `.github/workflows/eval.yml` is the evaluation gate (LAB-149): on a PR touching `src/`, the dataset or the scorers, the baseline on 10 test cases per family against llmops-gateway started from a pinned release (`GATEWAY_VERSION`, `.github/actions/gateway`, GHCR images), compared with the main branch's reference runs on the same cases (`core.evals.compare`), with a PR comment and the run's cost; a full run weekly. It needs the `SCW_SECRET_KEY` secret, and the lake and Qdrant snapshots that `.github/workflows/eval-data.yml` builds into the Actions cache (`just index-save` / `index-load`). `.github/workflows/images.yml` runs release-please and builds the image with llmops-platform's shared workflow (Trivy, then on main: GHCR, SBOM, cosign), pinned to a commit of its main branch. `CHANGELOG.md` is written by release-please: never edit it by hand.
 
 ## Conventions
 

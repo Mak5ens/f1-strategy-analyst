@@ -118,6 +118,22 @@ class GatewayTransport(httpx2.BaseTransport):
         )
 
 
+def key_spend(settings: GatewaySettings | None = None, *, transport: httpx2.BaseTransport | None = None) -> float:
+    """What the team's key has spent so far, in dollars, as the gateway counts it (`/key/info` of the calling key).
+
+    The gateway writes spend in batches, a few seconds after each call: read it again after a pause to be sure a run's
+    last calls are counted."""
+    settings = settings or GatewaySettings()
+    with httpx2.Client(transport=transport, timeout=settings.timeout_seconds) as client:
+        response = client.get(
+            f"{settings.url.rstrip('/')}/key/info",
+            headers={"Authorization": f"Bearer {settings.api_key.get_secret_value()}"},
+        )
+        response.raise_for_status()
+    body = response.json()
+    return float((body.get("info") or body).get("spend") or 0.0)
+
+
 def rate_limit_wait(headers: httpx2.Headers, now: datetime) -> float:
     """Seconds until the gateway's rate limit resets: its `reset_at` (2026-10-13 22:15:17 UTC), else its
     `retry-after`, else 10 s; between 1 and 60 s, plus up to a second so parallel callers do not come back together."""

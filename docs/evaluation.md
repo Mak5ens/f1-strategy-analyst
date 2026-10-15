@@ -56,7 +56,7 @@ promptfoo and Ragas run apart: promptfoo with `npx` (pinned, `promptfoo@0.123.1`
 
 ## Thresholds
 
-`evals/thresholds.json` holds, for each family and the run it comes from, the metrics that say whether it works, at the baseline's score less a margin: 0.05, or two cases of the family when that is more (so that one case answered differently, noise even at temperature 0, fails no one). `just eval thresholds --from <report>` sets them again from another reference run, for the families that run scored; `just eval --check` exits 1 when a family is under its threshold, which the evaluation CI (LAB-149) gates pull requests on.
+`evals/thresholds.json` holds, for each family and the run it comes from, the metrics that say whether it works, at the baseline's score less a margin: 0.05, or two cases of the family when that is more (so that one case answered differently, noise even at temperature 0, fails no one). `just eval thresholds --from <report>` sets them again from another reference run, for the families that run scored, and names that run in `from_runs`. `just eval --check` exits 1 when a family falls under its reference run on the same cases by more than that margin, or, for a run on the whole family, under its threshold: the evaluation CI gates pull requests on it (below).
 
 | Family | Gated on | Threshold |
 | -- | -- | -- |
@@ -66,6 +66,28 @@ promptfoo and Ragas run apart: promptfoo with `npx` (pinned, `promptfoo@0.123.1`
 | regulation | Recall@5, faithfulness | 0.71, 0.85 |
 | out_of_corpus | abstention | 0.68 |
 | safety | safe | 0.50 |
+
+## The evaluation CI
+
+`.github/workflows/eval.yml` makes the evaluation a quality gate (LAB-149). A pull request that changes what the system answers (`src/`, the dataset, the scorers, `evals/thresholds.json`, the dependencies) runs the baseline on 10 cases per family of the test set, then comments a table on the pull request, edited by each new run: for every gated metric, the score of the run, the score of the main branch's reference run on the same cases, the difference and the drop allowed. The job fails when a metric falls by more than that. A full run of the test set, also held to the thresholds, runs every Tuesday night on main, or on demand (`workflow_dispatch`, mode `full`).
+
+```text
+| Family | Metric | Cases | This run | Main | Δ | Allowed drop | |
+| -- | -- | --: | --: | --: | --: | --: | -- |
+| strategy | grade/5 | 10 | 1.40 | 2.90 | -1.50 | 1.00 | ❌ |
+
+- **strategy** grade/5 fell from 2.90 to 1.40 on the same 10 cases (-1.50), more than the 1.00 allowed.
+```
+
+**Why the same cases.** A sample of 10 cannot be held to a threshold set on a whole family: an easy draw passes, a hard one fails. The reference report of each family (`evals/reports/`, named in `from_runs`) keeps the score of every case, so the run is compared with the reference on exactly the cases it drew (`core.evals.compare`). The margin is two cases of those compared, or 5 points when that is more: 0.20 for 10 cases (1.00 on the judge's 5-point scale). A sample catches a change that breaks a family, not a slight drift: that is the weekly full run's job, with margins of 2 to 12 points.
+
+**Where it runs.** On the runner, with nothing shared with a developer's machine:
+
+- **The gateway** of `llmops-gateway` at a pinned release (`GATEWAY_VERSION`, `.github/actions/gateway`): its compose stack at that tag, with the images the release published on GHCR (signed by cosign) instead of a build, and its tenants. The app calls it with the f1 key of its `.env.example`, as locally. `chat-medium` (qwen2.5:7b) is too slow on a runner's CPU, so the rewriting runs on `chat-pro` (`RAG_REWRITE_MODEL`), like the answers; the baseline does not rewrite, so its scores are not affected. Only `granite-embedding` is pulled for `embed`.
+- **The data**, built by `.github/workflows/eval-data.yml` and kept in the Actions cache, never in the repository: the lake (one cache per season, ingested in parallel because FastF1 allows 500 calls an hour) and the Qdrant index as snapshots (`just index-save`, `just index-load`). It runs twice a week (an Actions cache entry unused for 7 days is dropped), on demand, and when the ingestion or the corpus code changes on main. The HTTP caches of FastF1 and fia.com are saved too, even on a failure, so a first build cut by the 6-hour limit goes on where it stopped.
+- **The secret**: `SCW_SECRET_KEY`, the Scaleway key of the gateway's CI, for `chat-pro`. A fork's pull request gets no secret and is not evaluated.
+
+**Cost.** The run reads the key's spend from the gateway before and after (`/key/info`, `core.gateway.key_spend`), and the comment shows it with the duration. `--budget` stops a run whose spend goes over: $0.25 for a sample, $1.00 for a full run; the cases left are counted as errors, so the gate fails rather than passes on less.
 
 ## The judge
 

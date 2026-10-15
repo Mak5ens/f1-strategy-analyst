@@ -1,0 +1,48 @@
+name: Gateway
+description: >-
+  Starts llmops-gateway on the runner from a pinned release: its compose stack at that tag, with the images the release
+  published on GHCR (signed by cosign) instead of a local build, then its tenants (the f1 team and its key). The app
+  then calls it on http://localhost:4000 with the f1 key of the gateway's .env.example, as in local development.
+
+inputs:
+  version:
+    description: Release of llmops-gateway, e.g. 0.5.3
+    required: true
+  models:
+    description: >-
+      Ollama models to pull. The evaluation only needs `embed` locally: chat-pro (Scaleway) answers and rewrites, as
+      chat-medium (qwen2.5:7b) is too slow on a runner's CPU.
+    default: granite-embedding:278m
+  scaleway-key:
+    description: Secret key of Scaleway Generative APIs, for chat-pro. Empty, chat-pro calls fail.
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      with:
+        repository: Mak5ens/llmops-gateway
+        ref: v${{ inputs.version }}
+        path: .gateway
+    - name: Pull the release's images
+      shell: bash
+      env:
+        VERSION: ${{ inputs.version }}
+      # The compose file names the images it would build; the release's images take those names, so nothing is built.
+      run: |
+        for pair in litellm:patched presidio-analyzer:2.2.362-fr worker:dev; do
+          name=${pair%%:*}
+          docker pull --quiet "ghcr.io/mak5ens/llmops-gateway/$name:$VERSION"
+          docker tag "ghcr.io/mak5ens/llmops-gateway/$name:$VERSION" "llmops-gateway/$pair"
+        done
+    - name: Start the stack
+      shell: bash
+      working-directory: .gateway
+      env:
+        OLLAMA_MODELS: ${{ inputs.models }}
+        SCW_SECRET_KEY: ${{ inputs.scaleway-key }}
+      run: |
+        cp .env.example .env
+        docker compose up --detach --wait
+        docker compose run --rm --no-deps tenants-bootstrap
