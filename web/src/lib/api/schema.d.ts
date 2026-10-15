@@ -44,10 +44,249 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/debriefs": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List Debriefs
+     * @description The requests, the latest first: those waiting for a person with `status=waiting`.
+     */
+    get: operations["list_debriefs_debriefs_get"];
+    put?: never;
+    /**
+     * Start Debrief
+     * @description Start a debrief: the agent runs until its first stop, usually the plan, or a clarification.
+     */
+    post: operations["start_debrief_debriefs_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/debriefs/{debrief_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get Debrief */
+    get: operations["get_debrief_debriefs__debrief_id__get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/debriefs/{debrief_id}/clarification": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Answer Clarification
+     * @description Choose one of the options of the open question.
+     */
+    post: operations["answer_clarification_debriefs__debrief_id__clarification_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/debriefs/{debrief_id}/plan": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Answer Plan
+     * @description Validate the plan: the analyses kept run, then the agent drafts and checks the points, up to the review.
+     */
+    post: operations["answer_plan_debriefs__debrief_id__plan_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/debriefs/{debrief_id}/review": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Answer Review
+     * @description One decision per point: approve, correct (with the text) or reject, with a reason unless approved.
+     */
+    post: operations["answer_review_debriefs__debrief_id__review_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
   schemas: {
+    /**
+     * Analysis
+     * @description One analysis of the closed catalog: a tool and its arguments, decided by code.
+     */
+    Analysis: {
+      /** Id */
+      id: string;
+      /** Tool */
+      tool: string;
+      /** Arguments */
+      arguments: {
+        [key: string]: unknown;
+      };
+      /** Label */
+      label: string;
+      /**
+       * Selected
+       * @default true
+       */
+      selected: boolean;
+    };
+    /**
+     * Clarification
+     * @description What the agent will not guess: the request is ambiguous or names something unknown.
+     */
+    Clarification: {
+      /** Field */
+      field: string;
+      /** Question */
+      question: string;
+      /** Options */
+      options: components["schemas"]["Option"][];
+      /** Answer */
+      answer?: string | null;
+    };
+    /** ClarificationAnswer */
+    ClarificationAnswer: {
+      /**
+       * Option
+       * @description The label of the option chosen
+       */
+      option: string;
+    };
+    /**
+     * Debrief
+     * @description A request and everything a person needs at its stop.
+     */
+    Debrief: {
+      /** Id */
+      id: string;
+      /** Request */
+      request: string;
+      /**
+       * Status
+       * @enum {string}
+       */
+      status: "running" | "waiting" | "stopped" | "published";
+      /** Waiting */
+      waiting: ("clarification" | "plan" | "review") | null;
+      subject: components["schemas"]["Subject"];
+      /** @description The open question, when waiting for it */
+      clarification: components["schemas"]["Clarification"] | null;
+      /** Plan */
+      plan: components["schemas"]["Analysis"][];
+      /** Points */
+      points: components["schemas"]["Point"][];
+      /**
+       * Deliverable
+       * @description The published debrief, in Markdown
+       */
+      deliverable: string | null;
+      /** Stop Reason */
+      stop_reason: string | null;
+    };
+    /** DebriefSummary */
+    DebriefSummary: {
+      /** Id */
+      id: string;
+      /** Request */
+      request: string;
+      /**
+       * Status
+       * @enum {string}
+       */
+      status: "running" | "waiting" | "stopped" | "published";
+      /**
+       * Waiting
+       * @description The stop the request waits at, if it waits for a person
+       */
+      waiting: ("clarification" | "plan" | "review") | null;
+      subject: components["schemas"]["Subject"];
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /**
+       * Updated At
+       * Format: date-time
+       */
+      updated_at: string;
+    };
+    /**
+     * Decision
+     * @description A person's decision on a point. A correction replaces the text; a rejection drops the point. Both say why.
+     */
+    Decision: {
+      /** Point */
+      point: string;
+      /**
+       * Action
+       * @enum {string}
+       */
+      action: "approve" | "correct" | "reject";
+      /** Text */
+      text?: string | null;
+      /** Reason */
+      reason?: ("wrong_number" | "wrong_source" | "off_topic" | "wording" | "other") | null;
+    };
+    /** Driver */
+    Driver: {
+      /** Code */
+      code: string;
+      /** Name */
+      name: string;
+      /** Team */
+      team: string | null;
+      /**
+       * Colour
+       * @description The team's colour, #rrggbb, when known
+       */
+      colour: string | null;
+    };
+    /** HTTPValidationError */
+    HTTPValidationError: {
+      /** Detail */
+      detail?: components["schemas"]["ValidationError"][];
+    };
     /** Health */
     Health: {
       /** Status */
@@ -59,6 +298,109 @@ export interface components {
       name: string;
       /** Version */
       version: string;
+    };
+    /** NewDebrief */
+    NewDebrief: {
+      /**
+       * Request
+       * @example Débrief stratégique du GP d'Italie 2025 pour Ferrari
+       */
+      request: string;
+    };
+    /**
+     * Option
+     * @description One answer proposed to a person: what is shown, and what it sets in the subject.
+     */
+    Option: {
+      /** Label */
+      label: string;
+      /** Value */
+      value?: {
+        [key: string]: unknown;
+      };
+    };
+    /** PlanAnswer */
+    PlanAnswer: {
+      /**
+       * Analyses
+       * @description The ids of the analyses to run
+       */
+      analyses: string[];
+    };
+    /**
+     * Point
+     * @description One point of the deliverable: a text, the results its numbers come from, the sources it cites.
+     */
+    Point: {
+      /** Id */
+      id: string;
+      /** Text */
+      text: string;
+      /**
+       * Facts
+       * @description Ids of the analyses whose numbers the text uses
+       */
+      facts?: string[];
+      /**
+       * Sources
+       * @description Ids of the rule sources the text cites
+       */
+      sources?: string[];
+      /**
+       * Status
+       * @default draft
+       * @enum {string}
+       */
+      status: "draft" | "verified" | "unverified" | "unavailable" | "corrected";
+      /** Problems */
+      problems?: string[];
+    };
+    /** ReviewAnswer */
+    ReviewAnswer: {
+      /** Decisions */
+      decisions: components["schemas"]["Decision"][];
+    };
+    /**
+     * Subject
+     * @description What a request is about, as far as the agent resolved it: nothing yet while it asks which race.
+     */
+    Subject: {
+      /** Season */
+      season: number | null;
+      /** Round */
+      round: number | null;
+      /**
+       * Grand Prix
+       * @description In French
+       */
+      grand_prix: string | null;
+      /** Kind */
+      kind: ("race" | "team" | "driver") | null;
+      /** Teams */
+      teams: string[];
+      /**
+       * Focus
+       * @description The drivers the debrief follows
+       */
+      focus: components["schemas"]["Driver"][];
+      /**
+       * Colour
+       * @description The colour of the team followed, or of the first driver's team
+       */
+      colour: string | null;
+    };
+    /** ValidationError */
+    ValidationError: {
+      /** Location */
+      loc: (string | number)[];
+      /** Message */
+      msg: string;
+      /** Error Type */
+      type: string;
+      /** Input */
+      input?: unknown;
+      /** Context */
+      ctx?: Record<string, never>;
     };
   };
   responses: never;
@@ -105,6 +447,208 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["Info"];
+        };
+      };
+    };
+  };
+  list_debriefs_debriefs_get: {
+    parameters: {
+      query?: {
+        /** @description Only the requests of this status */
+        status?: ("running" | "waiting" | "stopped" | "published") | null;
+        limit?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["DebriefSummary"][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  start_debrief_debriefs_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["NewDebrief"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Debrief"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_debrief_debriefs__debrief_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        debrief_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Debrief"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  answer_clarification_debriefs__debrief_id__clarification_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        debrief_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ClarificationAnswer"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Debrief"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  answer_plan_debriefs__debrief_id__plan_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        debrief_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["PlanAnswer"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Debrief"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  answer_review_debriefs__debrief_id__review_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        debrief_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ReviewAnswer"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Debrief"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
         };
       };
     };

@@ -7,13 +7,12 @@ afterEach(cleanup);
 describe("ApiStatus", () => {
   it("shows the version when the API answers", () => {
     render(<ApiStatus info={{ name: "f1-strategy-analyst", version: "0.5.0" }} />);
-    expect(screen.getByText("Disponible")).toBeDefined();
-    expect(screen.getByText("Version 0.5.0")).toBeDefined();
+    expect(screen.getByText("API disponible")).toBeDefined();
+    expect(screen.getByText("· version 0.5.0")).toBeDefined();
   });
 
   it("says how to start the API when it does not answer", () => {
     render(<ApiStatus info={null} />);
-    expect(screen.getByText("Injoignable")).toBeDefined();
-    expect(screen.getByText(/just up/)).toBeDefined();
+    expect(screen.getByText("API injoignable").parentElement?.title).toMatch(/just up/);
   });
 });
