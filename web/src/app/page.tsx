@@ -9,7 +9,10 @@ import { getMessages } from "@/lib/i18n";
 export default async function Home() {
   // Rendered for each request: what waits for the analyst is the state of now.
   await connection();
-  const [waiting, published] = await Promise.all([fetchDebriefs("waiting"), fetchDebriefs("published")]);
+  const [waiting, published] = await Promise.all([
+    fetchDebriefs({ status: "waiting" }),
+    fetchDebriefs({ status: "published" }),
+  ]);
   const t = getMessages().home;
   const now = new Date();
   return (

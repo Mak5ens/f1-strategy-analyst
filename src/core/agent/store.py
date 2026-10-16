@@ -101,13 +101,16 @@ class RequestStore:
                 ),
             )
 
-    def list(self, *, status: str | None = None, limit: int = 50) -> list[dict[str, Any]]:
-        """The latest requests first, all of them or those of one status (`waiting`, `published`...)."""
+    def list(
+        self, *, status: str | None = None, subject: dict[str, Any] | None = None, limit: int = 50
+    ) -> list[dict[str, Any]]:
+        """The latest requests first, all of them or those of one status (`waiting`, `published`...), and those whose
+        subject holds the fields given (`subject={"season": 2025, "round": 16}`)."""
         with psycopg.connect(self._dsn, row_factory=dict_row) as connection:
             rows = connection.execute(
-                "SELECT * FROM requests WHERE %(status)s::text IS NULL OR status = %(status)s "
-                "ORDER BY updated_at DESC LIMIT %(limit)s",
-                {"status": status, "limit": limit},
+                "SELECT * FROM requests WHERE (%(status)s::text IS NULL OR status = %(status)s) "
+                "AND subject @> %(subject)s ORDER BY updated_at DESC LIMIT %(limit)s",
+                {"status": status, "subject": Jsonb(subject or {}), "limit": limit},
             ).fetchall()
         return list(rows)
 
