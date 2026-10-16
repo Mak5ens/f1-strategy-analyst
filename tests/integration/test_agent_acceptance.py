@@ -45,7 +45,7 @@ def test_a_debrief_survives_a_restart_at_each_stop_and_every_number_is_backed() 
         assert run.waiting is not None and run.waiting.kind == "clarification"  # no season: which one?
     with debrief_agent() as agent:  # restarted while waiting for the clarification
         options = [option["label"] for option in agent.get(thread).waiting.payload["options"]]  # type: ignore[union-attr]
-        run = agent.resume(thread, options.index("Italian Grand Prix 2025"))
+        run = agent.resume(thread, options.index("Grand Prix d'Italie 2025"))
         assert run.waiting is not None and run.waiting.kind == "plan"
     with debrief_agent() as agent:  # restarted while waiting for the plan
         plan = agent.get(thread).waiting.payload["analyses"]  # type: ignore[union-attr]

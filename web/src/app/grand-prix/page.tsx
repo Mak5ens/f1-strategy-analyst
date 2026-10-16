@@ -1,8 +1,7 @@
-import { cn } from "cn";
 import type { Metadata } from "next";
-import Link from "next/link";
 import { connection } from "next/server";
 import { RaceCard } from "@/components/race/race-card";
+import { SeasonPicker } from "@/components/race/season-picker";
 import { fetchRaces, fetchSeasons } from "@/lib/api/client";
 import { getMessages } from "@/lib/i18n";
 
@@ -28,21 +27,9 @@ export default async function Calendar({ searchParams }: { searchParams: Promise
           <h1 className="display text-4xl sm:text-6xl">{season ? t.title(season) : t.eyebrow}</h1>
           <p className="max-w-2xl text-lg text-muted-foreground">{t.lead}</p>
           {seasons && seasons.length > 1 && (
-            <nav className="mt-4 flex gap-2">
-              {seasons.map((year) => (
-                <Link
-                  key={year}
-                  href={`/grand-prix?saison=${year}`}
-                  aria-current={year === season ? "page" : undefined}
-                  className={cn(
-                    "figures rounded-full border px-4 py-1.5 font-semibold text-sm transition-colors hover:border-foreground/40",
-                    "aria-[current=page]:border-primary aria-[current=page]:bg-primary aria-[current=page]:text-primary-foreground",
-                  )}
-                >
-                  {year}
-                </Link>
-              ))}
-            </nav>
+            <div className="mt-4">
+              <SeasonPicker seasons={seasons} current={season ?? 0} href={(year) => `/grand-prix?saison=${year}`} />
+            </div>
           )}
         </div>
       </section>

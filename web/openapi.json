@@ -477,7 +477,7 @@
     "/debriefs/{debrief_id}/review": {
       "post": {
         "summary": "Answer Review",
-        "description": "One decision per point: approve, correct (with the text) or reject, with a reason unless approved.",
+        "description": "One decision per point: approve, correct (with the text) or reject, with a reason unless approved. Each\ndecision is logged with the agent's text, once the agent accepts the review.",
         "operationId": "answer_review_debriefs__debrief_id__review_post",
         "parameters": [
           {
@@ -507,6 +507,95 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Debrief"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/decisions": {
+      "get": {
+        "summary": "List Decisions",
+        "description": "The journal of the reviews, the latest first.",
+        "operationId": "list_decisions_decisions_get",
+        "parameters": [
+          {
+            "name": "debrief",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Only those of this debrief",
+              "title": "Debrief"
+            },
+            "description": "Only those of this debrief"
+          },
+          {
+            "name": "action",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "enum": [
+                      "approve",
+                      "correct",
+                      "reject"
+                    ],
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Action"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1000,
+              "minimum": 1,
+              "default": 200,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/JournalEntry"
+                  },
+                  "title": "Response List Decisions Decisions Get"
                 }
               }
             }
@@ -839,10 +928,34 @@
           },
           "points": {
             "items": {
-              "$ref": "#/components/schemas/Point"
+              "$ref": "#/components/schemas/ShownPoint"
             },
             "type": "array",
             "title": "Points"
+          },
+          "facts": {
+            "items": {
+              "$ref": "#/components/schemas/Fact"
+            },
+            "type": "array",
+            "title": "Facts",
+            "description": "The analyses run, which `Point.facts` cite"
+          },
+          "sources": {
+            "items": {
+              "$ref": "#/components/schemas/Source"
+            },
+            "type": "array",
+            "title": "Sources",
+            "description": "The rule passages, which `Point.sources` cite"
+          },
+          "decisions": {
+            "items": {
+              "$ref": "#/components/schemas/Decision"
+            },
+            "type": "array",
+            "title": "Decisions",
+            "description": "The review's, once made"
           },
           "deliverable": {
             "anyOf": [
@@ -878,6 +991,9 @@
           "clarification",
           "plan",
           "points",
+          "facts",
+          "sources",
+          "decisions",
           "deliverable",
           "stop_reason"
         ],
@@ -1090,6 +1206,43 @@
         ],
         "title": "DriverStanding"
       },
+      "Fact": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "ok": {
+            "type": "boolean",
+            "title": "Ok"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error",
+            "description": "Why it gave no number"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "label",
+          "ok",
+          "error"
+        ],
+        "title": "Fact",
+        "description": "An analysis the agent ran: the points cite it for their numbers."
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -1133,6 +1286,111 @@
           "version"
         ],
         "title": "Info"
+      },
+      "JournalEntry": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "debrief": {
+            "type": "string",
+            "title": "Debrief"
+          },
+          "request": {
+            "type": "string",
+            "title": "Request"
+          },
+          "subject": {
+            "$ref": "#/components/schemas/Subject"
+          },
+          "point": {
+            "type": "string",
+            "title": "Point"
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "approve",
+              "correct",
+              "reject"
+            ],
+            "title": "Action"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "wrong_number",
+                  "wrong_source",
+                  "off_topic",
+                  "wording",
+                  "other"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "text_before": {
+            "type": "string",
+            "title": "Text Before",
+            "description": "The agent's text"
+          },
+          "text_after": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text After",
+            "description": "The corrected text"
+          },
+          "point_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Point Status",
+            "description": "What the agent's check said of the point"
+          },
+          "decided_by": {
+            "type": "string",
+            "title": "Decided By"
+          },
+          "decided_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Decided At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "debrief",
+          "request",
+          "subject",
+          "point",
+          "action",
+          "reason",
+          "text_before",
+          "text_after",
+          "point_status",
+          "decided_by",
+          "decided_at"
+        ],
+        "title": "JournalEntry",
+        "description": "A decision of a review, kept with the agent's text it judged."
       },
       "Neutralization": {
         "properties": {
@@ -1266,60 +1524,6 @@
           "analyses"
         ],
         "title": "PlanAnswer"
-      },
-      "Point": {
-        "properties": {
-          "id": {
-            "type": "string",
-            "title": "Id"
-          },
-          "text": {
-            "type": "string",
-            "title": "Text"
-          },
-          "facts": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Facts",
-            "description": "Ids of the analyses whose numbers the text uses"
-          },
-          "sources": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Sources",
-            "description": "Ids of the rule sources the text cites"
-          },
-          "status": {
-            "type": "string",
-            "enum": [
-              "draft",
-              "verified",
-              "unverified",
-              "unavailable",
-              "corrected"
-            ],
-            "title": "Status",
-            "default": "draft"
-          },
-          "problems": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Problems"
-          }
-        },
-        "type": "object",
-        "required": [
-          "id",
-          "text"
-        ],
-        "title": "Point",
-        "description": "One point of the deliverable: a text, the results its numbers come from, the sources it cites."
       },
       "Race": {
         "properties": {
@@ -1530,6 +1734,88 @@
           "decisions"
         ],
         "title": "ReviewAnswer"
+      },
+      "ShownPoint": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "facts": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Facts",
+            "description": "Ids of the analyses whose numbers the text uses"
+          },
+          "sources": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Sources",
+            "description": "Ids of the rule sources the text cites"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "verified",
+              "unverified",
+              "unavailable",
+              "corrected"
+            ],
+            "title": "Status",
+            "default": "draft"
+          },
+          "problems": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Problems"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "text",
+          "facts",
+          "sources",
+          "status",
+          "problems"
+        ],
+        "title": "ShownPoint",
+        "description": "A point of the debrief, its lists always present."
+      },
+      "Source": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "label",
+          "text"
+        ],
+        "title": "Source",
+        "description": "A passage of the FIA documents the points may cite."
       },
       "Stint": {
         "properties": {
