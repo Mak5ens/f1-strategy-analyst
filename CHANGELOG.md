@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.6.0](https://github.com/Mak5ens/f1-strategy-analyst/compare/v0.5.0...v0.6.0) (2026-10-16)
+
+
+### Features
+
+* **web:** debrief API and the analyst's screens (LAB-152) ([#24](https://github.com/Mak5ens/f1-strategy-analyst/issues/24)) ([d5065a4](https://github.com/Mak5ens/f1-strategy-analyst/commit/d5065a4f039b948f06e380d02ba270fca99c13cc))
+* **web:** Next.js front skeleton with a client generated from the API's OpenAPI, and ADR-026 (LAB-187) ([#22](https://github.com/Mak5ens/f1-strategy-analyst/issues/22)) ([568e795](https://github.com/Mak5ens/f1-strategy-analyst/commit/568e7951ea99e19592eba2bf97eb2b7327f4bb30))
+
 ## [0.5.0](https://github.com/Mak5ens/f1-strategy-analyst/compare/v0.4.0...v0.5.0) (2026-10-15)
 
 
