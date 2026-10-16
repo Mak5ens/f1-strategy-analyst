@@ -189,11 +189,13 @@ class Agent:
         tracer: Tracer,
         limits: AgentLimits | None = None,
         on_publish: Callable[[str, AgentState], None] | None = None,
+        on_run: Callable[[Run], None] | None = None,
     ) -> None:
         self.theme = theme
         self.tracer = tracer
         self.limits = limits or AgentLimits()
         self._on_publish = on_publish
+        self._on_run = on_run
         self.graph = self._build().compile(checkpointer=checkpointer)
 
     # Requests
@@ -204,7 +206,7 @@ class Agent:
             self.graph.invoke(state, self._config(thread_id))
         finally:
             self.tracer.flush()  # the spans leave before a person, or a restart, makes the request wait
-        return self.get(thread_id)
+        return self._ran(thread_id)
 
     def resume(self, thread_id: str, answer: Any) -> Run:
         if self.get(thread_id).waiting is None:
@@ -213,7 +215,7 @@ class Agent:
             self.graph.invoke(Command(resume=answer), self._config(thread_id))
         finally:
             self.tracer.flush()
-        return self.get(thread_id)
+        return self._ran(thread_id)
 
     def get(self, thread_id: str) -> Run:
         snapshot = self.graph.get_state(self._config(thread_id))
@@ -222,6 +224,12 @@ class Agent:
         interrupts = [item for task in snapshot.tasks for item in task.interrupts]
         waiting = Waiting(interrupts[0].value["kind"], interrupts[0].value) if interrupts else None
         return Run(thread_id, AgentState.model_validate(snapshot.values), waiting)
+
+    def _ran(self, thread_id: str) -> Run:
+        run = self.get(thread_id)
+        if self._on_run is not None:
+            self._on_run(run)
+        return run
 
     def _config(self, thread_id: str) -> RunnableConfig:
         # Each node is a step; LangGraph's own limit only backs up the agent's.

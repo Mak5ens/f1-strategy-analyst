@@ -42,10 +42,670 @@
           }
         }
       }
+    },
+    "/debriefs": {
+      "get": {
+        "summary": "List Debriefs",
+        "description": "The requests, the latest first: those waiting for a person with `status=waiting`.",
+        "operationId": "list_debriefs_debriefs_get",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "running",
+                    "waiting",
+                    "stopped",
+                    "published"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Only the requests of this status",
+              "title": "Status"
+            },
+            "description": "Only the requests of this status"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DebriefSummary"
+                  },
+                  "title": "Response List Debriefs Debriefs Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Start Debrief",
+        "description": "Start a debrief: the agent runs until its first stop, usually the plan, or a clarification.",
+        "operationId": "start_debrief_debriefs_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewDebrief"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Debrief"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/debriefs/{debrief_id}": {
+      "get": {
+        "summary": "Get Debrief",
+        "operationId": "get_debrief_debriefs__debrief_id__get",
+        "parameters": [
+          {
+            "name": "debrief_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Debrief Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Debrief"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/debriefs/{debrief_id}/clarification": {
+      "post": {
+        "summary": "Answer Clarification",
+        "description": "Choose one of the options of the open question.",
+        "operationId": "answer_clarification_debriefs__debrief_id__clarification_post",
+        "parameters": [
+          {
+            "name": "debrief_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Debrief Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClarificationAnswer"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Debrief"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/debriefs/{debrief_id}/plan": {
+      "post": {
+        "summary": "Answer Plan",
+        "description": "Validate the plan: the analyses kept run, then the agent drafts and checks the points, up to the review.",
+        "operationId": "answer_plan_debriefs__debrief_id__plan_post",
+        "parameters": [
+          {
+            "name": "debrief_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Debrief Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlanAnswer"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Debrief"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/debriefs/{debrief_id}/review": {
+      "post": {
+        "summary": "Answer Review",
+        "description": "One decision per point: approve, correct (with the text) or reject, with a reason unless approved.",
+        "operationId": "answer_review_debriefs__debrief_id__review_post",
+        "parameters": [
+          {
+            "name": "debrief_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Debrief Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewAnswer"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Debrief"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
     "schemas": {
+      "Analysis": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "tool": {
+            "type": "string",
+            "title": "Tool"
+          },
+          "arguments": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Arguments"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "selected": {
+            "type": "boolean",
+            "title": "Selected",
+            "default": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "tool",
+          "arguments",
+          "label"
+        ],
+        "title": "Analysis",
+        "description": "One analysis of the closed catalog: a tool and its arguments, decided by code."
+      },
+      "Clarification": {
+        "properties": {
+          "field": {
+            "type": "string",
+            "title": "Field"
+          },
+          "question": {
+            "type": "string",
+            "title": "Question"
+          },
+          "options": {
+            "items": {
+              "$ref": "#/components/schemas/Option"
+            },
+            "type": "array",
+            "title": "Options"
+          },
+          "answer": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Answer"
+          }
+        },
+        "type": "object",
+        "required": [
+          "field",
+          "question",
+          "options"
+        ],
+        "title": "Clarification",
+        "description": "What the agent will not guess: the request is ambiguous or names something unknown."
+      },
+      "ClarificationAnswer": {
+        "properties": {
+          "option": {
+            "type": "string",
+            "title": "Option",
+            "description": "The label of the option chosen"
+          }
+        },
+        "type": "object",
+        "required": [
+          "option"
+        ],
+        "title": "ClarificationAnswer"
+      },
+      "Debrief": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "request": {
+            "type": "string",
+            "title": "Request"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "running",
+              "waiting",
+              "stopped",
+              "published"
+            ],
+            "title": "Status"
+          },
+          "waiting": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "clarification",
+                  "plan",
+                  "review"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Waiting"
+          },
+          "subject": {
+            "$ref": "#/components/schemas/Subject"
+          },
+          "clarification": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Clarification"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The open question, when waiting for it"
+          },
+          "plan": {
+            "items": {
+              "$ref": "#/components/schemas/Analysis"
+            },
+            "type": "array",
+            "title": "Plan"
+          },
+          "points": {
+            "items": {
+              "$ref": "#/components/schemas/Point"
+            },
+            "type": "array",
+            "title": "Points"
+          },
+          "deliverable": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deliverable",
+            "description": "The published debrief, in Markdown"
+          },
+          "stop_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stop Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "request",
+          "status",
+          "waiting",
+          "subject",
+          "clarification",
+          "plan",
+          "points",
+          "deliverable",
+          "stop_reason"
+        ],
+        "title": "Debrief",
+        "description": "A request and everything a person needs at its stop."
+      },
+      "DebriefSummary": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "request": {
+            "type": "string",
+            "title": "Request"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "running",
+              "waiting",
+              "stopped",
+              "published"
+            ],
+            "title": "Status"
+          },
+          "waiting": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "clarification",
+                  "plan",
+                  "review"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Waiting",
+            "description": "The stop the request waits at, if it waits for a person"
+          },
+          "subject": {
+            "$ref": "#/components/schemas/Subject"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "request",
+          "status",
+          "waiting",
+          "subject",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "DebriefSummary"
+      },
+      "Decision": {
+        "properties": {
+          "point": {
+            "type": "string",
+            "title": "Point"
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "approve",
+              "correct",
+              "reject"
+            ],
+            "title": "Action"
+          },
+          "text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "wrong_number",
+                  "wrong_source",
+                  "off_topic",
+                  "wording",
+                  "other"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "point",
+          "action"
+        ],
+        "title": "Decision",
+        "description": "A person's decision on a point. A correction replaces the text; a rejection drops the point. Both say why."
+      },
+      "Driver": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "team": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Team"
+          },
+          "colour": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Colour",
+            "description": "The team's colour, #rrggbb, when known"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "name",
+          "team",
+          "colour"
+        ],
+        "title": "Driver"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
       "Health": {
         "properties": {
           "status": {
@@ -76,6 +736,263 @@
           "version"
         ],
         "title": "Info"
+      },
+      "NewDebrief": {
+        "properties": {
+          "request": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 3,
+            "title": "Request",
+            "examples": [
+              "Débrief stratégique du GP d'Italie 2025 pour Ferrari"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "request"
+        ],
+        "title": "NewDebrief"
+      },
+      "Option": {
+        "properties": {
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "value": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Value"
+          }
+        },
+        "type": "object",
+        "required": [
+          "label"
+        ],
+        "title": "Option",
+        "description": "One answer proposed to a person: what is shown, and what it sets in the subject."
+      },
+      "PlanAnswer": {
+        "properties": {
+          "analyses": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Analyses",
+            "description": "The ids of the analyses to run"
+          }
+        },
+        "type": "object",
+        "required": [
+          "analyses"
+        ],
+        "title": "PlanAnswer"
+      },
+      "Point": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "facts": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Facts",
+            "description": "Ids of the analyses whose numbers the text uses"
+          },
+          "sources": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Sources",
+            "description": "Ids of the rule sources the text cites"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "verified",
+              "unverified",
+              "unavailable",
+              "corrected"
+            ],
+            "title": "Status",
+            "default": "draft"
+          },
+          "problems": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Problems"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "text"
+        ],
+        "title": "Point",
+        "description": "One point of the deliverable: a text, the results its numbers come from, the sources it cites."
+      },
+      "ReviewAnswer": {
+        "properties": {
+          "decisions": {
+            "items": {
+              "$ref": "#/components/schemas/Decision"
+            },
+            "type": "array",
+            "title": "Decisions"
+          }
+        },
+        "type": "object",
+        "required": [
+          "decisions"
+        ],
+        "title": "ReviewAnswer"
+      },
+      "Subject": {
+        "properties": {
+          "season": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Season"
+          },
+          "round": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Round"
+          },
+          "grand_prix": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grand Prix",
+            "description": "In French"
+          },
+          "kind": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "race",
+                  "team",
+                  "driver"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Kind"
+          },
+          "teams": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Teams"
+          },
+          "focus": {
+            "items": {
+              "$ref": "#/components/schemas/Driver"
+            },
+            "type": "array",
+            "title": "Focus",
+            "description": "The drivers the debrief follows"
+          },
+          "colour": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Colour",
+            "description": "The colour of the team followed, or of the first driver's team"
+          }
+        },
+        "type": "object",
+        "required": [
+          "season",
+          "round",
+          "grand_prix",
+          "kind",
+          "teams",
+          "focus",
+          "colour"
+        ],
+        "title": "Subject",
+        "description": "What a request is about, as far as the agent resolved it: nothing yet while it asks which race."
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
       }
     }
   }

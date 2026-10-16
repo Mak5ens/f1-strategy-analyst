@@ -9,7 +9,7 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 
 from core.agent import Agent, AgentLimits
-from core.agent.store import PostgresSettings, PublishedStore, postgres_checkpointer
+from core.agent.store import PostgresSettings, PublishedStore, RequestStore, postgres_checkpointer
 from core.gateway import gateway_client
 from core.tracing import tracer
 from f1.agent.theme import AgentModels, F1Theme
@@ -27,6 +27,13 @@ def debrief_agent(*, limits: AgentLimits | None = None, postgres: PostgresSettin
     from f1.rag import rag_pipeline
 
     theme = F1Theme(RaceData(connect()), llm=gateway_client(end_user=END_USER), rules=rag_pipeline)
-    store = PublishedStore(postgres)
+    published, requests = PublishedStore(postgres), RequestStore(postgres)
     with postgres_checkpointer(postgres) as checkpointer:
-        yield Agent(theme, checkpointer=checkpointer, tracer=tracer(), limits=limits, on_publish=store.save)
+        yield Agent(
+            theme,
+            checkpointer=checkpointer,
+            tracer=tracer(),
+            limits=limits,
+            on_publish=published.save,
+            on_run=requests.record,
+        )

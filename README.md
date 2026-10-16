@@ -85,7 +85,7 @@ just down
 | `docs/corpus.md` | The FIA corpus: sources, chunking, metadata, incremental index |
 | `docs/rag.md` | The retrieval pipeline: six steps, abstention, traces and scores, evaluation |
 | `docs/baseline.md` | The reference system: dense search, tools chosen in JSON, an answer whose numbers are checked |
-| `docs/web.md` | The front: recipes, the generated API client, conventions |
+| `docs/web.md`, `docs/design.md` | The front: recipes, the generated API client, conventions; its design direction |
 | `docs/jobs.md` | Session summaries as asynchronous jobs on the platform's queue, and the check of their numbers and names |
 
 ## Roadmap
