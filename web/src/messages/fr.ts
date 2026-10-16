@@ -140,10 +140,29 @@ export const fr = {
     debriefs: {
       title: "Débriefs de cette course",
       empty: "Aucun débrief sur cette course pour l'instant.",
-      ask: "Une question sur cette course ?",
-      askLead:
-        "Bientôt ici : posez-la directement, par exemple « pourquoi Hamilton est-il parti en pneus tendres ? ». L'agent prépare un débrief ciblé que vous validez.",
       published: "Publié",
+    },
+    question: {
+      title: "Une question sur cette course ?",
+      lead: "Posez-la telle quelle : l'agent sait de quelle course il s'agit. Il propose un plan d'analyses, rédige une réponse vérifiée par le code, et vous la relisez avant publication.",
+      placeholder: "Pourquoi Hamilton est-il parti en pneus tendres ?",
+      submit: "Poser la question",
+      submitting: "L'agent prépare le plan…",
+      suggestions: "Pistes tirées de la course",
+      compounds: {
+        SOFT: "pneus tendres",
+        MEDIUM: "pneus mediums",
+        HARD: "pneus durs",
+        INTERMEDIATE: "pneus intermédiaires",
+        WET: "pneus pluie",
+      } as Record<string, string>,
+      startOn: (name: string, compound: string) => `Pourquoi un départ en ${compound} pour ${name} ?`,
+      neutralizedStop: (name: string, lap: number) =>
+        `L'arrêt de ${name} sous neutralisation au tour ${lap} a-t-il payé ?`,
+      penalty: (name: string, what: string) => `Combien ${what} a-t-elle coûté à ${name} ?`,
+      penaltyWhat: (seconds: number | null) => (seconds ? `la pénalité de ${seconds} s` : "la pénalité"),
+      gained: (name: string, places: number) => `D'où viennent les ${places} places gagnées par ${name} ?`,
+      win: (name: string) => `Qu'est-ce qui a fait la victoire de ${name} ?`,
     },
     noResults:
       "Cette course n'a pas encore de résultats dans les données. Revenez après l'arrivée, une fois la manche chargée avec `just ingest`.",

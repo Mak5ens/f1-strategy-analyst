@@ -82,6 +82,9 @@ class RaceData:
     def pit_stops(self, ref: SessionRef, driver: str) -> list[dict[str, Any]]:
         return [stop for stop in self._rows("pit_stops", ref, order="stop_number") if stop["driver"] == driver]
 
+    def stints(self, ref: SessionRef) -> list[dict[str, Any]]:
+        return self._rows("stints", ref, order="driver, stint")
+
     def race_control_messages(self, ref: SessionRef) -> list[dict[str, Any]]:
         return self._rows("race_control_messages", ref, order="time_utc")
 

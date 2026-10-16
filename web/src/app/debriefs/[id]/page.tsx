@@ -8,7 +8,7 @@ import { PointEvidence } from "@/components/debrief/point-evidence";
 import { PublishedDebrief } from "@/components/debrief/published-debrief";
 import { ReviewStep } from "@/components/debrief/review-step";
 import { teamStyle } from "@/components/race/driver-cell";
-import { subjectFor, subjectTitle } from "@/components/subject-line";
+import { debriefTitle, subjectFor, subjectTitle } from "@/components/subject-line";
 import { type Debrief, fetchDebrief, fetchRace } from "@/lib/api/client";
 import { getMessages } from "@/lib/i18n";
 
@@ -18,7 +18,7 @@ const t = getMessages().debrief;
 
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const debrief = await fetchDebrief((await params).id);
-  const title = debrief ? subjectTitle(debrief.subject) : t.missing;
+  const title = debrief ? debriefTitle(debrief) : t.missing;
   return { title: `${title} · ${getMessages().metadata.title}` };
 }
 
@@ -102,16 +102,25 @@ function DebriefHeader({ debrief }: { debrief: Debrief }) {
             {stop}
           </span>
         </div>
-        <h1 className="display text-3xl sm:text-5xl">{subjectTitle(subject)}</h1>
+        {subject.question && (
+          <p className="font-semibold text-muted-foreground uppercase tracking-wide">{subjectTitle(subject)}</p>
+        )}
+        <h1
+          className={subject.question ? "display text-2xl leading-tight sm:text-4xl" : "display text-3xl sm:text-5xl"}
+        >
+          {debriefTitle(debrief)}
+        </h1>
         {subject.grand_prix && (
           <p className="flex items-center gap-2 font-semibold text-lg">
             <span className="slash" aria-hidden />
             {subjectFor(subject)}
           </p>
         )}
-        <p className="max-w-3xl text-muted-foreground">
-          <span className="text-xs uppercase tracking-wide">{t.request} · </span>« {debrief.request} »
-        </p>
+        {!subject.question && (
+          <p className="max-w-3xl text-muted-foreground">
+            <span className="text-xs uppercase tracking-wide">{t.request} · </span>« {debrief.request} »
+          </p>
+        )}
         {subject.season && subject.round && (
           <Link
             href={`/grand-prix/${subject.season}/${subject.round}`}
