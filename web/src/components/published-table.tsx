@@ -25,7 +25,9 @@ export function PublishedTable({ debriefs }: { debriefs: DebriefSummary[] }) {
             <tr key={debrief.id} className="border-b transition-colors last:border-0 hover:bg-white/[0.03]">
               <td className="py-4 pr-4 font-semibold">
                 <Link href={`/debriefs/${debrief.id}`} className="hover:text-primary">
-                  {debrief.subject.grand_prix ?? subjectTitle(debrief.subject)}
+                  {debrief.subject.question
+                    ? debrief.request
+                    : (debrief.subject.grand_prix ?? subjectTitle(debrief.subject))}
                 </Link>
               </td>
               <td className="figures py-4 pr-4">{debrief.subject.season}</td>

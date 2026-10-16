@@ -243,3 +243,11 @@ def test_the_state_round_trips_through_json() -> None:
 def no_env(monkeypatch: pytest.MonkeyPatch) -> None:
     for name in ("AGENT_MAX_STEPS", "AGENT_MAX_LLM_CALLS", "AGENT_MAX_TOKENS", "AGENT_DRAFTS"):
         monkeypatch.delenv(name, raising=False)
+
+
+def test_what_the_person_chose_is_taken_as_is_and_never_asked() -> None:
+    # "Le dernier GP" is ambiguous; the race picked beside the request is not.
+    run = agent(FakeTheme()).start("Débrief du dernier GP", thread_id="t", given={"race": "Bakou"})
+
+    assert run.waiting is not None and run.waiting.kind == "plan"
+    assert run.state.subject["race"] == "Bakou" and run.state.given == {"race": "Bakou"}

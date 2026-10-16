@@ -1,7 +1,7 @@
 import { cn } from "cn";
 import Link from "next/link";
 import type { CSSProperties } from "react";
-import { subjectFor, subjectTitle } from "@/components/subject-line";
+import { debriefTitle, subjectFor } from "@/components/subject-line";
 import type { DebriefSummary } from "@/lib/api/client";
 import { formatAgo } from "@/lib/format";
 import { getMessages } from "@/lib/i18n";
@@ -45,7 +45,9 @@ export function DebriefCard({ debrief, now }: { debrief: DebriefSummary; now?: D
         <p className="text-muted-foreground text-xs">
           {subject.round != null ? `${t.subject.round(subject.round)} · ${subject.season}` : debrief.request}
         </p>
-        <h3 className="display mt-1.5 text-xl leading-tight">{subjectTitle(subject)}</h3>
+        <h3 className={cn("mt-1.5 leading-tight", subject.question ? "font-semibold text-lg" : "display text-xl")}>
+          {debriefTitle(debrief)}
+        </h3>
         {subject.grand_prix && (
           <p className="mt-2 flex items-center gap-2 font-semibold text-sm">
             <span className="slash" aria-hidden />

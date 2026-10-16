@@ -14,6 +14,7 @@ const ferrari: Subject = {
   teams: ["Ferrari"],
   focus: [{ code: "LEC", name: "Charles Leclerc", team: "Ferrari", colour: "#e8002d" }],
   colour: "#e8002d",
+  question: false,
 };
 const unresolved: Subject = {
   ...ferrari,
@@ -58,6 +59,12 @@ describe("DebriefCard", () => {
     expect(screen.getByText("Valider le plan →")).toBeDefined();
     expect(screen.getByText("il y a 5 minutes")).toBeDefined();
     expect(screen.getByRole("link").getAttribute("href")).toBe("/debriefs/d1");
+  });
+
+  it("is titled by its question, for a question on a race", () => {
+    const debrief = { ...waiting(ferrari, "plan"), request: "Pourquoi Leclerc s'est-il arrêté au tour 33 ?" };
+    render(<DebriefCard debrief={{ ...debrief, subject: { ...ferrari, question: true } }} />);
+    expect(screen.getByRole("heading").textContent).toBe("Pourquoi Leclerc s'est-il arrêté au tour 33 ?");
   });
 
   it("shows the request itself while the race is unknown", () => {
