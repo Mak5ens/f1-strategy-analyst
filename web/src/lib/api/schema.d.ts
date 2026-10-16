@@ -141,7 +141,8 @@ export interface paths {
     put?: never;
     /**
      * Start Debrief
-     * @description Start a debrief: the agent runs until its first stop, usually the plan, or a clarification.
+     * @description Start a debrief: the agent runs until its first stop, usually the plan, or a clarification. A race given with
+     *     `season` and `round` is never asked for; `question` asks for an answer first (LAB-203).
      */
     post: operations["start_debrief_debriefs_post"];
     delete?: never;
@@ -577,6 +578,19 @@ export interface components {
        * @example Débrief stratégique du GP d'Italie 2025 pour Ferrari
        */
       request: string;
+      /**
+       * Season
+       * @description The race chosen, with `round`: never asked for
+       */
+      season?: number | null;
+      /** Round */
+      round?: number | null;
+      /**
+       * Question
+       * @description A precise question on the race: the debrief answers it first
+       * @default false
+       */
+      question: boolean;
     };
     /**
      * Option
@@ -819,6 +833,12 @@ export interface components {
        * @description The colour of the team followed, or of the first driver's team
        */
       colour: string | null;
+      /**
+       * Question
+       * @description A precise question on the race: its request is its title
+       * @default false
+       */
+      question: boolean;
     };
     /** TeamStanding */
     TeamStanding: {

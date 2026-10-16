@@ -299,7 +299,7 @@
       },
       "post": {
         "summary": "Start Debrief",
-        "description": "Start a debrief: the agent runs until its first stop, usually the plan, or a clarification.",
+        "description": "Start a debrief: the agent runs until its first stop, usually the plan, or a clarification. A race given with\n`season` and `round` is never asked for; `question` asks for an answer first (LAB-203).",
         "operationId": "start_debrief_debriefs_post",
         "requestBody": {
           "required": true,
@@ -1435,6 +1435,39 @@
             "examples": [
               "Débrief stratégique du GP d'Italie 2025 pour Ferrari"
             ]
+          },
+          "season": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 2100.0,
+                "minimum": 2018.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Season",
+            "description": "The race chosen, with `round`: never asked for"
+          },
+          "round": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 30.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Round"
+          },
+          "question": {
+            "type": "boolean",
+            "title": "Question",
+            "description": "A precise question on the race: the debrief answers it first",
+            "default": false
           }
         },
         "type": "object",
@@ -2052,6 +2085,12 @@
             ],
             "title": "Colour",
             "description": "The colour of the team followed, or of the first driver's team"
+          },
+          "question": {
+            "type": "boolean",
+            "title": "Question",
+            "description": "A precise question on the race: its request is its title",
+            "default": false
           }
         },
         "type": "object",
@@ -2062,7 +2101,8 @@
           "kind",
           "teams",
           "focus",
-          "colour"
+          "colour",
+          "question"
         ],
         "title": "Subject",
         "description": "What a request is about, as far as the agent resolved it: nothing yet while it asks which race."

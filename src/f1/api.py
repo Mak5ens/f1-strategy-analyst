@@ -21,7 +21,7 @@ from importlib.metadata import version
 from typing import Annotated, Any, Literal
 
 from fastapi import Depends, FastAPI, HTTPException, Query
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from core.agent import Agent, Analysis, Clarification, Decision, Point, Run
 from core.agent.state import RejectReason
@@ -56,6 +56,7 @@ class Subject(Response):
     teams: list[str] = Field(default_factory=list)
     focus: list[Driver] = Field(default_factory=list, description="The drivers the debrief follows")
     colour: str | None = Field(None, description="The colour of the team followed, or of the first driver's team")
+    question: bool = Field(False, description="A precise question on the race: its request is its title")
 
 
 class DebriefSummary(Response):
@@ -128,6 +129,22 @@ class NewDebrief(BaseModel):
     request: str = Field(
         min_length=3, max_length=500, examples=["Débrief stratégique du GP d'Italie 2025 pour Ferrari"]
     )
+    season: int | None = Field(None, ge=2018, le=2100, description="The race chosen, with `round`: never asked for")
+    round: int | None = Field(None, ge=1, le=30)
+    question: bool = Field(False, description="A precise question on the race: the debrief answers it first")
+
+    @model_validator(mode="after")
+    def _race_whole(self) -> "NewDebrief":
+        if (self.season is None) != (self.round is None):
+            raise ValueError("a race is a season and a round")
+        return self
+
+    def given(self) -> dict[str, Any]:
+        """What the person chose beside the request, as the agent's subject fields."""
+        given: dict[str, Any] = {"question": True} if self.question else {}
+        if self.season is not None and self.round is not None:
+            given |= {"season": self.season, "round": self.round}
+        return given
 
 
 class ClarificationAnswer(BaseModel):
@@ -259,8 +276,9 @@ def list_debriefs(
 
 @app.post("/debriefs", status_code=201)
 def start_debrief(body: NewDebrief, agent: AgentDep) -> Debrief:
-    """Start a debrief: the agent runs until its first stop, usually the plan, or a clarification."""
-    return debrief(agent.start(body.request, thread_id=str(uuid.uuid4())))
+    """Start a debrief: the agent runs until its first stop, usually the plan, or a clarification. A race given with
+    `season` and `round` is never asked for; `question` asks for an answer first (LAB-203)."""
+    return debrief(agent.start(body.request, thread_id=str(uuid.uuid4()), given=body.given()))
 
 
 @app.get("/debriefs/{debrief_id}")
@@ -376,6 +394,7 @@ def subject(raw: Mapping[str, Any]) -> Subject:
         teams=teams,
         focus=focus,
         colour=team_colour(lead),
+        question=bool(raw.get("question")),
     )
 
 

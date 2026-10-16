@@ -4,6 +4,7 @@ import { connection } from "next/server";
 import { DebriefCard } from "@/components/debrief-card";
 import { PublishedTable } from "@/components/published-table";
 import { GridTable } from "@/components/race/grid-table";
+import { QuestionForm } from "@/components/race/question-form";
 import { RaceEvents } from "@/components/race/race-events";
 import { RaceHero } from "@/components/race/race-hero";
 import { RaceTabs } from "@/components/race/race-tabs";
@@ -13,6 +14,7 @@ import { StrategyChart } from "@/components/race/strategy-chart";
 import { SectionTitle } from "@/components/section-title";
 import { fetchDebriefs, fetchRace } from "@/lib/api/client";
 import { getMessages } from "@/lib/i18n";
+import { raceSuggestions } from "@/lib/suggestions";
 
 type Params = Promise<{ season: string; round: string }>;
 
@@ -76,6 +78,12 @@ export default async function GrandPrixPage({ params }: { params: Params }) {
         )}
       </div>
 
+      {raced && (
+        <section className="mx-auto max-w-6xl px-4 pt-16">
+          <QuestionForm season={race.summary.season} round={race.summary.round} suggestions={raceSuggestions(race)} />
+        </section>
+      )}
+
       <section className="mx-auto max-w-6xl px-4 pt-16">
         <SectionTitle>{t.debriefs.title}</SectionTitle>
         <div className="flex flex-col gap-6">
@@ -88,10 +96,6 @@ export default async function GrandPrixPage({ params }: { params: Params }) {
           )}
           {published.length > 0 && <PublishedTable debriefs={published} />}
           {!waiting.length && !published.length && <p className="text-muted-foreground">{t.debriefs.empty}</p>}
-          <div className="rounded-xl border border-dashed p-6">
-            <p className="display text-lg">{t.debriefs.ask}</p>
-            <p className="mt-2 max-w-2xl text-muted-foreground text-sm">{t.debriefs.askLead}</p>
-          </div>
         </div>
       </section>
     </main>
