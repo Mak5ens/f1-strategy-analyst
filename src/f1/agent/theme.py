@@ -22,6 +22,7 @@ from core.agent import Analysis, Clarification, Event, Option, Point, Result, Ru
 from core.gateway import complete_json
 from core.retrieval.pipeline import RetrievalPipeline
 from core.tools import Tool, ToolError
+from f1.display import grand_prix_fr
 from f1.rag.profile import GRAND_PRIX_NAMES
 from f1.tools import RaceData, catalog
 from f1.tools.penalties import PenaltiesInput, PenaltiesOutput, race_penalties
@@ -244,7 +245,7 @@ class F1Theme:
                 if among is None or event["event_name"] in among:
                     options.append(
                         Option(
-                            label=f"{event['event_name']} {season}",
+                            label=f"{grand_prix_fr(str(event['event_name']))} {season}",
                             value={"seasons": [season], "grands_prix": [str(event["event_name"])]},
                         )
                     )
@@ -257,7 +258,11 @@ class F1Theme:
             names = {str(event["event_name"]) for event in self.data.events(season)}
             for name in grands_prix or sorted(names):
                 if name in names:
-                    options.append(Option(label=f"{name} {season}", value={"seasons": [season], "grands_prix": [name]}))
+                    options.append(
+                        Option(
+                            label=f"{grand_prix_fr(name)} {season}", value={"seasons": [season], "grands_prix": [name]}
+                        )
+                    )
         return Clarification(field="season", question="Quelle saison ?", options=options[:6])
 
     def _ask_who(self, name: str, entry: Sequence[Mapping[str, Any]]) -> Clarification:

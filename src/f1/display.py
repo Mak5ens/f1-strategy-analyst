@@ -18,6 +18,7 @@ GRAND_PRIX_FR: dict[str, str] = {
     "Canadian Grand Prix": "Grand Prix du Canada",
     "Spanish Grand Prix": "Grand Prix d'Espagne",
     "Barcelona-Catalunya Grand Prix": "Grand Prix de Barcelone-Catalogne",
+    "Barcelona Grand Prix": "Grand Prix de Barcelone",
     "Austrian Grand Prix": "Grand Prix d'Autriche",
     "British Grand Prix": "Grand Prix de Grande-Bretagne",
     "Hungarian Grand Prix": "Grand Prix de Hongrie",

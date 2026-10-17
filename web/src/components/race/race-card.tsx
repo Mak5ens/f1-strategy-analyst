@@ -1,7 +1,7 @@
 import { cn } from "cn";
 import Link from "next/link";
 import type { RaceSummary } from "@/lib/api/client";
-import { formatDate } from "@/lib/format";
+import { formatDate, shortName } from "@/lib/format";
 import { getMessages } from "@/lib/i18n";
 import { teamStyle } from "./driver-cell";
 
@@ -40,9 +40,7 @@ export function RaceCard({ race }: { race: RaceSummary }) {
         </span>
       </div>
       <div className="relative">
-        <h3 className="display text-xl leading-tight">
-          {race.grand_prix.replace(/^Grand Prix (d'|de |du |des )/, "")}
-        </h3>
+        <h3 className="display text-xl leading-tight">{shortName(race.grand_prix)}</h3>
         <p className="mt-1 text-muted-foreground text-sm">{race.location}</p>
         <p className="mt-3 flex items-center gap-2 font-semibold text-sm">
           {race.winner ? (

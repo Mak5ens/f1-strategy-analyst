@@ -61,3 +61,8 @@ export function formatTemperature(celsius: number): string {
 export function formatPoints(value: number): string {
   return points.format(value);
 }
+
+/** The place a Grand Prix is named after, as a calendar shows it: "Grand Prix d'Italie" → "Italie". */
+export function shortName(grandPrix: string): string {
+  return grandPrix.replace(/^Grand Prix (d'|de |du |des )/, "");
+}

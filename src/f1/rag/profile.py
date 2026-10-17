@@ -41,6 +41,7 @@ GRAND_PRIX_NAMES: dict[str, tuple[str, ...]] = {
     "Canadian Grand Prix": ("canada", "canadien", "montreal"),
     "Spanish Grand Prix": ("espagne", "espagnol", "madrid", "barcelone"),
     "Barcelona-Catalunya Grand Prix": ("barcelone", "catalogne"),
+    "Barcelona Grand Prix": ("barcelone", "catalogne"),
     "Austrian Grand Prix": ("autriche", "autrichien", "spielberg", "red bull ring"),
     "British Grand Prix": ("grande-bretagne", "britannique", "silverstone"),
     "Hungarian Grand Prix": ("hongrie", "hongrois", "hungaroring", "budapest"),
