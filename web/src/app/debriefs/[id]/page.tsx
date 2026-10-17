@@ -9,7 +9,7 @@ import { PublishedDebrief } from "@/components/debrief/published-debrief";
 import { ReviewStep } from "@/components/debrief/review-step";
 import { teamStyle } from "@/components/race/driver-cell";
 import { debriefTitle, subjectFor, subjectTitle } from "@/components/subject-line";
-import { type Debrief, fetchDebrief, fetchRace } from "@/lib/api/client";
+import { type Debrief, fetchDebrief, fetchQuestions, fetchRace } from "@/lib/api/client";
 import { getMessages } from "@/lib/i18n";
 
 type Params = Promise<{ id: string }>;
@@ -34,10 +34,11 @@ export default async function DebriefPage({ params }: { params: Params }) {
     );
   }
   const { subject } = debrief;
-  const race =
-    debrief.status === "published" && subject.season && subject.round
-      ? await fetchRace(subject.season, subject.round)
-      : null;
+  const published = debrief.status === "published";
+  const [race, replies] = await Promise.all([
+    published && subject.season && subject.round ? fetchRace(subject.season, subject.round) : null,
+    published ? fetchQuestions(debrief.id) : null,
+  ]);
   return (
     <main>
       <DebriefHeader debrief={debrief} />
@@ -65,13 +66,13 @@ export default async function DebriefPage({ params }: { params: Params }) {
             evidence={Object.fromEntries(
               debrief.points.map((point) => [
                 point.id,
-                <PointEvidence key={point.id} point={point} debrief={debrief} />,
+                <PointEvidence key={point.id} point={point} evidence={debrief} />,
               ]),
             )}
           />
         )}
         {debrief.status === "published" && (
-          <PublishedDebrief debrief={debrief} race={race && race !== "missing" ? race : null} />
+          <PublishedDebrief debrief={debrief} race={race && race !== "missing" ? race : null} replies={replies ?? []} />
         )}
       </div>
     </main>

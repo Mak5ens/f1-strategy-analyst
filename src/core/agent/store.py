@@ -17,6 +17,7 @@ from psycopg.types.json import Jsonb
 from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from core.agent.chat import Reply
 from core.agent.graph import Run
 from core.agent.state import AgentState, Decision, Point, serializer
 
@@ -81,6 +82,16 @@ _DECISIONS = """CREATE TABLE IF NOT EXISTS decisions (
 )"""
 
 
+_QUESTIONS = """CREATE TABLE IF NOT EXISTS questions (
+    id bigserial PRIMARY KEY,
+    thread_id text NOT NULL,
+    question text NOT NULL,
+    status text NOT NULL,
+    reply jsonb NOT NULL,
+    asked_at timestamptz NOT NULL DEFAULT now()
+)"""
+
+
 class RequestStore:
     """Every request of an agent, where it stands: running, waiting for a person (and for what), stopped, published.
 
@@ -94,6 +105,7 @@ class RequestStore:
             connection.execute(_REQUESTS)
             connection.execute(_TABLE)
             connection.execute(_DECISIONS)
+            connection.execute(_QUESTIONS)
             # The deliverables published before this table existed are requests too.
             connection.execute(
                 "INSERT INTO requests (thread_id, request, subject, status, created_at, updated_at) "
@@ -137,6 +149,24 @@ class RequestStore:
                     for decision in decisions
                 ],
             )
+
+    def save_reply(self, thread_id: str, reply: Reply) -> dict[str, Any]:
+        """A question asked on a deliverable and its reply, whatever it is (answered, withheld, refused, stopped)."""
+        with psycopg.connect(self._dsn, autocommit=True, row_factory=dict_row) as connection:
+            row = connection.execute(
+                "INSERT INTO questions (thread_id, question, status, reply) VALUES (%s, %s, %s, %s) RETURNING *",
+                (thread_id, reply.question, reply.status, Jsonb(reply.model_dump(mode="json"))),
+            ).fetchone()
+        assert row is not None
+        return dict(row)
+
+    def replies(self, thread_id: str) -> list[dict[str, Any]]:
+        """The questions asked on a deliverable, the first first."""
+        with psycopg.connect(self._dsn, row_factory=dict_row) as connection:
+            rows = connection.execute(
+                "SELECT * FROM questions WHERE thread_id = %s ORDER BY asked_at, id", (thread_id,)
+            ).fetchall()
+        return [dict(row) for row in rows]
 
     # Before `list`, which hides the built-in in the class body.
     def decisions(

@@ -5,7 +5,9 @@ import { expect, test } from "@playwright/test";
 test.skip(!process.env.E2E_AGENT, "needs the agent, the gateway and the race data: set E2E_AGENT=1");
 test.setTimeout(300_000);
 
-test("a race, a request, its plan, a review point by point, then the debrief published", async ({ page }) => {
+test("a race, a request, its plan, a review point by point, the debrief published, then questions on it", async ({
+  page,
+}) => {
   // From the home page, a race is two clicks away: its season, then the race.
   await page.goto("/");
   await page.getByRole("link", { name: "2025", exact: true }).click();
@@ -41,6 +43,15 @@ test("a race, a request, its plan, a review point by point, then the debrief pub
 
   await expect(page.getByText("Publié", { exact: true })).toBeVisible({ timeout: 120_000 });
   await expect(page.getByText("Point corrigé par le test de bout en bout.")).toBeVisible();
+  // A question under the published debrief, then one on another race, refused.
+  const question = page.getByRole("textbox", { name: "Questions sur ce débrief" });
+  await question.fill("Détaille le cycle d'arrêts de Leclerc face à Russell");
+  await page.getByRole("button", { name: "Demander" }).click();
+  await expect(page.locator("#questions li").first()).toBeVisible({ timeout: 120_000 });
+  await question.fill("Et au Grand Prix de Monaco ?");
+  await page.getByRole("button", { name: "Demander" }).click();
+  await expect(page.getByText("Question hors de ce débrief.")).toBeVisible({ timeout: 60_000 });
+
   await page.getByRole("link", { name: /Journal des décisions/ }).click();
   await expect(page.getByText("Corrigé · Formulation")).toBeVisible();
 });

@@ -49,6 +49,20 @@ The API takes `season`, `round` and `question` beside `request` (`POST /debriefs
 
 Limit: `verify` checks that each number appears in a cited analysis, not that it is not derived from them. In "comme 1 autre pilote sur 20", the 1 is 2 minus Hamilton, and it passes because a 1 appears elsewhere in the output. The review is still what catches it.
 
+## Questions on a published debrief (LAB-205)
+
+Under a published debrief, the analyst asks to detail a point: "Détaille le cycle d'arrêts de Leclerc face à Russell", "Et sous la voiture de sécurité ?". The answer is direct, with no person in between, so code bounds it (`core.agent.chat.Chat`, filled by `F1Theme.scope`, `pick` and `reply`):
+
+| Step | Who | What |
+| -- | -- | -- |
+| `scope` | code | A question naming another Grand Prix or season is refused before any model call, saying where to ask it: that race's page, or a free question from the home page |
+| `pick` | model | Among the debrief's own catalog only, the analyses needed beyond those already run (3 at most), and a question on the rules if any; code adds the season to it, as the retrieval filters on it |
+| run, rule | code | The tools; the retrieval pipeline for the rule question |
+| `reply` | model | 1 to 4 short points, the answer first, citing their analyses and sources; the questions answered before are context, not a source |
+| check | code | `check_point` and `F1Theme.check`, as for a debrief; a reply that fails is written once more with its problems, then withheld, and says why |
+
+`F1Theme.check` also refuses an article named without its source ("B6.2.4"): an identifier escapes the number check, so it must be cited. Limits per question (`AGENT_CHAT_*`: 12 model calls, 80,000 tokens); calls go to the gateway as `user: f1-agent-chat`. Every question and its reply, whatever its status, is kept in the `questions` table (`RequestStore.save_reply`), shown under the debrief (`GET` and `POST /debriefs/{id}/questions`), the answered ones passed back as history.
+
 ## In code
 
 - `core.agent`: the graph (`Agent`, `Theme`, `check_point`), the state (`AgentState` and its models), the PostgreSQL checkpointer and the `published` table (`core.agent.store`). No F1 vocabulary (ADR-011).

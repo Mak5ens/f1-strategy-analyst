@@ -208,6 +208,31 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/debriefs/{debrief_id}/questions": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List Questions
+     * @description The questions asked on a debrief, the first first.
+     */
+    get: operations["list_questions_debriefs__debrief_id__questions_get"];
+    put?: never;
+    /**
+     * Ask Question
+     * @description A question on a published debrief, answered directly: its context is the debrief's race, analyses and rules.
+     *     A reply with a number no analysis backs is withheld; a question on another race is refused.
+     */
+    post: operations["ask_question_debriefs__debrief_id__questions_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/debriefs/{debrief_id}/review": {
     parameters: {
       query?: never;
@@ -592,6 +617,14 @@ export interface components {
        */
       question: boolean;
     };
+    /** NewQuestion */
+    NewQuestion: {
+      /**
+       * Question
+       * @example Détaille le cycle d'arrêts de Leclerc
+       */
+      question: string;
+    };
     /**
      * Option
      * @description One answer proposed to a person: what is shown, and what it sets in the subject.
@@ -632,6 +665,46 @@ export interface components {
        * @description The ids of the analyses to run
        */
       analyses: string[];
+    };
+    /**
+     * QuestionReply
+     * @description A question asked on a published debrief, and its reply: shown only when every number is backed.
+     */
+    QuestionReply: {
+      /** Id */
+      id: number;
+      /** Question */
+      question: string;
+      /**
+       * Status
+       * @enum {string}
+       */
+      status: "answered" | "withheld" | "refused" | "stopped";
+      /**
+       * Points
+       * @description The answer; empty unless answered
+       */
+      points: components["schemas"]["ShownPoint"][];
+      /**
+       * Facts
+       * @description The analyses its points cite
+       */
+      facts: components["schemas"]["Fact"][];
+      /**
+       * Sources
+       * @description The rule passages its points cite
+       */
+      sources: components["schemas"]["Source"][];
+      /**
+       * Reason
+       * @description Why it is refused, withheld or stopped
+       */
+      reason: string | null;
+      /**
+       * Asked At
+       * Format: date-time
+       */
+      asked_at: string;
     };
     /**
      * Race
@@ -1206,6 +1279,72 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["Debrief"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  list_questions_debriefs__debrief_id__questions_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        debrief_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["QuestionReply"][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  ask_question_debriefs__debrief_id__questions_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        debrief_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["NewQuestion"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["QuestionReply"];
         };
       };
       /** @description Validation Error */
