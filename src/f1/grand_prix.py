@@ -154,6 +154,12 @@ class GrandPrix:
         rows = self._query("SELECT DISTINCT season FROM sessions WHERE session = 'R' ORDER BY season DESC")
         return [int(row["season"]) for row in rows]
 
+    def people(self) -> tuple[list[str], list[str]]:
+        """The names of every driver and team of the lake, as the results write them: what a question may name."""
+        rows = self._query("SELECT DISTINCT full_name, team FROM results", table="results")
+        drivers = sorted({name for row in rows if (name := _text(row["full_name"])) and name != "None None"})
+        return drivers, sorted({team for row in rows if (team := _text(row["team"]))})
+
     def calendar(self, season: int) -> list[RaceSummary]:
         """The rounds of a season in the lake, in order, with their winner once the race has results."""
         rows = self._query(

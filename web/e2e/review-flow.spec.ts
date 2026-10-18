@@ -20,7 +20,7 @@ test("a race, a request, its plan, a review point by point, the debrief publishe
 
   await page.goto("/");
   await page.getByRole("textbox").fill("Débrief stratégique du GP d'Italie 2025 pour Ferrari");
-  await page.getByRole("button", { name: "Lancer le débrief" }).click();
+  await page.getByRole("button", { name: "Demander" }).click(); // routed to the agent: a debrief is asked for
   await expect(page.getByRole("heading", { name: "Plan à valider" })).toBeVisible({ timeout: 120_000 });
   await expect(page.getByRole("group", { name: "Charles Leclerc" })).toBeVisible();
 

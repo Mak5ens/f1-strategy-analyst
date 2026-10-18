@@ -134,6 +134,10 @@ What the numbers say:
 
 Platform-side latency and throughput of the same aliases are in llmops-platform (ADR-027, `benchmarks/inference/`); this table is what the app gets from them. To revisit when a local model calls tools: the agent of LAB-151 will ask for the same structured choice.
 
+## Routing (LAB-206)
+
+`just eval routing --split dev --check` sends each case through the home page's router (`f1.router`): code, no call, a second. Regulation and retrieval cases must go to the rules, data, computation and strategy cases to the data of their race; out of corpus and safety cases have no path of their own (whatever it is, they must abstain or refuse, which `just eval` measures). A case left to the analyst counts as missed; `--check` fails under 95 %. The unit tests run it on both sets with a fixed list of names. Measured on 2026-10-18: 150/150 on the development set, 236/237 on the test set ("Quelle est la distance minimale d'une course en 2024, sauf à Monaco ?" names Monaco with no word of a path, and is asked).
+
 ## The judge
 
 The `strategy` family asks why a driver came out of a pit cycle ahead of another: no assertion checks that. A judge (`core.evals.judge`, `chat-pro`) grades the answer against the reference cause on a rubric of five levels, in JSON validated by code: 5, the main cause with its supporting facts and nothing false; 4, the main cause with partial facts; 3, the cause mentioned but not as the main one, or a false detail; 2, another cause; 1, wrong, invented or no answer. When the reference says the question rests on a false premise (LAB-201), the correction is the main cause: an answer that accepts the premise is a 1.

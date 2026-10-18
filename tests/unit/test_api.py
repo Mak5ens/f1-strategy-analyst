@@ -12,7 +12,18 @@ from test_chat import FakeChatTheme
 from core.agent import Agent, Decision, Point, Run
 from core.agent.chat import Chat, ChatLimits, Reply
 from core.tracing import Tracer
-from f1.api import app, get_agent, get_chat, get_requests, openapi_document, subject
+from f1.api import (
+    app,
+    get_agent,
+    get_chat,
+    get_free_questions,
+    get_free_store,
+    get_requests,
+    openapi_document,
+    subject,
+)
+from f1.questions import AnswerPoint, Cited, FreeAnswer
+from f1.router import Route
 
 OPENAPI = Path(__file__).parents[2] / "web" / "openapi.json"
 
@@ -78,6 +89,35 @@ class FakeRequests:
         return sorted(rows, key=lambda row: row["updated_at"], reverse=True)[:limit]
 
 
+class FakeFreeQuestions:
+    """The paths of the free question, scripted: the rules answer, a debrief is routed (LAB-206)."""
+
+    def ask(
+        self, question: str, *, route: Route | None = None, season: int | None = None, round_number: int | None = None
+    ) -> FreeAnswer:
+        if question.startswith("Débrief"):
+            return FreeAnswer(question=question, route="debrief", status="debrief")
+        source = Cited(id="S1", label="Règlement sportif F1 2025, article 57.3", url="https://www.fia.com/x")
+        point = AnswerPoint(text="Oui, pendant la suspension.", sources=["S1"])
+        return FreeAnswer(question=question, route="rules", status="answered", points=[point], sources=[source])
+
+
+class FakeFreeStore:
+    def __init__(self) -> None:
+        self.rows: list[FreeAnswer] = []
+
+    def save(self, answer: FreeAnswer) -> FreeAnswer:
+        saved = answer.model_copy(update={"id": len(self.rows) + 1, "asked_at": datetime.now(UTC)})
+        self.rows.append(saved)
+        return saved
+
+    def get(self, question_id: int) -> FreeAnswer | None:
+        return next((row for row in self.rows if row.id == question_id), None)
+
+    def latest(self, limit: int = 10) -> list[FreeAnswer]:
+        return [row for row in reversed(self.rows) if row.status != "asked"][:limit]
+
+
 ANSWERS = [
     [Point(id="A1", text="Leclerc a perdu 21.4 s au tour 23.", facts=["loss:LEC"])],
     [Point(id="A1", text="Leclerc a perdu 30 s.", facts=["loss:LEC"])],  # wrong, twice: withheld
@@ -96,6 +136,9 @@ def client() -> Iterator[TestClient]:
         FakeChatTheme([list(answer) for answer in ANSWERS]), tracer=Tracer(None), limits=ChatLimits(_env_file=None)
     )
     app.dependency_overrides[get_chat] = lambda: chat
+    free, store = FakeFreeQuestions(), FakeFreeStore()
+    app.dependency_overrides[get_free_questions] = lambda: free
+    app.dependency_overrides[get_free_store] = lambda: store
     yield TestClient(app)
     app.dependency_overrides.clear()
 
@@ -175,6 +218,20 @@ def test_questions_on_a_published_debrief_show_only_backed_answers(client: TestC
     assert refused["status"] == "refused"
     thread = client.get(f"/debriefs/{debrief['id']}/questions").json()
     assert [item["status"] for item in thread] == ["answered", "withheld", "refused"]
+
+
+def test_a_free_question_is_answered_on_its_path_and_kept(client: TestClient) -> None:
+    asked = client.post("/questions", json={"question": "Peut-on changer de pneus sous drapeau rouge ?"})
+    started = client.post("/questions", json={"question": "Débrief du GP de Monza 2025"}).json()
+
+    assert asked.status_code == 201
+    rule = asked.json()
+    assert (rule["route"], rule["status"], rule["sources"][0]["url"]) == ("rules", "answered", "https://www.fia.com/x")
+    assert started["status"] == "debrief" and client.get(f"/debriefs/{started['debrief']}").json()["waiting"] == "plan"
+    assert [row["id"] for row in client.get("/questions").json()] == [started["id"], rule["id"]]
+    assert client.get(f"/questions/{rule['id']}").json()["points"][0]["text"] == "Oui, pendant la suspension."
+    assert client.get("/questions/99").status_code == 404
+    assert client.post("/questions", json={"question": "Qui a gagné ?", "season": 2025}).status_code == 422
 
 
 def test_an_ambiguous_request_waits_for_a_clarification_answered_by_label(client: TestClient) -> None:

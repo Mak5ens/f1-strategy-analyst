@@ -63,6 +63,22 @@ Under a published debrief, the analyst asks to detail a point: "Détaille le cyc
 
 `F1Theme.check` also refuses an article named without its source ("B6.2.4"): an identifier escapes the number check, so it must be cited. Limits per question (`AGENT_CHAT_*`: 12 model calls, 80,000 tokens); calls go to the gateway as `user: f1-agent-chat`. Every question and its reply, whatever its status, is kept in the `questions` table (`RequestStore.save_reply`), shown under the debrief (`GET` and `POST /debriefs/{id}/questions`), the answered ones passed back as history.
 
+## The free question of the home page (LAB-206)
+
+The home page has one field for what does not start from a race: a rule ("Que risque une équipe en cas de libération dangereuse au stand ?"), a number of a race ("Quel écart entre Leclerc et Russell au tour 20 du GP d'Italie 2025 ?"), or a debrief. The analyst never picks a tool: code routes the question (`f1.router.Router`), as the retrieval pipeline reads its filters, without a model to trust, pay for and evaluate.
+
+| The question | Path | What answers |
+| -- | -- | -- |
+| asks for a debrief ("débrief", "bilan stratégique") | `debrief` | the agent, started by `POST /questions`: the front opens its request (plan, review, publication) |
+| names no race, no driver, no team | `rules` | the retrieval pipeline: claims citing their FIA passages, or an abstention |
+| names one, with the words of the rules (règlement, autorisé, peut-on, commissaires, a sanction asked "pourquoi") | `rules` | the same; a link to the race's page when it names one |
+| names one, with the words of the data (combien, écart, pole, arrêts, "pourquoi" without a sanction) | `data` | the questions of LAB-205 on that race (`Chat`), on a subject built by code |
+| both, or neither | none | the analyst chooses the path: nothing is guessed |
+
+The drivers and teams are those of the lake (`GrandPrix.people`), matched in full or by last name. On the `data` path, `F1Theme.free_subject` builds the subject the chat starts from, with no debrief behind it: the race (one season and one Grand Prix the data knows, else the analyst chooses among the races run), the drivers and teams named, the laps cited ("au tour 43", which adds the gap between two drivers named on those laps to the catalog) and the stop ("2es arrêts", for the pit cycle). The pick then has its own prompt: no analysis is run yet. Every question and what came of it is kept (`free_questions` table, `GET /questions`), the latest shown on the home page.
+
+`just eval routing` measures the path taken on each case of the dataset, by family (`docs/evaluation.md`): 150 of 150 on the development set, 236 of 237 on the test set, the one missed left to the analyst rather than sent the wrong way.
+
 ## In code
 
 - `core.agent`: the graph (`Agent`, `Theme`, `check_point`), the state (`AgentState` and its models), the PostgreSQL checkpointer and the `published` table (`core.agent.store`). No F1 vocabulary (ADR-011).
@@ -81,5 +97,7 @@ Time is the agent's, the person's waits not counted. Drafts vary from a run to t
 ## Limits
 
 - **The checks see numbers, not meaning.** A true number told misleadingly passes: "Verstappen est resté derrière Ocon" during a pit cycle, true at the time, while he won the race. The review is there for it, and LAB-154 measures how often the analyst corrects or rejects.
-- **The catalog is closed.** An analysis it does not hold (the gap to the car ahead lap by lap, the second pit cycle) is code to add in `F1Theme.candidates`.
+- **The catalog is closed.** An analysis it does not hold is code to add in `F1Theme.candidates`. A question may now ask for the gap between two drivers it names on the laps it cites, and for a pit cycle after the first stop; a debrief still has neither.
+- **The routing reads words.** A question in other words than the dataset's may take the other path or be left to the analyst; a question on the data that names neither a race, a driver nor a team goes to the rules, which abstain. A sanction asked "pourquoi" goes to the stewards' decisions, not to the race's penalties.
+- **A false abstention of the rules is shown as is.** "Peut-on changer de pneus sous drapeau rouge en 2025 ?" abstains: the passage that answers (article 57.4) gets a rerank score of 0.20, under the threshold of 0.43 (`evals/rag/reports/dev-2026-10-14-lab146.json`).
 - **Rules are asked by kind of event**, not by incident: one question for all the safety cars of a race.

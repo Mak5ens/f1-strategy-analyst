@@ -102,6 +102,24 @@ def test_questions_on_the_ferrari_debrief_of_monza(agent: Agent) -> None:
     assert refused.status == "refused" and refused.spent.llm_calls == 0
 
 
+def test_a_free_question_on_monza_is_routed_to_its_data_and_answered_with_checked_numbers() -> None:
+    from f1.grand_prix import GrandPrix
+    from f1.questions import FreeQuestions
+    from f1.rag import rag_pipeline
+    from f1.router import Router
+
+    grand_prix = GrandPrix(connect())
+    chat = debrief_chat()
+    questions = FreeQuestions(Router(*grand_prix.people()), grand_prix, rules=rag_pipeline, chat=lambda: chat)
+
+    answer = questions.ask("Quel écart entre Leclerc et Russell au tour 20 du GP d'Italie 2025 ?")
+
+    assert (answer.route, answer.race and answer.race.round) == ("data", 16)
+    assert answer.status in {"answered", "withheld"}, answer.reason
+    if answer.status == "answered":
+        assert [fact.id for fact in answer.facts] == ["gap:LEC:RUS"]
+
+
 def assert_backed(state: AgentState) -> None:
     results = {result.id: result for result in state.results}
     sources = {source.id: source.text for rule in state.rules for source in rule.sources}

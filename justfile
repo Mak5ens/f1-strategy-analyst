@@ -117,7 +117,7 @@ debrief *args: _env
     uv run f1-debrief "$@"
 
 # Evaluate a system on the dataset, one table per family: `just eval --sample 8`, `just eval --check`,
-# `just eval judge-sheet`, `just eval agreement` (docs/evaluation.md)
+# `just eval judge-sheet`, `just eval agreement`, `just eval routing --split dev --check` (docs/evaluation.md)
 eval *args: _env
     uv run f1-eval "$@"
 

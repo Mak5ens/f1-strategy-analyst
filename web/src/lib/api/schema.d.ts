@@ -151,6 +151,50 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/questions": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List Free Questions
+     * @description The latest free questions first, with their answers.
+     */
+    get: operations["list_free_questions_questions_get"];
+    put?: never;
+    /**
+     * Ask Free Question
+     * @description A free question of the home page (LAB-206), sent by code down its path: the rules (the retrieval pipeline),
+     *     the data of the race it names (a direct answer, every number checked), or a debrief (the agent, started here:
+     *     `debrief` is its request). When the path or the race is not clear, `choices` says what the analyst may pick,
+     *     sent back with the question.
+     */
+    post: operations["ask_free_question_questions_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/questions/{question_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get Free Question */
+    get: operations["get_free_question_questions__question_id__get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/debriefs/{debrief_id}": {
     parameters: {
       query?: never;
@@ -299,6 +343,21 @@ export interface components {
        */
       selected: boolean;
     };
+    /** AnswerPoint */
+    AnswerPoint: {
+      /** Text */
+      text: string;
+      /**
+       * Sources
+       * @description Ids of `FreeAnswer.sources` it cites
+       */
+      sources: string[];
+      /**
+       * Facts
+       * @description Ids of `FreeAnswer.facts` its numbers come from
+       */
+      facts: string[];
+    };
     /** BestLap */
     BestLap: {
       driver: components["schemas"]["Driver"];
@@ -311,6 +370,37 @@ export interface components {
        * @description Behind the fastest lap of the race
        */
       gap_s: number;
+    };
+    /**
+     * Choice
+     * @description An answer the analyst may pick: it comes back with the question.
+     */
+    Choice: {
+      /** Label */
+      label: string;
+      /**
+       * Route
+       * @enum {string}
+       */
+      route: "debrief" | "rules" | "data";
+      /** Season */
+      season: number | null;
+      /** Round */
+      round: number | null;
+    };
+    /**
+     * Cited
+     * @description What a point of the answer cites: a passage of the FIA documents, or an analysis of the race.
+     */
+    Cited: {
+      /** Id */
+      id: string;
+      /** Label */
+      label: string;
+      /** Text */
+      text: string | null;
+      /** Url */
+      url: string | null;
     };
     /**
      * Clarification
@@ -521,6 +611,65 @@ export interface components {
        */
       error: string | null;
     };
+    /**
+     * FreeAnswer
+     * @description A free question and what came of it: an answer, an abstention, a choice to make, or a debrief started.
+     */
+    FreeAnswer: {
+      /**
+       * Id
+       * @default 0
+       */
+      id: number;
+      /** Question */
+      question: string;
+      /**
+       * Route
+       * @description The path taken; None while the analyst chooses it
+       */
+      route: ("debrief" | "rules" | "data") | null;
+      /**
+       * Status
+       * @enum {string}
+       */
+      status: "answered" | "abstained" | "withheld" | "refused" | "stopped" | "asked" | "debrief";
+      /**
+       * Reason
+       * @description Why the path, the abstention, or what is asked
+       */
+      reason: string | null;
+      /** Points */
+      points: components["schemas"]["AnswerPoint"][];
+      /**
+       * Sources
+       * @description The FIA passages the points cite
+       */
+      sources: components["schemas"]["Cited"][];
+      /**
+       * Facts
+       * @description The analyses of the race the points cite
+       */
+      facts: components["schemas"]["Cited"][];
+      /**
+       * Notes
+       * @description What was assumed, e.g. the season of the rules
+       */
+      notes: string[];
+      /**
+       * Choices
+       * @description What the analyst may choose, when asked
+       */
+      choices: components["schemas"]["Choice"][];
+      /** @description The race the question is about, for a link to its page */
+      race: components["schemas"]["RaceLink"] | null;
+      /**
+       * Debrief
+       * @description The request started, for a debrief
+       */
+      debrief: string | null;
+      /** Asked At */
+      asked_at: string | null;
+    };
     /** HTTPValidationError */
     HTTPValidationError: {
       /** Detail */
@@ -616,6 +765,26 @@ export interface components {
        * @default false
        */
       question: boolean;
+    };
+    /** NewFreeQuestion */
+    NewFreeQuestion: {
+      /**
+       * Question
+       * @example Peut-on changer de pneus sous drapeau rouge ?
+       */
+      question: string;
+      /**
+       * Route
+       * @description The path the analyst chose, when asked
+       */
+      route?: ("debrief" | "rules" | "data") | null;
+      /**
+       * Season
+       * @description The race the analyst chose, with `round`
+       */
+      season?: number | null;
+      /** Round */
+      round?: number | null;
     };
     /** NewQuestion */
     NewQuestion: {
@@ -742,6 +911,18 @@ export interface components {
        */
       team_standings: components["schemas"]["TeamStanding"][];
       weather: components["schemas"]["Weather"] | null;
+    };
+    /** RaceLink */
+    RaceLink: {
+      /** Season */
+      season: number;
+      /** Round */
+      round: number;
+      /**
+       * Grand Prix
+       * @description In French
+       */
+      grand_prix: string;
     };
     /** RaceSummary */
     RaceSummary: {
@@ -1178,6 +1359,101 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["Debrief"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  list_free_questions_questions_get: {
+    parameters: {
+      query?: {
+        limit?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["FreeAnswer"][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  ask_free_question_questions_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["NewFreeQuestion"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["FreeAnswer"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_free_question_questions__question_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        question_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["FreeAnswer"];
         };
       };
       /** @description Validation Error */

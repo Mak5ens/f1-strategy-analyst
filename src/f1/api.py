@@ -11,6 +11,7 @@ answers it, until its next stop: a few seconds to the plan, up to half a minute 
 rules are needed.
 """
 
+import functools
 import json
 import threading
 import uuid
@@ -29,6 +30,8 @@ from core.agent.state import AgentState, RejectReason
 from core.agent.store import RequestStore
 from f1.display import Driver, Response, grand_prix_fr, team_colour
 from f1.grand_prix import GrandPrix, Race, RaceSummary
+from f1.questions import FreeAnswer, FreeQuestions, FreeQuestionStore
+from f1.router import Route, Router
 
 # The version of the API contract, not the app's: release-please bumps the app's on every release, and the OpenAPI
 # document, and the front's generated client, would change with it.
@@ -177,6 +180,19 @@ class ReviewAnswer(BaseModel):
     decisions: list[Decision]
 
 
+class NewFreeQuestion(BaseModel):
+    question: str = Field(min_length=3, max_length=500, examples=["Peut-on changer de pneus sous drapeau rouge ?"])
+    route: Route | None = Field(None, description="The path the analyst chose, when asked")
+    season: int | None = Field(None, ge=2018, le=2100, description="The race the analyst chose, with `round`")
+    round: int | None = Field(None, ge=1, le=30)
+
+    @model_validator(mode="after")
+    def _race_whole(self) -> "NewFreeQuestion":
+        if (self.season is None) != (self.round is None):
+            raise ValueError("a race is a season and a round")
+        return self
+
+
 # The agent and the request store, opened on first use and kept for the life of the process.
 
 _resources = ExitStack()
@@ -185,6 +201,8 @@ _agent: Agent | None = None
 _requests: RequestStore | None = None
 _grand_prix: GrandPrix | None = None
 _chat: Chat | None = None
+_free: FreeQuestions | None = None
+_free_store: FreeQuestionStore | None = None
 
 
 def get_agent() -> Agent:
@@ -225,10 +243,33 @@ def get_chat() -> Chat:
     return _chat
 
 
+def get_free_questions(grand_prix: Annotated[GrandPrix, Depends(get_grand_prix)]) -> FreeQuestions:
+    """The router knows the drivers and teams of the lake; the rules and the chat open on the first question that
+    needs them."""
+    global _free
+    with _lock:
+        if _free is None:
+            from f1.rag import rag_pipeline
+
+            router = Router(*grand_prix.people())
+            _free = FreeQuestions(router, grand_prix, rules=functools.cache(rag_pipeline), chat=get_chat)
+    return _free
+
+
+def get_free_store() -> FreeQuestionStore:
+    global _free_store
+    with _lock:
+        if _free_store is None:
+            _free_store = FreeQuestionStore()
+    return _free_store
+
+
 AgentDep = Annotated[Agent, Depends(get_agent)]
 ChatDep = Annotated[Chat, Depends(get_chat)]
 RequestsDep = Annotated[RequestStore, Depends(get_requests)]
 GrandPrixDep = Annotated[GrandPrix, Depends(get_grand_prix)]
+FreeQuestionsDep = Annotated[FreeQuestions, Depends(get_free_questions)]
+FreeStoreDep = Annotated[FreeQuestionStore, Depends(get_free_store)]
 
 
 @app.get("/healthz")
@@ -302,6 +343,34 @@ def list_debriefs(
         )
         for row in requests.list(status=status, subject=race, limit=limit)
     ]
+
+
+@app.post("/questions", status_code=201)
+def ask_free_question(
+    body: NewFreeQuestion, questions: FreeQuestionsDep, store: FreeStoreDep, agent: AgentDep
+) -> FreeAnswer:
+    """A free question of the home page (LAB-206), sent by code down its path: the rules (the retrieval pipeline),
+    the data of the race it names (a direct answer, every number checked), or a debrief (the agent, started here:
+    `debrief` is its request). When the path or the race is not clear, `choices` says what the analyst may pick,
+    sent back with the question."""
+    answer = questions.ask(body.question, route=body.route, season=body.season, round_number=body.round)
+    if answer.status == "debrief":
+        run = agent.start(body.question, thread_id=str(uuid.uuid4()))
+        answer = answer.model_copy(update={"debrief": run.thread_id})
+    return store.save(answer)
+
+
+@app.get("/questions")
+def list_free_questions(store: FreeStoreDep, limit: Annotated[int, Query(ge=1, le=50)] = 10) -> list[FreeAnswer]:
+    """The latest free questions first, with their answers."""
+    return store.latest(limit)
+
+
+@app.get("/questions/{question_id}")
+def get_free_question(question_id: int, store: FreeStoreDep) -> FreeAnswer:
+    if (answer := store.get(question_id)) is None:
+        raise HTTPException(404, f"no question {question_id}")
+    return answer
 
 
 @app.post("/debriefs", status_code=201)
