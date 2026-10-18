@@ -6,8 +6,8 @@ from typing import Any
 import pytest
 from test_grand_prix import write_lake
 
-from core.agent import Clarification, Point
-from f1.agent.theme import F1Theme
+from core.agent import Analysis, Clarification, Point, Result
+from f1.agent.theme import Draft, DraftPoint, F1Theme, Takeaway, TitledPoint
 from f1.data import connect
 from f1.tools import RaceData
 
@@ -81,3 +81,55 @@ def test_an_article_named_needs_its_source(theme: F1Theme) -> None:
     assert theme.check(named) == ["names articles without citing their source: B6.2.4"]
     assert theme.check(named.model_copy(update={"sources": ["Q:S1"]})) == []
     assert theme.check(Point(id="A2", text="Leclerc a perdu 24.8 s au tour 33.")) == []
+
+
+def test_a_debrief_is_drafted_as_a_summary_titled_moments_and_a_takeaway(
+    theme: F1Theme, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    subject = theme.resolve({**NOTHING_NAMED, "season": 2025, "round": 2})
+    assert not isinstance(subject, Clarification)
+    written = Draft(
+        summary=DraftPoint(text="Verstappen gagne, parti 2e.", facts=["result"]),
+        points=[
+            TitledPoint(title="Norris s'arrête tard", text="Il rentre aux tours 20 et 40.", facts=["stops:NOR"]),
+            TitledPoint(title="Le rythme de Norris", text="Il tient ses pneus.", facts=["stints:NOR"]),
+            TitledPoint(title="L'undercut de Verstappen paie", text="Il rentre au tour 3.", facts=["stops:VER"]),
+        ],
+        takeaway=Takeaway(text="Le premier à s'arrêter a gagné."),
+    )
+    monkeypatch.setattr("f1.agent.theme.complete_json", lambda *args, **kwargs: written)
+
+    points = theme.draft("Débrief", subject, [], [], {}, session_id=None)
+
+    # The moments in the order of the race; one naming no lap stays after the one before it.
+    assert [(point.id, point.kind, point.title, point.when) for point in points] == [
+        ("S", "summary", None, None),
+        ("P1", "point", "L'undercut de Verstappen paie", "Tour 3"),
+        ("P2", "point", "Norris s'arrête tard", "Tours 20 à 40"),
+        ("P3", "point", "Le rythme de Norris", None),
+        ("T", "takeaway", None, None),
+    ]
+    published = theme.render(subject, points, [])
+    assert "Verstappen gagne, parti 2e.\n\n## L'undercut de Verstappen paie\n\nIl rentre au tour 3." in published
+    assert "## À retenir\n\nLe premier à s'arrêter a gagné." in published
+
+
+def test_a_title_and_a_takeaway_hold_no_number(theme: F1Theme) -> None:
+    titled = Point(id="P1", title="L'overcut coûte 5,4 s", text="Hamilton perd 5,4 s.", facts=["cycle:HAM:RUS"])
+    takeaway = Point(id="T", kind="takeaway", text="Les 2 pilotes ont fini à leur place.")
+
+    assert theme.check(titled) == ["a number in the title: keep the numbers in the text, which cites their analyses"]
+    assert theme.check(takeaway) == ["a number in the takeaway: it says what the race means, without a number"]
+
+
+def test_who_was_ahead_is_checked_without_a_model(theme: F1Theme) -> None:
+    subject = theme.resolve({**NOTHING_NAMED, "season": 2025, "round": 2})
+    assert not isinstance(subject, Clarification)
+    result = Result(id="result", tool="session_result", label="Classement", arguments={"season": 2025, "round": 2})
+    result.output = theme.run(Analysis(id="result", tool="session_result", label="Classement",
+                                       arguments={"season": 2025, "round": 2, "session": "R"}))  # fmt: skip
+
+    found = theme.faithful(Point(id="S", text="Leclerc finit devant Verstappen."), [result], [], session_id=None)
+
+    assert found == ["sens, contredit (code) : « Charles Leclerc devant Max Verstappen » ; les analyses mettent "
+                     "Max Verstappen devant"]  # fmt: skip

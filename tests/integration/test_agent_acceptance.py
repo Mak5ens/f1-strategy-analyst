@@ -79,7 +79,7 @@ def test_a_question_on_a_chosen_race_answers_first(agent: Agent) -> None:
     points = run.state.points
     assert "tendre" in points[0].text.lower() and "strategies" in points[0].facts
     assert not any(char.isdigit() for char in points[-1].text)  # what the data cannot say: no number
-    assert all(point.status == "verified" for point in points), [point.problems for point in points]
+    assert_backed(run.state)
 
 
 def test_questions_on_the_ferrari_debrief_of_monza(agent: Agent) -> None:
@@ -121,11 +121,16 @@ def test_a_free_question_on_monza_is_routed_to_its_data_and_answered_with_checke
 
 
 def assert_backed(state: AgentState) -> None:
+    """Every point shown as verified has its numbers in what it cites; any other reaches the review with why: a
+    number, or its meaning (LAB-207)."""
     results = {result.id: result for result in state.results}
     sources = {source.id: source.text for rule in state.rules for source in rule.sources}
     for point in state.points:
         if point.status == "unavailable":
             continue
+        if point.status != "verified":
+            assert point.problems, point.text
+            continue
         data = [results[fact].output for fact in point.facts] + [sources[s] for s in point.sources] + [state.subject]
-        assert point.status == "verified", (point.text, point.problems)
         assert unverified_numbers(point.text, data) == [], point.text
+    assert any(point.status == "verified" for point in state.points), [point.problems for point in state.points]
