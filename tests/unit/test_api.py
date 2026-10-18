@@ -139,6 +139,16 @@ def test_an_ambiguous_request_waits_for_a_clarification_answered_by_label(client
     assert answered["waiting"] == "plan" and answered["clarification"] is None
 
 
+def test_a_question_carries_the_race_chosen_beside_it(client: TestClient) -> None:
+    body = {"request": "Pourquoi Leclerc s'est-il arrêté si tôt ?", "season": 2025, "round": 16}
+
+    debrief = client.post("/debriefs", json={**body, "question": True}).json()
+
+    assert debrief["waiting"] == "plan"
+    assert debrief["subject"]["question"] is True and debrief["subject"]["round"] == 16
+    assert client.post("/debriefs", json={"request": "Pourquoi ?", "season": 2025}).status_code == 422
+
+
 def test_an_answer_to_another_stop_is_refused(client: TestClient) -> None:
     debrief = client.post("/debriefs", json={"request": "Débrief de Monza"}).json()
 

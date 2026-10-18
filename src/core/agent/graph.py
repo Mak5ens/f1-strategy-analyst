@@ -200,8 +200,9 @@ class Agent:
 
     # Requests
 
-    def start(self, request: str, *, thread_id: str) -> Run:
-        state = AgentState(request=request, trace_id=self.tracer.new_trace_id())
+    def start(self, request: str, *, thread_id: str, given: Mapping[str, Any] | None = None) -> Run:
+        """Run a request to its first stop. `given` holds subject fields the person chose rather than wrote."""
+        state = AgentState(request=request, trace_id=self.tracer.new_trace_id(), given=dict(given or {}))
         try:
             self.graph.invoke(state, self._config(thread_id))
         finally:
@@ -303,7 +304,7 @@ class Agent:
     # Nodes
 
     def _parse(self, state: AgentState, thread_id: str) -> dict[str, Any]:
-        return {"subject": self.theme.parse(state.request, session_id=state.trace_id)}
+        return {"subject": {**self.theme.parse(state.request, session_id=state.trace_id), **state.given}}
 
     def _resolve(self, state: AgentState, thread_id: str) -> dict[str, Any]:
         resolved = self.theme.resolve(state.subject)
