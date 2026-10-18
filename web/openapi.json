@@ -474,6 +474,98 @@
         }
       }
     },
+    "/debriefs/{debrief_id}/questions": {
+      "get": {
+        "summary": "List Questions",
+        "description": "The questions asked on a debrief, the first first.",
+        "operationId": "list_questions_debriefs__debrief_id__questions_get",
+        "parameters": [
+          {
+            "name": "debrief_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Debrief Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/QuestionReply"
+                  },
+                  "title": "Response List Questions Debriefs  Debrief Id  Questions Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Ask Question",
+        "description": "A question on a published debrief, answered directly: its context is the debrief's race, analyses and rules.\nA reply with a number no analysis backs is withheld; a question on another race is refused.",
+        "operationId": "ask_question_debriefs__debrief_id__questions_post",
+        "parameters": [
+          {
+            "name": "debrief_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Debrief Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewQuestion"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuestionReply"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/debriefs/{debrief_id}/review": {
       "post": {
         "summary": "Answer Review",
@@ -1476,6 +1568,24 @@
         ],
         "title": "NewDebrief"
       },
+      "NewQuestion": {
+        "properties": {
+          "question": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 3,
+            "title": "Question",
+            "examples": [
+              "Détaille le cycle d'arrêts de Leclerc"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "question"
+        ],
+        "title": "NewQuestion"
+      },
       "Option": {
         "properties": {
           "label": {
@@ -1557,6 +1667,82 @@
           "analyses"
         ],
         "title": "PlanAnswer"
+      },
+      "QuestionReply": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "question": {
+            "type": "string",
+            "title": "Question"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "answered",
+              "withheld",
+              "refused",
+              "stopped"
+            ],
+            "title": "Status"
+          },
+          "points": {
+            "items": {
+              "$ref": "#/components/schemas/ShownPoint"
+            },
+            "type": "array",
+            "title": "Points",
+            "description": "The answer; empty unless answered"
+          },
+          "facts": {
+            "items": {
+              "$ref": "#/components/schemas/Fact"
+            },
+            "type": "array",
+            "title": "Facts",
+            "description": "The analyses its points cite"
+          },
+          "sources": {
+            "items": {
+              "$ref": "#/components/schemas/Source"
+            },
+            "type": "array",
+            "title": "Sources",
+            "description": "The rule passages its points cite"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason",
+            "description": "Why it is refused, withheld or stopped"
+          },
+          "asked_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Asked At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "question",
+          "status",
+          "points",
+          "facts",
+          "sources",
+          "reason",
+          "asked_at"
+        ],
+        "title": "QuestionReply",
+        "description": "A question asked on a published debrief, and its reply: shown only when every number is backed."
       },
       "Race": {
         "properties": {

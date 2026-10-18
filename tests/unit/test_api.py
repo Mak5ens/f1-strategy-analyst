@@ -7,9 +7,12 @@ from typing import Any
 import pytest
 from fastapi.testclient import TestClient
 from test_agent import FakeTheme, agent
+from test_chat import FakeChatTheme
 
 from core.agent import Agent, Decision, Point, Run
-from f1.api import app, get_agent, get_requests, openapi_document, subject
+from core.agent.chat import Chat, ChatLimits, Reply
+from core.tracing import Tracer
+from f1.api import app, get_agent, get_chat, get_requests, openapi_document, subject
 
 OPENAPI = Path(__file__).parents[2] / "web" / "openapi.json"
 
@@ -20,6 +23,7 @@ class FakeRequests:
     def __init__(self) -> None:
         self.rows: dict[str, dict[str, Any]] = {}
         self.journal: list[dict[str, Any]] = []
+        self.questions: list[dict[str, Any]] = []
 
     def record(self, run: Run) -> None:
         now = datetime.now(UTC)
@@ -44,6 +48,16 @@ class FakeRequests:
                 "subject": self.rows[thread_id]["subject"],
             })  # fmt: skip
 
+    def save_reply(self, thread_id: str, reply: Reply) -> dict[str, Any]:
+        row = {"id": len(self.questions) + 1, "thread_id": thread_id, "question": reply.question,
+               "status": reply.status, "reply": reply.model_dump(mode="json"),
+               "asked_at": datetime.now(UTC)}  # fmt: skip
+        self.questions.append(row)
+        return row
+
+    def replies(self, thread_id: str) -> list[dict[str, Any]]:
+        return [row for row in self.questions if row["thread_id"] == thread_id]
+
     def decisions(
         self, *, thread_id: str | None = None, actions: Sequence[str] | None = None, limit: int = 500
     ) -> list[dict[str, Any]]:
@@ -64,6 +78,13 @@ class FakeRequests:
         return sorted(rows, key=lambda row: row["updated_at"], reverse=True)[:limit]
 
 
+ANSWERS = [
+    [Point(id="A1", text="Leclerc a perdu 21.4 s au tour 23.", facts=["loss:LEC"])],
+    [Point(id="A1", text="Leclerc a perdu 30 s.", facts=["loss:LEC"])],  # wrong, twice: withheld
+    [Point(id="A1", text="Leclerc a perdu 30 s.", facts=["loss:LEC"])],
+]
+
+
 @pytest.fixture
 def client() -> Iterator[TestClient]:
     requests = FakeRequests()
@@ -71,6 +92,10 @@ def client() -> Iterator[TestClient]:
     bot._on_run = requests.record
     app.dependency_overrides[get_agent] = lambda: bot
     app.dependency_overrides[get_requests] = lambda: requests
+    chat = Chat(
+        FakeChatTheme([list(answer) for answer in ANSWERS]), tracer=Tracer(None), limits=ChatLimits(_env_file=None)
+    )
+    app.dependency_overrides[get_chat] = lambda: chat
     yield TestClient(app)
     app.dependency_overrides.clear()
 
@@ -127,6 +152,29 @@ def test_each_decision_of_a_review_is_logged_with_the_agents_text(client: TestCl
     assert rejected[1]["text_before"] == first["text"] and rejected[1]["text_after"] == "Texte corrigé."
     assert rejected[0]["decided_by"] == "analyste" and rejected[0]["subject"]["round"] == 16
     assert len(client.get("/decisions", params={"debrief": debrief["id"]}).json()) == len(decisions)
+
+
+def test_questions_on_a_published_debrief_show_only_backed_answers(client: TestClient) -> None:
+    debrief = client.post("/debriefs", json={"request": "Débrief de Monza"}).json()
+    asked = client.post(f"/debriefs/{debrief['id']}/questions", json={"question": "Combien a coûté l'arrêt ?"})
+    assert asked.status_code == 409  # not published yet
+    reviewed = client.post(f"/debriefs/{debrief['id']}/plan", json={"analyses": ["loss:LEC", "sc"]}).json()
+    decisions = [{"point": point["id"], "action": "approve"} for point in reviewed["points"]]
+    client.post(f"/debriefs/{debrief['id']}/review", json={"decisions": decisions})
+
+    answered = client.post(f"/debriefs/{debrief['id']}/questions", json={"question": "Combien a coûté l'arrêt ?"})
+    withheld = client.post(f"/debriefs/{debrief['id']}/questions", json={"question": "Et le second ?"}).json()
+    refused = client.post(f"/debriefs/{debrief['id']}/questions", json={"question": "Et à Bakou ?"}).json()
+
+    assert answered.status_code == 201
+    reply = answered.json()
+    assert reply["status"] == "answered" and reply["facts"] == [
+        {"id": "loss:LEC", "label": "Arrêts de Leclerc", "ok": True, "error": None}
+    ]
+    assert (withheld["status"], withheld["points"]) == ("withheld", []) and "30" in withheld["reason"]
+    assert refused["status"] == "refused"
+    thread = client.get(f"/debriefs/{debrief['id']}/questions").json()
+    assert [item["status"] for item in thread] == ["answered", "withheld", "refused"]
 
 
 def test_an_ambiguous_request_waits_for_a_clarification_answered_by_label(client: TestClient) -> None:

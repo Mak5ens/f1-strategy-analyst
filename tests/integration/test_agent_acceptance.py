@@ -5,6 +5,7 @@
 - An ambiguous request ("le dernier GP") asks instead of guessing.
 - A question on a race chosen from its page (LAB-203) is never asked which race, answers first, every number backed,
   and ends on what the data cannot say.
+- A question on a published debrief (LAB-205) is answered with backed numbers only, and another race is refused.
 """
 
 import uuid
@@ -15,7 +16,7 @@ import pytest
 from core.agent import Agent, AgentState
 from core.agent.store import PublishedStore
 from core.numbers import unverified_numbers
-from f1.agent import debrief_agent
+from f1.agent import debrief_agent, debrief_chat
 from f1.data import connect
 
 pytestmark = pytest.mark.integration
@@ -79,6 +80,26 @@ def test_a_question_on_a_chosen_race_answers_first(agent: Agent) -> None:
     assert "tendre" in points[0].text.lower() and "strategies" in points[0].facts
     assert not any(char.isdigit() for char in points[-1].text)  # what the data cannot say: no number
     assert all(point.status == "verified" for point in points), [point.problems for point in points]
+
+
+def test_questions_on_the_ferrari_debrief_of_monza(agent: Agent) -> None:
+    given = {"season": 2025, "round": 16}
+    run = agent.start("Débrief stratégique pour Ferrari", thread_id=str(uuid.uuid4()), given=given)
+    assert run.waiting is not None and run.waiting.kind == "plan"
+    plan = run.waiting.payload["analyses"]
+    run = agent.resume(run.thread_id, [analysis["id"] for analysis in plan if analysis["selected"]])
+    assert run.waiting is not None, run.state.stop_reason
+    run = agent.resume(run.thread_id, [{"point": p.id, "action": "approve"} for p in run.state.points])
+    assert run.status == "published"
+    chat = debrief_chat()
+
+    reply = chat.ask("Détaille le cycle d'arrêts de Leclerc face à Russell", state=run.state)
+    refused = chat.ask("Et au Grand Prix de Monaco ?", state=run.state)
+
+    assert reply.status in {"answered", "withheld"}, reply.reason
+    if reply.status == "answered":  # what is shown is backed, every number
+        assert reply.points and all(point.status == "verified" for point in reply.points)
+    assert refused.status == "refused" and refused.spent.llm_calls == 0
 
 
 def assert_backed(state: AgentState) -> None:

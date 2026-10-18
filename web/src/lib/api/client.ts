@@ -14,6 +14,7 @@ export type Decision = components["schemas"]["Decision"];
 export type Fact = components["schemas"]["Fact"];
 export type Source = components["schemas"]["Source"];
 export type JournalEntry = components["schemas"]["JournalEntry"];
+export type QuestionReply = components["schemas"]["QuestionReply"];
 export type Race = components["schemas"]["Race"];
 export type RaceSummary = components["schemas"]["RaceSummary"];
 
@@ -131,6 +132,19 @@ export async function fetchJournal(
 ): Promise<JournalEntry[] | null> {
   try {
     const { data } = await client.GET("/decisions", { params: { query }, signal: AbortSignal.timeout(10000) });
+    return data ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** The questions asked on a debrief and their replies, the first first; null when the API does not answer. */
+export async function fetchQuestions(id: string, client: Client = apiClient()): Promise<QuestionReply[] | null> {
+  try {
+    const { data } = await client.GET("/debriefs/{debrief_id}/questions", {
+      params: { path: { debrief_id: id } },
+      signal: AbortSignal.timeout(10000),
+    });
     return data ?? null;
   } catch {
     return null;

@@ -6,7 +6,7 @@ from typing import Any
 import pytest
 from test_grand_prix import write_lake
 
-from core.agent import Clarification
+from core.agent import Clarification, Point
 from f1.agent.theme import F1Theme
 from f1.data import connect
 from f1.tools import RaceData
@@ -60,3 +60,24 @@ def test_the_answer_is_titled_as_one(theme: F1Theme) -> None:
     assert not isinstance(subject, Clarification)
 
     assert theme.render(subject, [], []).startswith("# Réponse : Grand Prix de Chine 2025")
+
+
+def test_a_question_on_a_debrief_stays_on_its_race(theme: F1Theme) -> None:
+    subject = theme.resolve({**NOTHING_NAMED, "season": 2025, "round": 2})
+    assert not isinstance(subject, Clarification)
+
+    assert theme.scope(subject, "Détaille le cycle d'arrêts de Leclerc") is None
+    assert theme.scope(subject, "Et à Shanghai, sous la voiture de sécurité ?") is None  # the same race, by its place
+    assert theme.scope(subject, "Pourquoi pas comme en 2025 ?") is None
+    refused = theme.scope(subject, "Et au GP de Monaco ?")
+    assert refused is not None and refused.startswith("Cette question porte sur le Grand Prix de Monaco, pas sur le")
+    assert "page de cette course" in refused and "question libre" in refused
+    assert (theme.scope(subject, "Et en 2024 ?") or "").startswith("Cette question porte sur la saison 2024")
+
+
+def test_an_article_named_needs_its_source(theme: F1Theme) -> None:
+    named = Point(id="A1", text="Les pneus sont ceux de l'article B6.2.4.")
+
+    assert theme.check(named) == ["names articles without citing their source: B6.2.4"]
+    assert theme.check(named.model_copy(update={"sources": ["Q:S1"]})) == []
+    assert theme.check(Point(id="A2", text="Leclerc a perdu 24.8 s au tour 33.")) == []

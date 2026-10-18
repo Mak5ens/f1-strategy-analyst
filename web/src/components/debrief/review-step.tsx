@@ -4,6 +4,7 @@ import { cn } from "cn";
 import { Check, LoaderCircle, Pencil, X } from "lucide-react";
 import { type ReactNode, useActionState, useState } from "react";
 import { type AnswerState, answerReview } from "@/app/actions";
+import { FiguresText } from "@/components/figures-text";
 import { Button } from "@/components/ui/button";
 import type { Debrief, Decision, Point } from "@/lib/api/client";
 import { getMessages } from "@/lib/i18n";
@@ -88,7 +89,7 @@ export function ReviewStep({ debrief, evidence }: { debrief: Debrief; evidence: 
                 <PointStatus status={point.status} />
               </div>
               <p className={cn("text-base leading-relaxed", draft?.action === "reject" && "line-through")}>
-                {point.text}
+                <FiguresText text={point.text} />
               </p>
               {point.problems.length > 0 && (
                 <div className="rounded-lg border border-warning/40 bg-warning/5 px-3 py-2 text-sm">

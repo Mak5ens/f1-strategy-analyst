@@ -1,9 +1,11 @@
+import { FiguresText } from "@/components/figures-text";
 import { StrategyChart } from "@/components/race/strategy-chart";
 import { SectionTitle } from "@/components/section-title";
-import type { Debrief, Race } from "@/lib/api/client";
+import type { Debrief, QuestionReply, Race } from "@/lib/api/client";
 import { getMessages } from "@/lib/i18n";
 import { PointEvidence } from "./point-evidence";
 import { PointStatus } from "./point-status";
+import { QuestionThread } from "./question-thread";
 
 const t = getMessages().debrief.published;
 
@@ -17,7 +19,15 @@ function followed(debrief: Debrief, race: Race): Set<string> {
 }
 
 /** A published debrief: its points with their figures and sources, the strategy of the drivers it follows, the review. */
-export function PublishedDebrief({ debrief, race }: { debrief: Debrief; race: Race | null }) {
+export function PublishedDebrief({
+  debrief,
+  race,
+  replies,
+}: {
+  debrief: Debrief;
+  race: Race | null;
+  replies: QuestionReply[];
+}) {
   const codes = race ? followed(debrief, race) : new Set<string>();
   const strategies = race?.strategies.filter((strategy) => codes.has(strategy.driver.code)) ?? [];
   const count = (action: string) => debrief.decisions.filter((decision) => decision.action === action).length;
@@ -34,13 +44,16 @@ export function PublishedDebrief({ debrief, race }: { debrief: Debrief; race: Ra
                 </span>
                 <PointStatus status={point.status} />
               </div>
-              <p className="text-base leading-relaxed">{point.text}</p>
-              <PointEvidence point={point} debrief={debrief} />
+              <p className="text-base text-foreground/85 leading-relaxed">
+                <FiguresText text={point.text} />
+              </p>
+              <PointEvidence point={point} evidence={debrief} />
             </li>
           ))}
         </ol>
         <p className="mt-4 text-muted-foreground text-sm">{t.method}</p>
       </section>
+      <QuestionThread debrief={debrief} replies={replies} />
       {race && strategies.length > 0 && (
         <section>
           <SectionTitle>{t.strategy}</SectionTitle>

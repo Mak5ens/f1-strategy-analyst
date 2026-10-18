@@ -24,7 +24,8 @@ from fastapi import Depends, FastAPI, HTTPException, Query
 from pydantic import BaseModel, Field, model_validator
 
 from core.agent import Agent, Analysis, Clarification, Decision, Point, Run
-from core.agent.state import RejectReason
+from core.agent.chat import Chat, Exchange, Reply
+from core.agent.state import AgentState, RejectReason
 from core.agent.store import RequestStore
 from f1.display import Driver, Response, grand_prix_fr, team_colour
 from f1.grand_prix import GrandPrix, Race, RaceSummary
@@ -108,6 +109,23 @@ class Debrief(Response):
     stop_reason: str | None = None
 
 
+class QuestionReply(Response):
+    """A question asked on a published debrief, and its reply: shown only when every number is backed."""
+
+    id: int
+    question: str
+    status: Literal["answered", "withheld", "refused", "stopped"]
+    points: list[ShownPoint] = Field(default_factory=list, description="The answer; empty unless answered")
+    facts: list[Fact] = Field(default_factory=list, description="The analyses its points cite")
+    sources: list[Source] = Field(default_factory=list, description="The rule passages its points cite")
+    reason: str | None = Field(None, description="Why it is refused, withheld or stopped")
+    asked_at: datetime
+
+
+class NewQuestion(BaseModel):
+    question: str = Field(min_length=3, max_length=500, examples=["Détaille le cycle d'arrêts de Leclerc"])
+
+
 class JournalEntry(Response):
     """A decision of a review, kept with the agent's text it judged."""
 
@@ -166,6 +184,7 @@ _lock = threading.Lock()
 _agent: Agent | None = None
 _requests: RequestStore | None = None
 _grand_prix: GrandPrix | None = None
+_chat: Chat | None = None
 
 
 def get_agent() -> Agent:
@@ -196,7 +215,18 @@ def get_grand_prix() -> GrandPrix:
     return _grand_prix
 
 
+def get_chat() -> Chat:
+    global _chat
+    with _lock:
+        if _chat is None:
+            from f1.agent import debrief_chat
+
+            _chat = debrief_chat()
+    return _chat
+
+
 AgentDep = Annotated[Agent, Depends(get_agent)]
+ChatDep = Annotated[Chat, Depends(get_chat)]
 RequestsDep = Annotated[RequestStore, Depends(get_requests)]
 GrandPrixDep = Annotated[GrandPrix, Depends(get_grand_prix)]
 
@@ -298,6 +328,55 @@ def answer_plan(debrief_id: str, body: PlanAnswer, agent: AgentDep) -> Debrief:
     """Validate the plan: the analyses kept run, then the agent drafts and checks the points, up to the review."""
     _waiting(agent, debrief_id, "plan")
     return debrief(agent.resume(debrief_id, body.analyses))
+
+
+@app.get("/debriefs/{debrief_id}/questions")
+def list_questions(debrief_id: str, agent: AgentDep, requests: RequestsDep) -> list[QuestionReply]:
+    """The questions asked on a debrief, the first first."""
+    state = _run(agent, debrief_id).state
+    return [question_reply(row, state) for row in requests.replies(debrief_id)]
+
+
+@app.post("/debriefs/{debrief_id}/questions", status_code=201)
+def ask_question(
+    debrief_id: str, body: NewQuestion, agent: AgentDep, chat: ChatDep, requests: RequestsDep
+) -> QuestionReply:
+    """A question on a published debrief, answered directly: its context is the debrief's race, analyses and rules.
+    A reply with a number no analysis backs is withheld; a question on another race is refused."""
+    run = _run(agent, debrief_id)
+    if run.status != "published":
+        raise HTTPException(409, f"debrief {debrief_id} is not published ({run.status})")
+    history = [
+        Exchange(question=row["question"], answer=" ".join(point["text"] for point in row["reply"]["points"]))
+        for row in requests.replies(debrief_id)
+        if row["status"] == "answered"
+    ]
+    reply = chat.ask(body.question, state=run.state, history=history)
+    return question_reply(requests.save_reply(debrief_id, reply), run.state)
+
+
+def question_reply(row: Mapping[str, Any], state: AgentState) -> QuestionReply:
+    reply = Reply.model_validate(row["reply"])
+    results = {result.id: result for result in [*state.results, *reply.results]}
+    passages = {source.id: source for rule in [*state.rules, *reply.rules] for source in rule.sources}
+    cited = [id_ for point in reply.points for id_ in point.facts]
+    quoted = [id_ for point in reply.points for id_ in point.sources]
+    return QuestionReply(
+        id=row["id"],
+        question=reply.question,
+        status=reply.status,
+        points=[ShownPoint.model_validate(point.model_dump()) for point in reply.points],
+        facts=[
+            Fact(id=r.id, label=r.label, ok=r.ok, error=r.error)
+            for id_ in dict.fromkeys(cited)
+            if (r := results.get(id_))
+        ],
+        sources=[
+            Source(id=p.id, label=p.label, text=p.text) for id_ in dict.fromkeys(quoted) if (p := passages.get(id_))
+        ],
+        reason=reply.reason,
+        asked_at=row["asked_at"],
+    )
 
 
 # Who decides, until the site has accounts (milestone 6): its owner, the analyst.

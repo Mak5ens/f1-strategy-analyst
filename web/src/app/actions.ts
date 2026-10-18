@@ -73,3 +73,19 @@ export async function answerReview(id: string, _: AnswerState, form: FormData): 
   if (!data) return { error: true };
   redirect(`/debriefs/${id}`);
 }
+
+/** Ask a question on a published debrief; its reply, shown or withheld, is added to the thread. (A redirect to the
+ * same page with only a hash would scroll without rendering it again.) */
+export async function askQuestion(id: string, _: AnswerState, form: FormData): Promise<AnswerState> {
+  const question = String(form.get("question") ?? "").trim();
+  if (question.length < 3) return { error: true };
+  const { data } = await apiClient()
+    .POST("/debriefs/{debrief_id}/questions", {
+      params: { path: { debrief_id: id } },
+      body: { question },
+      signal: AbortSignal.timeout(AGENT_TIMEOUT),
+    })
+    .catch(() => ({ data: undefined }));
+  if (!data) return { error: true };
+  redirect(`/debriefs/${id}`);
+}

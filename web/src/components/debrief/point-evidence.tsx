@@ -1,12 +1,12 @@
-import type { Debrief, Point } from "@/lib/api/client";
+import type { Fact, Point, Source } from "@/lib/api/client";
 import { getMessages } from "@/lib/i18n";
 
 const t = getMessages().debrief.review;
 
 /** Where a point's numbers and rules come from: the analyses it cites, and the FIA passages, opened on a click. */
-export function PointEvidence({ point, debrief }: { point: Point; debrief: Debrief }) {
-  const facts = debrief.facts.filter((fact) => point.facts.includes(fact.id));
-  const sources = debrief.sources.filter((source) => point.sources.includes(source.id));
+export function PointEvidence({ point, evidence }: { point: Point; evidence: { facts: Fact[]; sources: Source[] } }) {
+  const facts = evidence.facts.filter((fact) => point.facts.includes(fact.id));
+  const sources = evidence.sources.filter((source) => point.sources.includes(source.id));
   if (!facts.length && !sources.length) return null;
   return (
     <div className="flex flex-col gap-3 text-sm">
