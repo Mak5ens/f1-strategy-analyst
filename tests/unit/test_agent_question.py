@@ -90,17 +90,24 @@ def test_a_debrief_is_drafted_as_a_summary_titled_moments_and_a_takeaway(
     assert not isinstance(subject, Clarification)
     written = Draft(
         summary=DraftPoint(text="Verstappen gagne, parti 2e.", facts=["result"]),
-        points=[TitledPoint(title="L'undercut de Verstappen paie", text="Il rentre au tour 3.", facts=["stops:VER"])],
+        points=[
+            TitledPoint(title="Norris s'arrête tard", text="Il rentre aux tours 20 et 40.", facts=["stops:NOR"]),
+            TitledPoint(title="Le rythme de Norris", text="Il tient ses pneus.", facts=["stints:NOR"]),
+            TitledPoint(title="L'undercut de Verstappen paie", text="Il rentre au tour 3.", facts=["stops:VER"]),
+        ],
         takeaway=Takeaway(text="Le premier à s'arrêter a gagné."),
     )
     monkeypatch.setattr("f1.agent.theme.complete_json", lambda *args, **kwargs: written)
 
     points = theme.draft("Débrief", subject, [], [], {}, session_id=None)
 
-    assert [(point.id, point.kind, point.title) for point in points] == [
-        ("S", "summary", None),
-        ("P1", "point", "L'undercut de Verstappen paie"),
-        ("T", "takeaway", None),
+    # The moments in the order of the race; one naming no lap stays after the one before it.
+    assert [(point.id, point.kind, point.title, point.when) for point in points] == [
+        ("S", "summary", None, None),
+        ("P1", "point", "L'undercut de Verstappen paie", "Tour 3"),
+        ("P2", "point", "Norris s'arrête tard", "Tours 20 à 40"),
+        ("P3", "point", "Le rythme de Norris", None),
+        ("T", "takeaway", None, None),
     ]
     published = theme.render(subject, points, [])
     assert "Verstappen gagne, parti 2e.\n\n## L'undercut de Verstappen paie\n\nIl rentre au tour 3." in published

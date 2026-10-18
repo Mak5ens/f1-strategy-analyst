@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import type { Debrief, Decision, Point } from "@/lib/api/client";
 import { getMessages } from "@/lib/i18n";
 import { momentNumbers, PointHeader, partStyle } from "./point-header";
+import { DebriefPart, timelinePlaces } from "./timeline";
 
 const t = getMessages().debrief.review;
 
@@ -30,6 +31,7 @@ export function ReviewStep({ debrief, evidence }: { debrief: Debrief; evidence: 
   });
   const [drafts, setDrafts] = useState<Record<string, Draft>>({});
   const numbers = momentNumbers(debrief.points);
+  const places = timelinePlaces(debrief.points);
   const set = (point: Point, change: Partial<Draft>) =>
     setDrafts((current) => {
       const previous = current[point.id] ?? { action: "approve", text: point.text, reason: null };
@@ -74,8 +76,10 @@ export function ReviewStep({ debrief, evidence }: { debrief: Debrief; evidence: 
         {debrief.points.map((point, index) => {
           const draft = drafts[point.id];
           return (
-            <li
+            <DebriefPart
               key={point.id}
+              point={point}
+              place={places.get(point.id)}
               className={cn(
                 "flex flex-col gap-4 rounded-xl border bg-surface p-5 transition-colors",
                 partStyle(point),
@@ -156,7 +160,7 @@ export function ReviewStep({ debrief, evidence }: { debrief: Debrief; evidence: 
                   </label>
                 </div>
               )}
-            </li>
+            </DebriefPart>
           );
         })}
       </ol>

@@ -974,6 +974,8 @@ export interface components {
       text: string;
       /** Title */
       title: string | null;
+      /** When */
+      when: string | null;
       /**
        * Kind
        * @default point

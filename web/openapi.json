@@ -2453,6 +2453,17 @@
             ],
             "title": "Title"
           },
+          "when": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "When"
+          },
           "kind": {
             "type": "string",
             "enum": [
@@ -2504,6 +2515,7 @@
           "id",
           "text",
           "title",
+          "when",
           "kind",
           "facts",
           "sources",

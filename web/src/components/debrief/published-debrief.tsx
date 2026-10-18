@@ -7,6 +7,7 @@ import { getMessages } from "@/lib/i18n";
 import { PointEvidence } from "./point-evidence";
 import { momentNumbers, PointHeader, partStyle } from "./point-header";
 import { QuestionThread } from "./question-thread";
+import { DebriefPart, timelinePlaces } from "./timeline";
 
 const t = getMessages().debrief.published;
 
@@ -32,6 +33,7 @@ export function PublishedDebrief({
   const codes = race ? followed(debrief, race) : new Set<string>();
   const strategies = race?.strategies.filter((strategy) => codes.has(strategy.driver.code)) ?? [];
   const numbers = momentNumbers(debrief.points);
+  const places = timelinePlaces(debrief.points);
   const count = (action: string) => debrief.decisions.filter((decision) => decision.action === action).length;
   return (
     <div className="flex flex-col gap-14">
@@ -39,7 +41,12 @@ export function PublishedDebrief({
         <SectionTitle>{t.points}</SectionTitle>
         <ol className="flex flex-col gap-4">
           {debrief.points.map((point) => (
-            <li key={point.id} className={cn("flex flex-col gap-4 rounded-xl border bg-surface p-5", partStyle(point))}>
+            <DebriefPart
+              key={point.id}
+              point={point}
+              place={places.get(point.id)}
+              className={cn("flex flex-col gap-4 rounded-xl border bg-surface p-5", partStyle(point))}
+            >
               <PointHeader point={point} number={numbers.get(point.id)} />
               <p
                 className={cn(
@@ -50,7 +57,7 @@ export function PublishedDebrief({
                 <FiguresText text={point.text} />
               </p>
               <PointEvidence point={point} evidence={debrief} />
-            </li>
+            </DebriefPart>
           ))}
         </ol>
         <p className="mt-4 text-muted-foreground text-sm">{t.method}</p>

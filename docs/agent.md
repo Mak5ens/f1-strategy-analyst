@@ -30,7 +30,7 @@ parse ─▶ resolve ─▶ plan ─▶ ⏸ approve_plan ─▶ run_tools ─▶
 | `run_tools` | code | The tools of LAB-144 and `penalties`; a tool that fails gives no number, and its point says the data is unavailable. Each output gets its `lecture`, what it means in French, written by code (`f1.agent.readings`) |
 | `detect_events` | code | Safety cars, VSCs, red flags, and the penalties of the drivers followed: one rule question each kind, 4 at most |
 | `retrieve_rules` | pipeline | The retrieval pipeline (ADR-024) answers each question, with its sources, inside the agent's trace |
-| `draft` | model | In French: a summary, 3 to 5 titled moments and a takeaway without a number, each citing the analyses its numbers and its meaning come from, and the rule sources it uses |
+| `draft` | model | In French: a summary, 3 to 5 titled moments and a takeaway without a number (code then orders the moments by the first lap each names, kept in `Point.when` for the timeline), each citing the analyses its numbers and its meaning come from, and the rule sources it uses |
 | `verify` | code + model | Each number in a cited analysis or source, each source retrieved, no number written in words nor in a title or the takeaway; then the meaning (`faithful`): who was ahead checked by code, the rest by a model against the readings. Back to `draft` with the problems, then marked unverified |
 | `review` | ⏸ person | Each point approved, corrected (with the text) or rejected, with a reason: `wrong_number`, `wrong_source`, `off_topic`, `wording`, `other` |
 | `apply`, `publish` | code | The decisions applied, the debrief rendered in Markdown and stored (`published`), with the decisions |

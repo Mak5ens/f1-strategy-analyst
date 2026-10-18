@@ -11,18 +11,28 @@ export function momentNumbers(points: Point[]): Map<string, number> {
   return new Map(moments.map((point, index) => [point.id, index + 1]));
 }
 
-/** The head of a point: "Résumé", "À retenir", or the moment's number and title (LAB-207); then its status. */
+/** The head of a point: "Résumé", "À retenir", or the moment's number and title, its lap above on a phone (LAB-207);
+ * then its status. */
 export function PointHeader({ point, number }: { point: Point; number?: number }) {
   const label = point.kind === "summary" ? t.summary : point.kind === "takeaway" ? t.takeaway : null;
   return (
     <div className="flex items-start justify-between gap-4">
-      <div className="flex items-baseline gap-3">
-        {label ? (
-          <span className="font-semibold text-primary text-xs uppercase tracking-wider">{label}</span>
-        ) : (
-          <span className="display figures text-muted-foreground text-xl">{String(number ?? 0).padStart(2, "0")}</span>
+      <div className="flex flex-col gap-1">
+        {point.when && (
+          <span className="figures font-semibold text-muted-foreground text-xs uppercase tracking-wide sm:hidden">
+            {point.when}
+          </span>
         )}
-        {point.title && <h3 className={cn("font-semibold text-lg leading-snug")}>{point.title}</h3>}
+        <div className="flex items-baseline gap-3">
+          {label ? (
+            <span className="font-semibold text-primary text-xs uppercase tracking-wider">{label}</span>
+          ) : (
+            <span className="display figures text-muted-foreground text-xl">
+              {String(number ?? 0).padStart(2, "0")}
+            </span>
+          )}
+          {point.title && <h3 className={cn("font-semibold text-lg leading-snug")}>{point.title}</h3>}
+        </div>
       </div>
       <PointStatus status={point.status} />
     </div>

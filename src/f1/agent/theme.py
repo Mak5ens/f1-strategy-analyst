@@ -73,6 +73,24 @@ _NUMBER_WORDS = re.compile(
 )
 # An article of the regulations as a text names it: "article 55.14", "B6.2.4".
 _ARTICLE = re.compile(r"\b(?:[Aa]rticles? \d+(?:\.\d+)*[a-z]?|[A-Z]\d+(?:\.\d+)+)")
+
+
+def _laps(text: str) -> list[int]:
+    """The laps a text names, in order: "au tour 33", "tours 34 à 53"."""
+    return sorted({int(lap) for pair in _LAPS.findall(plain(text)) for lap in pair if lap})
+
+
+def _lap_before(laps: Sequence[Sequence[int]], index: int) -> int:
+    """Where a moment naming no lap stands: at the last lap named before it, or the start of the race."""
+    return next((named[0] for named in reversed(laps[:index]) if named), 0)
+
+
+def _when(laps: Sequence[int]) -> str | None:
+    if not laps:
+        return None
+    return f"Tour {laps[0]}" if len(laps) == 1 else f"Tours {laps[0]} à {laps[-1]}"
+
+
 KINDS_FR = {"race": "la course", "driver": "un pilote", "team": "une écurie"}
 
 PARSE = """Tu lis la demande d'un analyste stratégie en Formule 1. Relève seulement ce qu'elle nomme, tel qu'elle \
@@ -686,11 +704,15 @@ class F1Theme:
             max_tokens=self.models.draft_max_tokens, name="agent.draft", session_id=session_id,
         )  # fmt: skip
         summary = draft.summary
+        # The moments in the order of the race, by the first lap each names; one naming none keeps its place.
+        laps = [_laps(point.text) for point in draft.points]
+        order = sorted(range(len(laps)), key=lambda i: (laps[i] or [_lap_before(laps, i)])[0])
+        moments = [(draft.points[i], _when(laps[i])) for i in order]
         return [
             Point(id="S", kind="summary", text=summary.text, facts=summary.facts, sources=summary.sources),
             *(
-                Point(id=f"P{number}", title=point.title, text=point.text, facts=point.facts, sources=point.sources)
-                for number, point in enumerate(draft.points, start=1)
+                Point(id=f"P{number}", when=when, **point.model_dump())
+                for number, (point, when) in enumerate(moments, start=1)
             ),
             Point(id="T", kind="takeaway", text=draft.takeaway.text),
         ]
