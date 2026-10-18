@@ -15,6 +15,8 @@ const ferrari: Subject = {
   focus: [{ code: "LEC", name: "Charles Leclerc", team: "Ferrari", colour: "#e8002d" }],
   colour: "#e8002d",
   question: false,
+  moments: false,
+  prepared: null,
 };
 const unresolved: Subject = {
   ...ferrari,

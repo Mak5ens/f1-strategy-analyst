@@ -125,6 +125,11 @@ eval *args: _env
 eval-dataset *args: _env
     uv run f1-eval-dataset "$@"
 
+# Prepare debriefs up to their review (teams and moments by default; options in src/f1/prepare.py)
+# e.g. `just debriefs-prepare 2025 --round 16`; a rerun skips what is already prepared
+debriefs-prepare season *args: _env
+    uv run f1-debriefs-prepare "$@"
+
 # Summarize every session of a season through the platform's job queue, e.g. `just season-jobs 2025 --simulate`
 # (needs llmops-gateway's stack: RabbitMQ and the worker)
 season-jobs season *args: _env

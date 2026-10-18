@@ -133,3 +133,34 @@ def test_who_was_ahead_is_checked_without_a_model(theme: F1Theme) -> None:
 
     assert found == ["sens, contredit (code) : « Charles Leclerc devant Max Verstappen » ; les analyses mettent "
                      "Max Verstappen devant"]  # fmt: skip
+
+
+def test_the_moments_of_a_race_are_planned_by_code(theme: F1Theme) -> None:
+    subject = theme.resolve({**NOTHING_NAMED, "season": 2025, "round": 2, "moments": True, "drivers": [],
+                             "teams": []})  # fmt: skip
+    assert not isinstance(subject, Clarification)
+
+    plan = theme.candidates(subject)
+
+    assert [analysis.id for analysis in plan] == ["result", "neutralizations", "penalties", "moments"]
+    assert theme.choose("Les moments", subject, plan, session_id=None) == [analysis.id for analysis in plan]
+    moments = theme.run(next(analysis for analysis in plan if analysis.id == "moments"))
+    assert moments["moments"] == []  # nothing in this race moved the order
+    assert moments["lecture"] == ["Aucun moment de la course n'a fait bouger le classement de façon mesurable."]
+
+
+def test_a_prepared_team_debrief_is_resolved_from_what_code_gave(theme: F1Theme) -> None:
+    subject = theme.resolve({**NOTHING_NAMED, "season": 2025, "round": 2, "prepared": "team", "teams": ["Ferrari"],
+                             "drivers": ["LEC", "HAM"]})  # fmt: skip
+
+    assert not isinstance(subject, Clarification)
+    assert (subject["kind"], subject["focus"], subject["prepared"]) == ("team", ["LEC", "HAM"], "team")
+
+
+def test_numbers_in_words_are_put_in_digits_before_the_checks() -> None:
+    from f1.agent.theme import in_digits
+
+    assert in_digits("Antonelli perd trois places, puis Une place ; vingt tours plus tard, deux dixièmes.") == (
+        "Antonelli perd 3 places, puis 1 place ; 20 tours plus tard, 2 dixièmes."
+    )
+    assert in_digits("Il finit deuxième, un arrêt plus tard.") == "Il finit deuxième, un arrêt plus tard."

@@ -166,6 +166,17 @@ export const fr = {
       title: "Débriefs de cette course",
       empty: "Aucun débrief sur cette course pour l'instant.",
       published: "Publié",
+      requested: "Demandés par l'analyste",
+    },
+    prepared: {
+      title: "Débriefs préparés",
+      lead: "Rédigés par l'agent après la course, puis relus point par point avant d'être lisibles ici.",
+      momentsLead: "Les cinq moments qui ont fait la course, trouvés et classés par le code.",
+      team: "Écuries",
+      driver: "Pilotes",
+      read: "Lire",
+      reviewing: "En relecture",
+      stopped: "Interrompu",
     },
     question: {
       title: "Une question sur cette course ?",
@@ -321,6 +332,7 @@ export const fr = {
   subject: {
     unresolved: "Course à préciser",
     race: "Toute la course",
+    moments: "Les moments de la course",
     round: (round: number) => `Manche ${round}`,
   },
   table: {

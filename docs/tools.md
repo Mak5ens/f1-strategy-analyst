@@ -85,7 +85,28 @@ Output: per period, `kind`, `start_lap`, `end_lap`, `start_utc`, `end_utc`, `dur
 
 Limits: a start behind the safety car (wet race) has no "DEPLOYED" message, so those laps are not a period; the laps' `track_status` still shows them. The message forms were checked on 2024 to 2026.
 
+## key_moments
+
+The moments that made a race (LAB-204), found and ranked by code: the "top 5" debrief tells them. Not in the baseline's catalog: the agent's theme adds it beside `penalties`, `race_strategies` and `race_weather`.
+
+| Kind | What code finds | Measure |
+| -- | -- | -- |
+| `start` | Places gained or lost between the grid and the end of lap 1 (2 or more; a pit lane start is left out) | places |
+| `overtakes` | Passes on track: at the end of lap n, a driver is ahead of one who was ahead at the end of lap n-1, neither stopped on either lap, and the lap saw no safety car, VSC or red flag | passes, their laps and who was passed |
+| `pit_cycle` | Two drivers who stopped on different laps, within 15 laps, without a neutralization, and swapped places (`pit_cycle` with `undercut_worked` or `overcut_worked`) | seconds gained on the rival |
+| `neutralized_stop` | A stop under a safety car or VSC that cost 5 s less than the median green flag stop | seconds saved, places before and after the neutralization |
+| `slow_stop` | A stop that cost 5 s more than the stops made within 3 laps under the same conditions (the race's when fewer than 3): a slow stop, an off on the in-lap | extra seconds, places before and after |
+| `strategy` | A driver whose number of stops differs from most drivers', and who gained 2 places or more from the grid. A tyre change under a red flag is not a stop: at São Paulo 2024, Verstappen made none before the red flag | stops, usual stops, places from the grid |
+| `setback` | 2 places or more lost on one green flag lap without a stop: an off, a spin, a problem | places |
+| `retirement` | A driver out of the race | the place held on the last lap |
+
+**Ranking** (an editorial rule, never a model's): a moment is worth the championship points it moved, as if the race had ended there (`Worth`), plus a tenth of a point per place, which orders the moments outside the points and breaks ties. A pass for the lead is worth 7.1; a gain from 15th to 10th, 1.5. A slow stop counts the points of the places it lost, times the share of the extra time in the stop's cost. A retirement is worth the points of the place held, plus a tenth per car behind. At most 2 moments of a kind and 2 of a driver among the 5.
+
+Checked on the reference races: Hungary 2024 gives Norris losing the lead at the start, Piastri passing him back on lap 68 and Norris's undercut on lap 45; Australia 2025, Piastri's off on his in-lap (92 s lost, 2nd to 15th) first; São Paulo 2024, Verstappen and Gasly changing tyres for free under the red flag.
+
+Limits: the data says how many places or seconds, not why (the reading says so). A position handed back by team order (Hungary 2024, lap 68) is a pass like any other. Penalties are not moments yet: whether one changed the result needs the classification before it, which the data does not hold.
+
 ## Tests
 
-- `tests/unit/test_tools.py`: a synthetic 10-lap race whose every number is computed by hand, plus the error messages and the tool calling schemas.
+- `tests/unit/test_tools.py`: a synthetic 10-lap race whose every number is computed by hand, plus the error messages and the tool calling schemas. `tests/unit/test_moments.py`: a synthetic 6-lap race for `key_moments`, each score computed by hand.
 - `tests/integration/test_tools_reference.py`: four real races against public race reports. The 2024 Hungarian GP (Norris's undercut on Piastri at the second stops; Piastri wins by 2.141 s), the 2024 São Paulo GP (VSC, safety car, red flag, rolling restart, safety car), the 2025 Australian GP (three safety cars) and the 2025 Italian GP (Norris's 5.9 s stop lets Piastri out ahead; low tyre wear).

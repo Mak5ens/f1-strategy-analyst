@@ -61,6 +61,10 @@ class Subject(Response):
     focus: list[Driver] = Field(default_factory=list, description="The drivers the debrief follows")
     colour: str | None = Field(None, description="The colour of the team followed, or of the first driver's team")
     question: bool = Field(False, description="A precise question on the race: its request is its title")
+    moments: bool = Field(False, description="The moments that made the race, found and ranked by code (LAB-204)")
+    prepared: Literal["team", "moments", "driver"] | None = Field(
+        None, description="Prepared after the race by `just debriefs-prepare`, not asked by an analyst"
+    )
 
 
 class DebriefSummary(Response):
@@ -543,6 +547,8 @@ def subject(raw: Mapping[str, Any]) -> Subject:
         focus=focus,
         colour=team_colour(lead),
         question=bool(raw.get("question")),
+        moments=bool(raw.get("moments")),
+        prepared=raw.get("prepared"),
     )
 
 

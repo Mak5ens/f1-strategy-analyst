@@ -4,6 +4,7 @@ import { connection } from "next/server";
 import { DebriefCard } from "@/components/debrief-card";
 import { PublishedTable } from "@/components/published-table";
 import { GridTable } from "@/components/race/grid-table";
+import { PreparedDebriefs } from "@/components/race/prepared-debriefs";
 import { QuestionForm } from "@/components/race/question-form";
 import { RaceEvents } from "@/components/race/race-events";
 import { RaceHero } from "@/components/race/race-hero";
@@ -49,8 +50,10 @@ export default async function GrandPrixPage({ params }: { params: Params }) {
   }
 
   const raced = race.classification.length > 0;
-  const waiting = debriefs?.filter((debrief) => debrief.status === "waiting") ?? [];
-  const published = debriefs?.filter((debrief) => debrief.status === "published") ?? [];
+  const prepared = debriefs?.filter((debrief) => debrief.subject.prepared) ?? [];
+  const requested = debriefs?.filter((debrief) => !debrief.subject.prepared) ?? [];
+  const waiting = requested.filter((debrief) => debrief.status === "waiting");
+  const published = requested.filter((debrief) => debrief.status === "published");
   return (
     <main>
       <RaceHero summary={race.summary} race={race} />
@@ -84,8 +87,15 @@ export default async function GrandPrixPage({ params }: { params: Params }) {
         </section>
       )}
 
+      {prepared.length > 0 && (
+        <section className="mx-auto max-w-6xl px-4 pt-16">
+          <SectionTitle>{t.prepared.title}</SectionTitle>
+          <PreparedDebriefs debriefs={prepared} />
+        </section>
+      )}
+
       <section className="mx-auto max-w-6xl px-4 pt-16">
-        <SectionTitle>{t.debriefs.title}</SectionTitle>
+        <SectionTitle>{prepared.length > 0 ? t.debriefs.requested : t.debriefs.title}</SectionTitle>
         <div className="flex flex-col gap-6">
           {waiting.length > 0 && (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

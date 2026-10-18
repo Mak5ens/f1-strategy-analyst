@@ -1,6 +1,7 @@
 """Time a pit stop cost: in-lap and out-lap against two normal laps of the same driver."""
 
 import statistics
+from collections.abc import Mapping
 from typing import Any
 
 from pydantic import BaseModel, Field
@@ -62,7 +63,7 @@ def pit_stop_loss(data: RaceData, request: PitLossInput) -> PitLossOutput:
     )
 
 
-def stop_loss(laps: dict[int, dict[str, Any]], stop: dict[str, Any]) -> StopLoss:
+def stop_loss(laps: Mapping[int, dict[str, Any]], stop: dict[str, Any]) -> StopLoss:
     in_lap = int(stop["lap"])
     out_lap = in_lap + 1
     before, after = laps.get(in_lap - 1), laps.get(out_lap)
