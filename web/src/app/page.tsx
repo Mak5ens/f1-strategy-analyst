@@ -1,28 +1,46 @@
 import { connection } from "next/server";
+import { AskForm } from "@/components/ask/ask-form";
+import { FreeAnswer } from "@/components/ask/free-answer";
+import { RecentQuestions } from "@/components/ask/recent-questions";
 import { DebriefCard } from "@/components/debrief-card";
-import { NewDebriefForm } from "@/components/new-debrief-form";
 import { PublishedTable } from "@/components/published-table";
 import { CalendarGrid } from "@/components/race/calendar-grid";
 import { LatestRace } from "@/components/race/latest-race";
 import { RaceCard } from "@/components/race/race-card";
 import { SeasonPicker } from "@/components/race/season-picker";
 import { SectionTitle } from "@/components/section-title";
-import { fetchDebriefs, fetchFeatured, fetchRaces, fetchSeasons } from "@/lib/api/client";
+import {
+  fetchDebriefs,
+  fetchFeatured,
+  fetchFreeQuestion,
+  fetchFreeQuestions,
+  fetchRaces,
+  fetchSeasons,
+} from "@/lib/api/client";
 import { getMessages } from "@/lib/i18n";
 
 /**
  * The race is the entry point: the last race and a few others first, then the season's calendar, a race two clicks
- * away at most. A request can still be typed at the top, and what waits for the analyst follows.
+ * away at most. A free question can be typed at the top (LAB-206), its answer shown under it (`?question=`); what
+ * waits for the analyst follows.
  */
-export default async function Home({ searchParams }: { searchParams: Promise<{ saison?: string }> }) {
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: Promise<{ saison?: string; question?: string }>;
+}) {
   await connection();
-  const [featured, seasons, waiting, published] = await Promise.all([
+  const params = await searchParams;
+  const questionId = Number(params.question) || undefined;
+  const [featured, seasons, waiting, published, recent, answer] = await Promise.all([
     fetchFeatured(),
     fetchSeasons(),
     fetchDebriefs({ status: "waiting" }),
     fetchDebriefs({ status: "published" }),
+    fetchFreeQuestions(),
+    questionId ? fetchFreeQuestion(questionId) : null,
   ]);
-  const asked = Number((await searchParams).saison);
+  const asked = Number(params.saison);
   const season = seasons?.includes(asked) ? asked : seasons?.[0];
   const races = season ? await fetchRaces(season) : null;
   const [latest, ...others] = featured ?? [];
@@ -41,11 +59,19 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ s
           </p>
           <h1 className="display max-w-4xl text-4xl sm:text-6xl">{t.title}</h1>
           <p className="max-w-2xl text-lg text-muted-foreground">{t.lead}</p>
-          <div className="max-w-3xl">
-            <NewDebriefForm />
+          <div className="flex max-w-3xl flex-col gap-6">
+            <AskForm />
+            {answer && <FreeAnswer answer={answer} />}
           </div>
         </div>
       </section>
+
+      {recent && recent.length > 0 && (
+        <section className="mx-auto max-w-6xl px-4 pt-14">
+          <SectionTitle>{t.recentTitle}</SectionTitle>
+          <RecentQuestions questions={recent} current={answer?.id} />
+        </section>
+      )}
 
       {latest && (
         <section className="mx-auto max-w-6xl px-4 pt-14">

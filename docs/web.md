@@ -16,7 +16,7 @@ Node.js 24 and corepack are needed on the host for `web-dev`, `web-test` and `we
 
 | Route | Content |
 | -- | -- |
-| `/` | The home page: a request for a debrief, the last race and two others, the requests waiting, the season's calendar (`?saison=2024`), the last debriefs |
+| `/` | The home page: a free question and its answer (`?question=<id>`, LAB-206), the recent questions, the last race and two others, the requests waiting, the season's calendar (`?saison=2024`), the last debriefs |
 | `/en-attente` | The requests waiting for the analyst, `?arret=plan` for one stop |
 | `/debriefs/<id>` | A request where it stands: the agent's question, the plan to tick (by driver), the review point by point (approve, correct, reject, a reason for the last two), the agent at work or stopped, or the debrief published with its figures, sources and the drivers' tyre strategy |
 | `/debriefs` | The published debriefs, `?saison=2025&manche=16` |
@@ -28,7 +28,9 @@ A race's page is read from the lake by `f1.grand_prix.GrandPrix` (`GET /races/{s
 
 The three stops answer through server actions (`src/app/actions.ts`): the agent runs inside the call, up to a minute from the plan to the review, then the page is rendered again where the request stands. Each review decision is logged with the agent's text (`decisions` table, `GET /decisions`); `just eval-dataset review-candidates` turns the corrections and rejections for a wrong number or source into candidate cases (`evals/datasets/candidates/review.jsonl`) to complete by hand.
 
-`e2e/review-flow.spec.ts` runs the whole path through the real agent and models: only with `E2E_AGENT=1` (a few cents a run), against `just up` and the gateway; the CI skips it.
+The free question goes to `POST /questions` through the `askFree` action: a debrief opens its request, any other answer is shown under the field (`src/components/ask/`), with its FIA passages or the analyses its numbers come from, and a link to the race's page. When the API asks which path or which race, each choice sends the question again with it (`route`, `season`, `round`).
+
+`e2e/free-question.spec.ts` asks a rule question and one the analyst must route; `e2e/review-flow.spec.ts` runs the whole path through the real agent and models. Both run only with `E2E_AGENT=1` (a few cents a run), against `just up` and the gateway; the CI skips it.
 
 ## Calling the API
 

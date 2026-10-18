@@ -27,6 +27,25 @@ export type AnswerState = { error: boolean };
 // The agent runs inside the call until its next stop: up to a minute from the plan to the review.
 const AGENT_TIMEOUT = 180_000;
 
+/**
+ * A free question of the home page (LAB-206): the API routes it. A debrief opens its request; any other answer,
+ * or what the analyst must choose, is shown on the home page. A choice comes back with the question: `route`, and
+ * the race (`season`, `round`).
+ */
+export async function askFree(_: AnswerState, form: FormData): Promise<AnswerState> {
+  const question = String(form.get("question") ?? "").trim();
+  if (question.length < 3) return { error: true };
+  const route = (form.get("route") || null) as "rules" | "data" | "debrief" | null;
+  const season = Number(form.get("season")) || null;
+  const round = Number(form.get("round")) || null;
+  const { data } = await apiClient()
+    .POST("/questions", { body: { question, route, season, round }, signal: AbortSignal.timeout(AGENT_TIMEOUT) })
+    .catch(() => ({ data: undefined }));
+  if (!data) return { error: true };
+  if (data.debrief) redirect(`/debriefs/${data.debrief}`);
+  redirect(`/?question=${data.id}#reponse`);
+}
+
 /** Choose an option of the agent's question, then show where the request stands. */
 export async function answerClarification(id: string, _: AnswerState, form: FormData): Promise<AnswerState> {
   const option = String(form.get("option") ?? "");

@@ -7,9 +7,9 @@ model does, in bounded steps validated by code: list the drivers and teams the r
 catalog, and write the points from the tools' outputs and the rules found.
 """
 
+import itertools
 import json
 import re
-import unicodedata
 from collections.abc import Callable, Mapping, Sequence
 from datetime import date
 from typing import Any, Literal
@@ -24,7 +24,7 @@ from core.gateway import complete_json
 from core.retrieval.pipeline import RetrievalPipeline
 from core.tools import Tool, ToolError
 from f1.display import grand_prix_fr
-from f1.rag.profile import GRAND_PRIX_NAMES
+from f1.router import plain, read_race
 from f1.tools import RaceData, catalog
 from f1.tools.penalties import PenaltiesInput, PenaltiesOutput, race_penalties
 from f1.tools.strategies import StrategiesInput, StrategiesOutput, race_strategies
@@ -45,16 +45,10 @@ class AgentModels(BaseSettings):
 
 
 _YEAR = re.compile(r"\b(20[0-3]\d)\b")
-_THIS_SEASON = re.compile(r"\b(?:cette (?:saison|annee)|saison en cours)\b")
-_LAST_SEASON = re.compile(
-    r"\b(?:(?:la )?saison (?:derniere|precedente|passee)|l.(?:an|annee) (?:dernier|derniere|passee?))\b"
-)
-# Every way the request may name a Grand Prix: its French names, places and countries, and its English name.
-_GRANDS_PRIX = [
-    (re.compile(rf"\b{re.escape(alias)}\b"), name)
-    for name, aliases in GRAND_PRIX_NAMES.items()
-    for alias in (*aliases, name.lower().removesuffix(" grand prix"))
-]
+# What a free question cites of a race (LAB-206): its laps ("au tour 43", "tours 26 et 36"), a stop ("2es arrêts").
+_LAPS = re.compile(r"\btours? (\d{1,2})(?: (?:et|a) (\d{1,2}))?\b")
+_STOP = re.compile(r"\b(premiers?|deuxiemes?|seconds?|troisiemes?|\d)(?:e|es|eme|emes)? arrets?\b")
+_ORDINALS = {"premier": 1, "deuxieme": 2, "second": 2, "troisieme": 3}
 
 # Each kind of neutralization, and the question its rule answers (the season goes in the braces).
 NEUTRALIZATIONS = {
@@ -143,7 +137,12 @@ déjà calculé certaines analyses du catalogue. Garde seulement les ids du cata
 (souvent aucun), et, si la question porte sur le règlement sportif, écris la question de règlement à poser, en \
 français. Ne choisis rien hors du catalogue."""
 
-CHAT_REPLY = """Tu réponds à la question d'un analyste sur un débrief stratégique de Formule 1, en français, \
+CHAT_PICK_FREE = """Un analyste pose une question sur une course de Formule 1. Aucune analyse n'est encore \
+calculée. Garde les ids du catalogue qu'il faut pour répondre : au moins un dès que la question porte sur ce qui \
+s'est passé en course, au plus 3. Si la question porte sur le règlement sportif, écris la question de règlement à \
+poser, en français. Ne choisis rien hors du catalogue."""
+
+CHAT_REPLY = """Tu réponds à la question d'un analyste sur une course de Formule 1 ou sur son débrief stratégique, \
 directement, comme dans une conversation : 1 à 4 points courts, la réponse d'abord.
 
 Règles :
@@ -239,13 +238,7 @@ class F1Theme:
 
     def _read_race(self, text: str) -> tuple[list[int], list[str]]:
         """The seasons and the Grands Prix a text names, read by code."""
-        text = _plain(text)
-        seasons = sorted({int(year) for year in _YEAR.findall(text)})
-        if not seasons and _LAST_SEASON.search(text):
-            seasons = [self._today.year - 1]
-        elif not seasons and _THIS_SEASON.search(text):
-            seasons = [self._today.year]
-        return seasons, sorted({name for pattern, name in _GRANDS_PRIX if pattern.search(text)})
+        return read_race(text, self._today)
 
     def resolve(self, subject: Mapping[str, Any]) -> dict[str, Any] | Clarification:
         resolved = dict(subject)
@@ -363,6 +356,34 @@ class F1Theme:
         question = f"Qui est « {name} » ? Aucun pilote ni écurie de la course ne porte ce nom."
         return Clarification(field="who", question=question, options=options)
 
+    def free_subject(
+        self, question: str, season: int, round_number: int, named: Sequence[str]
+    ) -> dict[str, Any] | Clarification:
+        """The subject of a free question on a race (LAB-206), read by code: the race the router found, the drivers
+        and teams the question names (`Router` matched them in the data), the laps and the stop it cites."""
+        race = self._round(season, round_number)
+        if isinstance(race, Clarification):
+            return race
+        entry = race["entry"]
+        drivers = [str(driver["code"]) for driver in entry if driver["name"] in named]
+        teams = sorted({str(driver["team"]) for driver in entry if driver.get("team") in named})
+        followed = list(dict.fromkeys([*drivers, *(str(d["code"]) for d in entry if d.get("team") in teams)]))
+        text = plain(question)
+        stop = _STOP.search(text)
+        return {
+            **race,
+            "mentions": {"drivers": [], "teams": []},
+            "drivers": followed,
+            "teams": teams,
+            "named": drivers,
+            "kind": "team" if teams else "driver" if followed else "race",
+            "focus": followed or [str(driver["code"]) for driver in entry[:3]],
+            "question": True,
+            "free": True,
+            "laps": sorted({int(lap) for pair in _LAPS.findall(text) for lap in pair if lap}),
+            "stop": _ordinal(stop.group(1)) if stop else 1,
+        }
+
     def _seasons(self) -> list[int]:
         return sorted(season for season in range(2018, self._today.year + 1) if self.data.events(season))
 
@@ -373,7 +394,7 @@ class F1Theme:
         names = {driver["code"]: driver["name"] for driver in subject["entry"]}
         order = [driver["code"] for driver in subject["entry"]]
 
-        def analysis(id_: str, tool: str, label: str, **arguments: str) -> Analysis:
+        def analysis(id_: str, tool: str, label: str, **arguments: str | int) -> Analysis:
             return Analysis(id=id_, tool=tool, arguments={**race, **arguments}, label=label)
 
         analyses = [
@@ -386,6 +407,17 @@ class F1Theme:
                 analysis("strategies", "race_strategies", "Pneus de départ, relais et arrêts de chaque pilote"),
                 analysis("weather", "race_weather", "Météo et température de piste"),
             ]
+        laps, stop = list(subject.get("laps") or []), int(subject.get("stop") or 1)
+        if subject.get("question") and laps:  # "l'écart entre Alonso et Piastri au tour 43": those laps only
+            span = {"from_lap": min(laps), "to_lap": max(laps)}
+            on = f"tour {laps[0]}" if len(set(laps)) == 1 else f"tours {min(laps)} à {max(laps)}"
+            for code, rival in itertools.combinations(list(subject.get("named") or [])[:3], 2):
+                label = f"Écart entre {names.get(code, code)} et {names.get(rival, rival)}, {on}"
+                analyses.append(
+                    analysis(f"gap:{code}:{rival}", "gap_between_drivers", label,
+                             driver=code, reference_driver=rival, **span)
+                )  # fmt: skip
+        cycle = "Premier cycle" if stop == 1 else f"{stop}e cycle"
         for code in subject["focus"]:
             name = names.get(code, code)
             analyses.append(analysis(f"stops:{code}", "pit_stop_loss", f"Arrêts de {name} et leur coût", driver=code))
@@ -396,8 +428,11 @@ class F1Theme:
             for rival in dict.fromkeys(rivals):
                 if f"cycle:{rival}:{code}" in {item.id for item in analyses}:  # one duel, once
                     continue
-                label = f"Premier cycle d'arrêts de {name} face à {names.get(rival, rival)}"
-                analyses.append(analysis(f"cycle:{code}:{rival}", "pit_cycle", label, driver=code, rival=rival))
+                label = f"{cycle} d'arrêts de {name} face à {names.get(rival, rival)}"
+                stops = {"driver_stop": stop} if stop > 1 else {}
+                analyses.append(
+                    analysis(f"cycle:{code}:{rival}", "pit_cycle", label, driver=code, rival=rival, **stops)
+                )
         return analyses
 
     def choose(
@@ -488,8 +523,9 @@ class F1Theme:
             rule_question=(str | None, Field(None, description="A question on the sporting regulations, if needed")),
         )
         catalog_text = "\n".join(f"- {analysis.id}: {analysis.label}" for analysis in candidates)
+        system = CHAT_PICK_FREE if subject.get("free") else CHAT_PICK  # a free question has no debrief yet
         picked = complete_json(
-            self.llm, model=self.models.plan_model, system=CHAT_PICK, schema=schema, max_tokens=400,
+            self.llm, model=self.models.plan_model, system=system, schema=schema, max_tokens=400,
             user=f"{_history_block(history)}<question>\n{question}\n</question>\n<catalog>\n{catalog_text}\n</catalog>",
             name="agent.chat.pick", session_id=session_id,
         )  # fmt: skip
@@ -577,7 +613,7 @@ class F1Theme:
 
     def check(self, point: Point) -> list[str]:
         problems = []
-        if found := _NUMBER_WORDS.findall(_plain(point.text)):
+        if found := _NUMBER_WORDS.findall(plain(point.text)):
             problems.append(
                 f"numbers written in words: {', '.join(' '.join(words) for words in found)} (write them in digits)"
             )
@@ -604,26 +640,25 @@ class F1Theme:
         return "\n".join(lines) + "\n"
 
 
-def _plain(text: str) -> str:
-    decomposed = unicodedata.normalize("NFKD", text.replace("\u2019", "'").casefold())
-    return "".join(char for char in decomposed if not unicodedata.combining(char))
-
-
 def _match_driver(name: str, entry: Sequence[Mapping[str, Any]]) -> str | None:
-    wanted = _plain(name).strip()
+    wanted = plain(name).strip()
     for driver in entry:
-        full = _plain(str(driver["name"]))
-        if wanted in {_plain(str(driver["code"])), full, full.split()[-1]}:
+        full = plain(str(driver["name"]))
+        if wanted in {plain(str(driver["code"])), full, full.split()[-1]}:
             return str(driver["code"])
-    matches = [driver for driver in entry if wanted and wanted in _plain(str(driver["name"]))]
+    matches = [driver for driver in entry if wanted and wanted in plain(str(driver["name"]))]
     return str(matches[0]["code"]) if len(matches) == 1 else None
 
 
 def _match_team(name: str, entry: Sequence[Mapping[str, Any]]) -> str | None:
-    wanted = _plain(name).strip()
+    wanted = plain(name).strip()
     teams = sorted({str(driver["team"]) for driver in entry if driver.get("team")})
-    matches = [team for team in teams if wanted and (wanted in _plain(team) or _plain(team) in wanted)]
+    matches = [team for team in teams if wanted and (wanted in plain(team) or plain(team) in wanted)]
     return matches[0] if len(matches) == 1 else None
+
+
+def _ordinal(word: str) -> int:
+    return int(word) if word.isdigit() else _ORDINALS.get(word.rstrip("s"), 1)
 
 
 def _neighbours(code: str, order: Sequence[str]) -> list[str]:

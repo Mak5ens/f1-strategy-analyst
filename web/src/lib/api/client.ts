@@ -17,6 +17,8 @@ export type JournalEntry = components["schemas"]["JournalEntry"];
 export type QuestionReply = components["schemas"]["QuestionReply"];
 export type Race = components["schemas"]["Race"];
 export type RaceSummary = components["schemas"]["RaceSummary"];
+export type FreeAnswer = components["schemas"]["FreeAnswer"];
+export type Choice = components["schemas"]["Choice"];
 
 /**
  * The API's client, typed by the schema generated from FastAPI's OpenAPI (`just web-gen-client`): a route or a field
@@ -144,6 +146,33 @@ export async function fetchQuestions(id: string, client: Client = apiClient()): 
     const { data } = await client.GET("/debriefs/{debrief_id}/questions", {
       params: { path: { debrief_id: id } },
       signal: AbortSignal.timeout(10000),
+    });
+    return data ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** A free question of the home page and its answer; null when it does not exist or the API does not answer. */
+export async function fetchFreeQuestion(id: number, client: Client = apiClient()): Promise<FreeAnswer | null> {
+  try {
+    const { data } = await client.GET("/questions/{question_id}", {
+      params: { path: { question_id: id } },
+      signal: AbortSignal.timeout(5000),
+    });
+    return data ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** The latest free questions first; null when the API does not answer. */
+export async function fetchFreeQuestions(limit = 6, client: Client = apiClient()): Promise<FreeAnswer[] | null> {
+  try {
+    const { data } = await client.GET("/questions", {
+      params: { query: { limit } },
+      cache: "no-store",
+      signal: AbortSignal.timeout(5000),
     });
     return data ?? null;
   } catch {

@@ -335,6 +335,129 @@
         }
       }
     },
+    "/questions": {
+      "post": {
+        "summary": "Ask Free Question",
+        "description": "A free question of the home page (LAB-206), sent by code down its path: the rules (the retrieval pipeline),\nthe data of the race it names (a direct answer, every number checked), or a debrief (the agent, started here:\n`debrief` is its request). When the path or the race is not clear, `choices` says what the analyst may pick,\nsent back with the question.",
+        "operationId": "ask_free_question_questions_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewFreeQuestion"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FreeAnswer"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "summary": "List Free Questions",
+        "description": "The latest free questions first, with their answers.",
+        "operationId": "list_free_questions_questions_get",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 50,
+              "minimum": 1,
+              "default": 10,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FreeAnswer"
+                  },
+                  "title": "Response List Free Questions Questions Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/questions/{question_id}": {
+      "get": {
+        "summary": "Get Free Question",
+        "operationId": "get_free_question_questions__question_id__get",
+        "parameters": [
+          {
+            "name": "question_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Question Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FreeAnswer"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/debriefs/{debrief_id}": {
       "get": {
         "summary": "Get Debrief",
@@ -743,6 +866,37 @@
         "title": "Analysis",
         "description": "One analysis of the closed catalog: a tool and its arguments, decided by code."
       },
+      "AnswerPoint": {
+        "properties": {
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "sources": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Sources",
+            "description": "Ids of `FreeAnswer.sources` it cites"
+          },
+          "facts": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Facts",
+            "description": "Ids of `FreeAnswer.facts` its numbers come from"
+          }
+        },
+        "type": "object",
+        "required": [
+          "text",
+          "sources",
+          "facts"
+        ],
+        "title": "AnswerPoint"
+      },
       "BestLap": {
         "properties": {
           "driver": {
@@ -770,6 +924,97 @@
           "gap_s"
         ],
         "title": "BestLap"
+      },
+      "Choice": {
+        "properties": {
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "route": {
+            "type": "string",
+            "enum": [
+              "debrief",
+              "rules",
+              "data"
+            ],
+            "title": "Route"
+          },
+          "season": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Season"
+          },
+          "round": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Round"
+          }
+        },
+        "type": "object",
+        "required": [
+          "label",
+          "route",
+          "season",
+          "round"
+        ],
+        "title": "Choice",
+        "description": "An answer the analyst may pick: it comes back with the question."
+      },
+      "Cited": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "label",
+          "text",
+          "url"
+        ],
+        "title": "Cited",
+        "description": "What a point of the answer cites: a passage of the FIA documents, or an analysis of the race."
       },
       "Clarification": {
         "properties": {
@@ -1335,6 +1580,153 @@
         "title": "Fact",
         "description": "An analysis the agent ran: the points cite it for their numbers."
       },
+      "FreeAnswer": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id",
+            "default": 0
+          },
+          "question": {
+            "type": "string",
+            "title": "Question"
+          },
+          "route": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "debrief",
+                  "rules",
+                  "data"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Route",
+            "description": "The path taken; None while the analyst chooses it"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "answered",
+              "abstained",
+              "withheld",
+              "refused",
+              "stopped",
+              "asked",
+              "debrief"
+            ],
+            "title": "Status"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason",
+            "description": "Why the path, the abstention, or what is asked"
+          },
+          "points": {
+            "items": {
+              "$ref": "#/components/schemas/AnswerPoint"
+            },
+            "type": "array",
+            "title": "Points"
+          },
+          "sources": {
+            "items": {
+              "$ref": "#/components/schemas/Cited"
+            },
+            "type": "array",
+            "title": "Sources",
+            "description": "The FIA passages the points cite"
+          },
+          "facts": {
+            "items": {
+              "$ref": "#/components/schemas/Cited"
+            },
+            "type": "array",
+            "title": "Facts",
+            "description": "The analyses of the race the points cite"
+          },
+          "notes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Notes",
+            "description": "What was assumed, e.g. the season of the rules"
+          },
+          "choices": {
+            "items": {
+              "$ref": "#/components/schemas/Choice"
+            },
+            "type": "array",
+            "title": "Choices",
+            "description": "What the analyst may choose, when asked"
+          },
+          "race": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RaceLink"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The race the question is about, for a link to its page"
+          },
+          "debrief": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Debrief",
+            "description": "The request started, for a debrief"
+          },
+          "asked_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Asked At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "question",
+          "route",
+          "status",
+          "reason",
+          "points",
+          "sources",
+          "facts",
+          "notes",
+          "choices",
+          "race",
+          "debrief",
+          "asked_at"
+        ],
+        "title": "FreeAnswer",
+        "description": "A free question and what came of it: an answer, an abstention, a choice to make, or a debrief started."
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -1567,6 +1959,68 @@
           "request"
         ],
         "title": "NewDebrief"
+      },
+      "NewFreeQuestion": {
+        "properties": {
+          "question": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 3,
+            "title": "Question",
+            "examples": [
+              "Peut-on changer de pneus sous drapeau rouge ?"
+            ]
+          },
+          "route": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "debrief",
+                  "rules",
+                  "data"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Route",
+            "description": "The path the analyst chose, when asked"
+          },
+          "season": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 2100.0,
+                "minimum": 2018.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Season",
+            "description": "The race the analyst chose, with `round`"
+          },
+          "round": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 30.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Round"
+          }
+        },
+        "type": "object",
+        "required": [
+          "question"
+        ],
+        "title": "NewFreeQuestion"
       },
       "NewQuestion": {
         "properties": {
@@ -1850,6 +2304,30 @@
         ],
         "title": "Race",
         "description": "A Grand Prix as its page shows it. A section without data is empty, never filled with a guess."
+      },
+      "RaceLink": {
+        "properties": {
+          "season": {
+            "type": "integer",
+            "title": "Season"
+          },
+          "round": {
+            "type": "integer",
+            "title": "Round"
+          },
+          "grand_prix": {
+            "type": "string",
+            "title": "Grand Prix",
+            "description": "In French"
+          }
+        },
+        "type": "object",
+        "required": [
+          "season",
+          "round",
+          "grand_prix"
+        ],
+        "title": "RaceLink"
       },
       "RaceSummary": {
         "properties": {

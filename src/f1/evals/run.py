@@ -11,6 +11,7 @@
     just eval agreement                # how the judge agrees with the person's grades (latest round)
     just eval thresholds --from evals/reports/<run>.json   # initial thresholds from a reference run
     just eval models                   # chat-small, chat-medium and chat-pro side by side (LAB-150, about 3 hours)
+    just eval routing --split dev --check   # the home page's router on each family (LAB-206): code, no call
 
 The system runs once per case; promptfoo, Ragas and the judge then score what it recorded (`core.evals.harness`).
 Work files go to `.cache/evals/<run>/`, the report to `evals/reports/<run>.json`, and its summary, for a pull
@@ -522,13 +523,25 @@ def compare_models(args: argparse.Namespace) -> int:
     return 0
 
 
+def routing(args: argparse.Namespace) -> int:
+    """The path the home page's router takes on each case of the split; --check fails under the 95 % target."""
+    from f1.data import connect
+    from f1.evals.routing import TARGET, measure
+    from f1.grand_prix import GrandPrix
+    from f1.router import Router
+
+    report = measure(read_cases(DATASETS / f"{args.split}.jsonl"), Router(*GrandPrix(connect()).people()))
+    print(report.markdown())
+    return 1 if args.check and report.rate < TARGET else 0
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="f1-eval", description=__doc__.splitlines()[0] if __doc__ else None)
     parser.add_argument(
         "command",
         nargs="?",
         default="run",
-        choices=["run", "models", "judge-sheet", "judge-markdown", "agreement", "thresholds"],
+        choices=["run", "models", "judge-sheet", "judge-markdown", "agreement", "thresholds", "routing"],
     )
     parser.add_argument("--from", dest="from_report", help="thresholds: the reference run's report")
     parser.add_argument("--system", default="baseline", choices=sorted(SYSTEMS))
@@ -562,6 +575,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         "judge-markdown": judge_markdown,
         "agreement": judge_agreement,
         "thresholds": thresholds,
+        "routing": routing,
     }
     return commands[args.command](args)
 
