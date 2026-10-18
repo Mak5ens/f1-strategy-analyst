@@ -35,6 +35,7 @@ class FakeTheme:
         self.drafts = list(drafts or [])
         self.problems_seen: list[Mapping[str, Sequence[str]]] = []
         self.published: list[str] = []
+        self.read_against: list[list[str]] = []
 
     def parse(self, request: str, *, session_id: str | None) -> dict[str, Any]:
         return {"race": None if "dernier" in request else "Monza"}
@@ -105,6 +106,12 @@ class FakeTheme:
     def check(self, point: Point) -> list[str]:
         return ["a number in words"] if "deux tours" in point.text else []
 
+    def faithful(
+        self, point: Point, results: Sequence[Result], sources: Sequence[RuleSource], *, session_id: str | None
+    ) -> list[str]:
+        self.read_against.append([result.id for result in results])
+        return ["sens : Russell reste devant"] if "passe Russell" in point.text else []
+
 
 def agent(theme: FakeTheme, saver: InMemorySaver | None = None, **limits: Any) -> Agent:
     published: list[str] = theme.published
@@ -170,6 +177,31 @@ def test_a_number_from_no_analysis_sends_the_point_back_to_draft() -> None:
     assert run.state.drafts == 2
     assert "19.0" in next(iter(theme.problems_seen[1].values()))[0]  # the second draft is told what was wrong
     assert run.state.points[0].status == "verified"
+
+
+def test_a_point_its_analyses_contradict_is_drafted_again_then_reaches_the_review_unverified() -> None:
+    backwards = [
+        Point(id="P1", text="Leclerc passe Russell au tour 23.", facts=["loss:LEC"]),
+        Point(id="T", kind="takeaway", text="Ferrari a bien géré ses arrêts."),
+    ]
+    theme = FakeTheme(drafts=[backwards] * 3)
+    bot = agent(theme)
+    bot.start("Débrief de Monza", thread_id="t9")
+    run = bot.resume("t9", ["loss:LEC"])
+
+    first, takeaway = run.state.points[0], run.state.points[1]
+    assert (first.status, first.problems) == ("unverified", ["sens : Russell reste devant"])
+    assert "sens : Russell reste devant" in next(iter(theme.problems_seen[1].values()))
+    assert takeaway.status == "verified" and theme.read_against[1] == ["loss:LEC"]  # no fact: read against all
+
+
+def test_a_number_already_wrong_is_not_read_for_its_meaning() -> None:
+    invented = [Point(id="P1", text="Leclerc passe Russell, 19.0 s.", facts=["loss:LEC"])]
+    theme = FakeTheme(drafts=[invented] * 3)
+    bot = agent(theme, drafts=1)
+    bot.start("Débrief de Monza", thread_id="t10")
+    run = bot.resume("t10", ["loss:LEC"])
+    assert theme.read_against == [] and "19.0" in run.state.points[0].problems[0]
 
 
 def test_the_theme_adds_its_own_checks() -> None:

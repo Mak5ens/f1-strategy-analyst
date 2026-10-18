@@ -9,8 +9,9 @@ questions asked before. The theme fills each step (`ChatTheme`), and code decide
   where to ask it instead.
 - **A closed catalog.** The model may ask for more analyses of the subject's own catalog, a few at most, never
   another subject's; a question on the rules goes to the retrieval pipeline, as an event of the deliverable does.
-- **Every number is checked**, by `check_point` as in a deliverable. A reply that fails is written again once with
-  the problems found; one that still fails is withheld, and says why: an answer shown has no unbacked number.
+- **Every number is checked**, by `check_point` as in a deliverable, then its meaning by the theme (`faithful`). A
+  reply that fails is written again once with the problems found; one that still fails is withheld, and says why:
+  an answer shown has no unbacked number, and says nothing its analyses contradict.
 - **Limits per question**: model calls and tokens, counted by `usage_scope`; over a limit, the question stops.
 """
 
@@ -20,8 +21,8 @@ from typing import Any, Literal, Protocol
 from pydantic import BaseModel, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from core.agent.graph import check_point
-from core.agent.state import AgentState, Analysis, Event, Point, Result, Rule, Spent
+from core.agent.graph import check_point, faithful
+from core.agent.state import AgentState, Analysis, Event, Point, Result, Rule, RuleSource, Spent
 from core.gateway import Usage, usage_scope
 from core.tools import ToolError
 from core.tracing import Tracer
@@ -94,6 +95,10 @@ class ChatTheme(Protocol):
 
     def check(self, point: Point) -> list[str]: ...
 
+    def faithful(
+        self, point: Point, results: Sequence[Result], sources: Sequence[RuleSource], *, session_id: str | None
+    ) -> list[str]: ...
+
 
 class Reply(BaseModel):
     question: str
@@ -149,16 +154,19 @@ class Chat:
             points = self.theme.reply(
                 question, state.subject, results, every_rule, history, problems, session_id=session
             )
-            checked = [
-                point.model_copy(update={"problems": found, "status": "unverified" if found else "verified"})
-                for point in points
-                for found in [check_point(point, by_id, sources, state.subject) + self.theme.check(point)]
-            ]
+            checked = []
+            for point in points:
+                found = check_point(point, by_id, sources, state.subject) + self.theme.check(point)
+                if not found:  # the meaning, once the numbers hold
+                    found = faithful(self.theme, point, by_id, sources, session_id=session)
+                checked.append(
+                    point.model_copy(update={"problems": found, "status": "unverified" if found else "verified"})
+                )
             problems = {point.text: point.problems for point in checked if point.problems}
             if not problems:
                 return reply.model_copy(update={"points": checked})
-        found = "; ".join(f"« {text} » : {', '.join(why)}" for text, why in problems.items())
-        return reply.model_copy(update={"status": "withheld", "reason": found})
+        why = "; ".join(f"« {text} » : {', '.join(found)}" for text, found in problems.items())
+        return reply.model_copy(update={"status": "withheld", "reason": why})
 
     def _run(self, analysis: Analysis) -> Result:
         result = Result(id=analysis.id, tool=analysis.tool, label=analysis.label, arguments=analysis.arguments)

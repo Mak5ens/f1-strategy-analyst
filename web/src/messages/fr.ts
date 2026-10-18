@@ -262,8 +262,9 @@ export const fr = {
       title: "Demande arrêtée",
       lead: "L'agent s'est arrêté avant la fin :",
     },
+    parts: { summary: "Résumé", takeaway: "À retenir" },
     published: {
-      points: "Les points",
+      points: "Le débrief",
       strategy: "Stratégie pneus",
       decisions: "La revue",
       summary: (approved: number, corrected: number, rejected: number) =>

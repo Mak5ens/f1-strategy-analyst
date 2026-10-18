@@ -7,7 +7,7 @@ from typing import Any
 import pytest
 from test_grand_prix import write_lake
 
-from core.agent import Analysis, Point, Result, Rule
+from core.agent import Analysis, Point, Result, Rule, RuleSource
 from core.agent.chat import Chat, ChatLimits, Exchange, Pick
 from core.retrieval.pipeline import Answer, Claim, Passage, Scope, Source
 from core.tracing import Tracer
@@ -33,6 +33,10 @@ class ScriptedTheme(F1Theme):
         self.subjects.append(subject)
         self.offered = [analysis.id for analysis in candidates]
         return Pick(analyses=self.picked)
+
+    def faithful(self, point: Point, results: Sequence[Result], sources: Sequence[RuleSource], *,
+                 session_id: str | None) -> list[str]:  # fmt: skip
+        return []
 
     def reply(self, question: str, subject: Mapping[str, Any], results: Sequence[Result], rules: Sequence[Rule],
               history: Sequence[Exchange], problems: Mapping[str, Sequence[str]], *,

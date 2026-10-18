@@ -59,6 +59,11 @@ class FakeChatTheme:
     def check(self, point: Point) -> list[str]:
         return []
 
+    def faithful(
+        self, point: Point, results: Sequence[Result], sources: Sequence[RuleSource], *, session_id: str | None
+    ) -> list[str]:
+        return ["sens : l'arrêt était sous voiture de sécurité"] if "en course" in point.text else []
+
 
 def chat(theme: FakeChatTheme, **limits: Any) -> Chat:
     return Chat(theme, tracer=Tracer(None), limits=ChatLimits(_env_file=None, **limits))
@@ -71,6 +76,14 @@ def test_an_answer_whose_numbers_are_backed_is_shown() -> None:
 
     assert reply.status == "answered" and reply.points[0].status == "verified"
     assert reply.results == [] and theme.ran == []  # the deliverable's analysis was enough
+
+
+def test_a_reply_its_analyses_contradict_is_withheld() -> None:
+    wrong = [Point(id="A1", text="Leclerc a perdu 24.8 s en course au tour 33.", facts=["loss:LEC"])]
+
+    reply = chat(FakeChatTheme([wrong, wrong])).ask("Combien a coûté l'arrêt de Leclerc ?", state=STATE)
+
+    assert reply.status == "withheld" and "voiture de sécurité" in (reply.reason or "")
 
 
 def test_a_wrong_number_is_written_again_then_withheld() -> None:

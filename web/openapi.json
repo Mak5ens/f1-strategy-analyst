@@ -2442,6 +2442,27 @@
             "type": "string",
             "title": "Text"
           },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "summary",
+              "point",
+              "takeaway"
+            ],
+            "title": "Kind",
+            "default": "point"
+          },
           "facts": {
             "items": {
               "type": "string"
@@ -2482,6 +2503,8 @@
         "required": [
           "id",
           "text",
+          "title",
+          "kind",
           "facts",
           "sources",
           "status",

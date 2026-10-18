@@ -8,7 +8,7 @@ import { FiguresText } from "@/components/figures-text";
 import { Button } from "@/components/ui/button";
 import type { Debrief, Decision, Point } from "@/lib/api/client";
 import { getMessages } from "@/lib/i18n";
-import { PointStatus } from "./point-status";
+import { momentNumbers, PointHeader, partStyle } from "./point-header";
 
 const t = getMessages().debrief.review;
 
@@ -29,6 +29,7 @@ export function ReviewStep({ debrief, evidence }: { debrief: Debrief; evidence: 
     error: false,
   });
   const [drafts, setDrafts] = useState<Record<string, Draft>>({});
+  const numbers = momentNumbers(debrief.points);
   const set = (point: Point, change: Partial<Draft>) =>
     setDrafts((current) => {
       const previous = current[point.id] ?? { action: "approve", text: point.text, reason: null };
@@ -77,17 +78,13 @@ export function ReviewStep({ debrief, evidence }: { debrief: Debrief; evidence: 
               key={point.id}
               className={cn(
                 "flex flex-col gap-4 rounded-xl border bg-surface p-5 transition-colors",
+                partStyle(point),
                 point.status === "unverified" && "border-warning/60",
                 draft?.action === "approve" && "border-success/50",
                 draft?.action === "reject" && "border-destructive/50 opacity-80",
               )}
             >
-              <div className="flex items-start justify-between gap-4">
-                <span className="display figures text-muted-foreground text-xl">
-                  {String(index + 1).padStart(2, "0")}
-                </span>
-                <PointStatus status={point.status} />
-              </div>
+              <PointHeader point={point} number={numbers.get(point.id)} />
               <p className={cn("text-base leading-relaxed", draft?.action === "reject" && "line-through")}>
                 <FiguresText text={point.text} />
               </p>

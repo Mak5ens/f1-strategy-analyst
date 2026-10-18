@@ -27,15 +27,25 @@ parse ─▶ resolve ─▶ plan ─▶ ⏸ approve_plan ─▶ run_tools ─▶
 | `clarify` | ⏸ person | One of the options offered: the latest races for "le dernier GP", the seasons of a Grand Prix with no year, the drivers and teams for an unknown name |
 | `plan` | code + model | Code builds the catalog: classification, neutralizations, penalties, and for each driver followed, their stops, their tyre wear and their first pit cycle against the cars that finished next to them (the podium for a race debrief); the model keeps what fits the request, among the catalog's ids only |
 | `approve_plan` | ⏸ person | Ticks or unticks analyses |
-| `run_tools` | code | The tools of LAB-144 and `penalties`; a tool that fails gives no number, and its point says the data is unavailable |
+| `run_tools` | code | The tools of LAB-144 and `penalties`; a tool that fails gives no number, and its point says the data is unavailable. Each output gets its `lecture`, what it means in French, written by code (`f1.agent.readings`) |
 | `detect_events` | code | Safety cars, VSCs, red flags, and the penalties of the drivers followed: one rule question each kind, 4 at most |
 | `retrieve_rules` | pipeline | The retrieval pipeline (ADR-024) answers each question, with its sources, inside the agent's trace |
-| `draft` | model | The points, in French, each citing the analyses its numbers come from and the rule sources it uses |
-| `verify` | code | Each number in a cited analysis or source, each source retrieved, no number written in words; back to `draft` with the problems, then marked unverified |
+| `draft` | model | In French: a summary, 3 to 5 titled moments and a takeaway without a number, each citing the analyses its numbers and its meaning come from, and the rule sources it uses |
+| `verify` | code + model | Each number in a cited analysis or source, each source retrieved, no number written in words nor in a title or the takeaway; then the meaning (`faithful`): who was ahead checked by code, the rest by a model against the readings. Back to `draft` with the problems, then marked unverified |
 | `review` | ⏸ person | Each point approved, corrected (with the text) or rejected, with a reason: `wrong_number`, `wrong_source`, `off_topic`, `wording`, `other` |
 | `apply`, `publish` | code | The decisions applied, the debrief rendered in Markdown and stored (`published`), with the decisions |
 
-A request over its limits stops and says which: `AGENT_MAX_STEPS` (40), `AGENT_MAX_LLM_CALLS` (80, the pipeline's included), `AGENT_MAX_TOKENS` (300,000), `AGENT_DRAFTS` (3), `AGENT_MAX_EVENTS` (4), `AGENT_MAX_ANALYSES` (16). The models are `AGENT_PARSE_MODEL`, `AGENT_PLAN_MODEL` and `AGENT_DRAFT_MODEL`, all `chat-pro`: `chat-medium` does not choose tools in a structured answer (LAB-150).
+A request over its limits stops and says which: `AGENT_MAX_STEPS` (40), `AGENT_MAX_LLM_CALLS` (80, the pipeline's included), `AGENT_MAX_TOKENS` (300,000), `AGENT_DRAFTS` (3), `AGENT_MAX_EVENTS` (4), `AGENT_MAX_ANALYSES` (16). The models are `AGENT_PARSE_MODEL`, `AGENT_PLAN_MODEL`, `AGENT_DRAFT_MODEL` and `AGENT_VERIFY_MODEL`, all `chat-pro`: `chat-medium` does not choose tools in a structured answer (LAB-150).
+
+## A debrief that explains (LAB-207)
+
+The first debriefs lined up right numbers and explained nothing ("Leclerc s'arrête au tour 33, perd 24,8 s, et passe des pneus medium aux durs"). Asked for prose, the model read a pit cycle backwards ("Leclerc perd du terrain sur Piastri par l'undercut", when the undercut gained 3 s, not enough to pass), compared a tyre wear with a driver nobody measured, and gave causes no analysis showed. Every number was right: the meaning was the model's, and nothing checked it. Three changes:
+
+- **Code writes the meaning.** Each analysis carries its `lecture` (`f1.agent.readings`): who stayed ahead at a pit cycle, whose undercut or overcut it was, what it gained or cost, the gap before and after, the laps between the stops; the places gained from the grid to the finish; a tyre wear too loosely measured to say anything (fit under 0.3) is said so. The model tells and links these readings instead of deducing them.
+- **A structure and rules for prose**: a summary (start, finish, what decided it), 3 to 5 moments with a title without a number whose subject is the driver who acts, a takeaway without a number. Places gained only from the classification, comparisons only on an analysis that measures both drivers, no cause nor intention no analysis shows. A style example on imaginary drivers, with no number in it: the model copied the example's numbers and claims when it had some.
+- **The meaning is checked** after the numbers (`Theme.faithful`, also run on the questions of LAB-205). Who was ahead of whom is data: code reads "A reste devant B", "A finit derrière B", "A passe B" and compares them with the pit cycles and the classification (`order_problems`). A model given the right reading still judged "Leclerc reste devant Piastri" as shown, quoting the reading that said the opposite. The rest goes to a model, claim by claim: it quotes the reading it judges against, then says shown, contradicted or not shown. A problem sends the draft back, as a number does.
+
+Measured on Monza 2025 for Ferrari, 2026-10-18: the meaning check caught the three wrong points written on purpose (a cycle backwards, a wear compared with a driver not measured, a cause not shown) and passed the five right ones. A debrief takes 13 to 23 model calls and 50,000 to 65,000 tokens, against 3 and 5,700 before: each draft is read again point by point. With `chat-pro` (Mistral Small 24B) the moments come out right and readable, with constructions that still repeat; a summary may need the review, as on that run (a number in words, then a claim the meaning check had not read yet).
 
 ## A question on a chosen race (LAB-203)
 
@@ -96,7 +106,8 @@ Time is the agent's, the person's waits not counted. Drafts vary from a run to t
 
 ## Limits
 
-- **The checks see numbers, not meaning.** A true number told misleadingly passes: "Verstappen est resté derrière Ocon" during a pit cycle, true at the time, while he won the race. The review is there for it, and LAB-154 measures how often the analyst corrects or rejects.
+- **The meaning check is a model's, but for who was ahead.** It catches a cycle read backwards or a cause not shown; it may miss a subtler misreading, and it reads a point only once its numbers hold. The review stays the last check, and LAB-154 measures how often the analyst corrects or rejects.
+- **The drafting model limits the prose.** `chat-pro` repeats its constructions from a moment to the next. A larger model is an alias to add to the gateway.
 - **The catalog is closed.** An analysis it does not hold is code to add in `F1Theme.candidates`. A question may now ask for the gap between two drivers it names on the laps it cites, and for a pit cycle after the first stop; a debrief still has neither.
 - **The routing reads words.** A question in other words than the dataset's may take the other path or be left to the analyst; a question on the data that names neither a race, a driver nor a team goes to the rules, which abstain. A sanction asked "pourquoi" goes to the stewards' decisions, not to the race's penalties.
 - **A false abstention of the rules is shown as is.** "Peut-on changer de pneus sous drapeau rouge en 2025 ?" abstains: the passage that answers (article 57.4) gets a rerank score of 0.20, under the threshold of 0.43 (`evals/rag/reports/dev-2026-10-14-lab146.json`).

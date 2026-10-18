@@ -80,11 +80,18 @@ class Rule(BaseModel):
 PointStatus = Literal["draft", "verified", "unverified", "unavailable", "corrected"]
 
 
+PointKind = Literal["summary", "point", "takeaway"]
+
+
 class Point(BaseModel):
-    """One point of the deliverable: a text, the results its numbers come from, the sources it cites."""
+    """One point of the deliverable: a text, the results its numbers come from, the sources it cites. A theme may
+    open the deliverable with a summary and close it with a takeaway, reviewed as any point; a point may have a
+    title."""
 
     id: str
     text: str
+    title: str | None = None
+    kind: PointKind = "point"
     facts: list[str] = Field(default_factory=list, description="Ids of the analyses whose numbers the text uses")
     sources: list[str] = Field(default_factory=list, description="Ids of the rule sources the text cites")
     status: PointStatus = "draft"

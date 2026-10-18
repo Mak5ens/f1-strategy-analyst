@@ -63,8 +63,8 @@ class AgentLimits(BaseSettings):
 
 
 class Theme(Protocol):
-    """What a theme gives the graph: the content of each node. Every method but `parse`, `choose`, `rule` and
-    `draft` is code; those four may call a model, and must validate what it returns."""
+    """What a theme gives the graph: the content of each node. Every method but `parse`, `choose`, `rule`, `draft`
+    and `faithful` is code; those five may call a model, and must validate what it returns."""
 
     name: str
 
@@ -123,6 +123,13 @@ class Theme(Protocol):
         """The theme's own checks of a point, on top of the graph's (a number written in words escapes those)."""
         ...
 
+    def faithful(
+        self, point: Point, results: Sequence[Result], sources: Sequence[RuleSource], *, session_id: str | None
+    ) -> list[str]:
+        """What the results and sources a point rests on contradict in it, one sentence each: its meaning, where
+        `check_point` sees its numbers (a cycle read backwards, a cause no result shows). Empty when faithful."""
+        ...
+
     def render(self, subject: Mapping[str, Any], points: Sequence[Point], rules: Sequence[Rule]) -> str:
         """The deliverable, once reviewed."""
         ...
@@ -148,6 +155,28 @@ def check_point(
             "(copy each number from a cited analysis, as written there, and cite that analysis)"
         )
     return problems
+
+
+class Faithful(Protocol):
+    def faithful(
+        self, point: Point, results: Sequence[Result], sources: Sequence[RuleSource], *, session_id: str | None
+    ) -> list[str]: ...
+
+
+def faithful(
+    theme: Faithful,
+    point: Point,
+    results: Mapping[str, Result],
+    sources: Mapping[str, RuleSource],
+    *,
+    session_id: str | None,
+) -> list[str]:
+    """The theme's check of a point's meaning, against what it cites; a point citing no result (a summary, a
+    takeaway) is read against every result, as it speaks of them all."""
+    cited = [results[fact] for fact in point.facts if fact in results and results[fact].ok]
+    every = [result for result in results.values() if result.ok]
+    quoted = [sources[source] for source in point.sources if source in sources]
+    return theme.faithful(point, cited or every, quoted, session_id=session_id)
 
 
 @dataclass(frozen=True)
@@ -383,6 +412,8 @@ class Agent:
                 points.append(point)
                 continue
             problems = check_point(point, results, sources, state.subject) + self.theme.check(point)
+            if not problems:  # the meaning, once the numbers hold: a model call per point
+                problems = faithful(self.theme, point, results, sources, session_id=state.trace_id)
             points.append(
                 point.model_copy(update={"problems": problems, "status": "unverified" if problems else "verified"})
             )

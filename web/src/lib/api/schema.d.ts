@@ -972,6 +972,14 @@ export interface components {
       id: string;
       /** Text */
       text: string;
+      /** Title */
+      title: string | null;
+      /**
+       * Kind
+       * @default point
+       * @enum {string}
+       */
+      kind: "summary" | "point" | "takeaway";
       /**
        * Facts
        * @description Ids of the analyses whose numbers the text uses
