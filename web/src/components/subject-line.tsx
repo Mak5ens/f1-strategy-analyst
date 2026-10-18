@@ -14,3 +14,8 @@ export function subjectFor(subject: Subject): string {
 export function subjectTitle(subject: Subject): string {
   return subject.grand_prix && subject.season ? `${subject.grand_prix} ${subject.season}` : t.unresolved;
 }
+
+/** A debrief's title: the question asked, for a question on a race; the Grand Prix otherwise. */
+export function debriefTitle(debrief: { request: string; subject: Subject }): string {
+  return debrief.subject.question ? debrief.request : subjectTitle(debrief.subject);
+}

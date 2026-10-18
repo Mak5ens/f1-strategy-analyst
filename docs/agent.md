@@ -37,6 +37,18 @@ parse ─▶ resolve ─▶ plan ─▶ ⏸ approve_plan ─▶ run_tools ─▶
 
 A request over its limits stops and says which: `AGENT_MAX_STEPS` (40), `AGENT_MAX_LLM_CALLS` (80, the pipeline's included), `AGENT_MAX_TOKENS` (300,000), `AGENT_DRAFTS` (3), `AGENT_MAX_EVENTS` (4), `AGENT_MAX_ANALYSES` (16). The models are `AGENT_PARSE_MODEL`, `AGENT_PLAN_MODEL` and `AGENT_DRAFT_MODEL`, all `chat-pro`: `chat-medium` does not choose tools in a structured answer (LAB-150).
 
+## A question on a chosen race (LAB-203)
+
+From a Grand Prix's page, the analyst asks a precise question, such as "Pourquoi Hamilton est-il parti en pneus tendres ?". The race goes with it: `Agent.start(request, thread_id=..., given={"season": 2024, "round": 18, "question": True})`. `given` holds subject fields the person chose rather than wrote, laid over what `parse` reads, so `resolve` loads that round and its entry list and never asks which race. With `question`:
+
+- the catalog gains `strategies` (`race_strategies`: every driver's starting compound, stints and stop laps, and how many started on each compound, overall and in the top 10) and `weather` (`race_weather`: temperatures at the start and their range, rain). Both are the agent's own tools, like `penalties`, so the baseline's catalog and its evaluation are unchanged;
+- the draft answers first, gives the counts the choice is compared with, the driver's grid and finish, then a last point, without numbers, on what the data cannot say (a team's internal reasons), never guessed;
+- the plan, the checks of `verify` and the review are the same.
+
+The API takes `season`, `round` and `question` beside `request` (`POST /debriefs`). The front titles such a debrief by its question. Acceptance on Singapore 2024 in `tests/integration/test_agent_acceptance.py`.
+
+Limit: `verify` checks that each number appears in a cited analysis, not that it is not derived from them. In "comme 1 autre pilote sur 20", the 1 is 2 minus Hamilton, and it passes because a 1 appears elsewhere in the output. The review is still what catches it.
+
 ## In code
 
 - `core.agent`: the graph (`Agent`, `Theme`, `check_point`), the state (`AgentState` and its models), the PostgreSQL checkpointer and the `published` table (`core.agent.store`). No F1 vocabulary (ADR-011).

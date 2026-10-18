@@ -21,3 +21,48 @@ export function formatAgo(iso: string, now: Date = new Date()): string {
   }
   return relative.format(0, "minute");
 }
+
+/** A lap time as timing screens show it: "1:20.901". */
+export function formatLapTime(seconds: number): string {
+  const minutes = Math.floor(seconds / 60);
+  const rest = (seconds - minutes * 60).toFixed(3).padStart(6, "0");
+  return minutes ? `${minutes}:${rest}` : rest;
+}
+
+/** A race time: "1:13:24.325". */
+export function formatRaceTime(seconds: number): string {
+  const hours = Math.floor(seconds / 3600);
+  if (!hours) return formatLapTime(seconds);
+  const rest = seconds - hours * 3600;
+  const minutes = Math.floor(rest / 60);
+  return `${hours}:${String(minutes).padStart(2, "0")}:${(rest - minutes * 60).toFixed(3).padStart(6, "0")}`;
+}
+
+/** A gap behind: "+19.207", "+1:02.519". */
+export function formatGap(seconds: number): string {
+  return `+${formatLapTime(seconds)}`;
+}
+
+const durations = new Intl.NumberFormat(locale, { maximumFractionDigits: 1, minimumFractionDigits: 1 });
+const temperatures = new Intl.NumberFormat(locale, { maximumFractionDigits: 0 });
+const points = new Intl.NumberFormat(locale, { maximumFractionDigits: 1 });
+
+/** A duration in seconds, in French: "24,4 s". */
+export function formatSeconds(seconds: number): string {
+  return `${durations.format(seconds)} s`;
+}
+
+/** "26 °C" */
+export function formatTemperature(celsius: number): string {
+  return `${temperatures.format(celsius)} °C`;
+}
+
+/** Points, half points kept: "25", "0,5". */
+export function formatPoints(value: number): string {
+  return points.format(value);
+}
+
+/** The place a Grand Prix is named after, as a calendar shows it: "Grand Prix d'Italie" → "Italie". */
+export function shortName(grandPrix: string): string {
+  return grandPrix.replace(/^Grand Prix (d'|de |du |des )/, "");
+}

@@ -13,6 +13,7 @@ from core.lake import Lake, LakeSettings
 from f1.data import connect
 from f1.data.ingest import Ingester, IngestSettings
 from f1.data.sources import FastF1Source, JolpicaClient, OpenF1Client
+from f1.grand_prix import GrandPrix
 
 pytestmark = pytest.mark.integration
 
@@ -96,3 +97,24 @@ def test_the_s3_store_of_the_stack() -> None:
     assert lake.url("x").startswith("s3://"), "set LAKE_URI to the S3 store in .env (see .env.example)"
     lake.write_parquet("_smoke/table.parquet", pa.table({"lap": [1, 2]}))
     assert lake.connect(["_smoke"]).sql("SELECT count(*) FROM _smoke").fetchone() == (2,)
+
+
+def test_the_race_page(monza: duckdb.DuckDBPyConnection) -> None:
+    # What the site shows of Monza 2025 (LAB-202), against the official classification and standings after round 16.
+    race = GrandPrix(monza).race(SEASON, ROUND)
+    assert race is not None and race.summary.grand_prix == "Grand Prix d'Italie"
+
+    top = [(row.driver.code, row.grid, row.places_gained, row.points) for row in race.classification[:6]]
+    assert top == [("VER", 1, 0, 25), ("NOR", 2, 0, 18), ("PIA", 3, 0, 15), ("LEC", 4, 0, 12), ("RUS", 5, 0, 10),
+                   ("HAM", 10, 4, 8)]  # fmt: skip
+    assert [row.position_text for row in race.classification[-2:]] == ["R", "W"]  # Alonso retired, Hülkenberg DNS
+    assert race.fastest_lap and (race.fastest_lap.driver.code, race.fastest_lap.lap_time_s) == ("NOR", 80.901)
+    strategies = {strategy.driver.code: strategy for strategy in race.strategies}
+    assert [(stint.compound, stint.end_lap) for stint in strategies["LEC"].stints] == [("MEDIUM", 33), ("HARD", 53)]
+    (stop,) = strategies["NOR"].stops
+    assert stop.lap == 46 and stop.pit_lane_time_s == pytest.approx(27.454)
+    assert race.neutralizations == []
+    standings = [(row.driver.code, row.points) for row in race.driver_standings[:3]]
+    assert standings == [("PIA", 324), ("NOR", 293), ("VER", 230)]
+    teams = [(row.team, row.points) for row in race.team_standings[:2]]
+    assert teams == [("McLaren", 617), ("Ferrari", 280)]

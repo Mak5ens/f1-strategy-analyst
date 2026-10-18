@@ -9,9 +9,10 @@ const t = getMessages();
 
 const links = [
   { href: "/", label: t.nav.home },
+  { href: "/grand-prix", label: t.nav.races },
   { href: "/en-attente", label: t.nav.waiting },
   { href: "/debriefs", label: t.nav.published },
-  { href: "/reglement", label: t.nav.rules },
+  { href: "/journal", label: t.nav.journal },
 ];
 
 function active(pathname: string, href: string) {

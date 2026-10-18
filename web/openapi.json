@@ -43,10 +43,158 @@
         }
       }
     },
+    "/seasons": {
+      "get": {
+        "summary": "List Seasons",
+        "description": "The seasons with races in the data, the latest first.",
+        "operationId": "list_seasons_seasons_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "type": "integer"
+                  },
+                  "type": "array",
+                  "title": "Response List Seasons Seasons Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/races": {
+      "get": {
+        "summary": "List Races",
+        "description": "The calendar of a season, as far as the data goes: every round, with its winner once raced.",
+        "operationId": "list_races_races_get",
+        "parameters": [
+          {
+            "name": "season",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "The latest season if omitted",
+              "title": "Season"
+            },
+            "description": "The latest season if omitted"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RaceSummary"
+                  },
+                  "title": "Response List Races Races Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/races/featured": {
+      "get": {
+        "summary": "Featured Races",
+        "description": "The races to put forward: the last one raced, then the latest with a debrief, then the rounds before.",
+        "operationId": "featured_races_races_featured_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/RaceSummary"
+                  },
+                  "type": "array",
+                  "title": "Response Featured Races Races Featured Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/races/{season}/{round_number}": {
+      "get": {
+        "summary": "Get Race",
+        "description": "What a Grand Prix's page shows: result, grid, best laps, strategies, stops, neutralizations, penalties,\nstandings after the round, weather. Read from the lake: no model is called.",
+        "operationId": "get_race_races__season___round_number__get",
+        "parameters": [
+          {
+            "name": "season",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Season"
+            }
+          },
+          {
+            "name": "round_number",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Round Number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Race"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/debriefs": {
       "get": {
         "summary": "List Debriefs",
-        "description": "The requests, the latest first: those waiting for a person with `status=waiting`.",
+        "description": "The requests, the latest first: those waiting for a person with `status=waiting`, those on a race with\n`season` and `round`.",
         "operationId": "list_debriefs_debriefs_get",
         "parameters": [
           {
@@ -72,6 +220,42 @@
               "title": "Status"
             },
             "description": "Only the requests of this status"
+          },
+          {
+            "name": "season",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Only the requests on a race of this season",
+              "title": "Season"
+            },
+            "description": "Only the requests on a race of this season"
+          },
+          {
+            "name": "round",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Only those on this round",
+              "title": "Round"
+            },
+            "description": "Only those on this round"
           },
           {
             "name": "limit",
@@ -115,7 +299,7 @@
       },
       "post": {
         "summary": "Start Debrief",
-        "description": "Start a debrief: the agent runs until its first stop, usually the plan, or a clarification.",
+        "description": "Start a debrief: the agent runs until its first stop, usually the plan, or a clarification. A race given with\n`season` and `round` is never asked for; `question` asks for an answer first (LAB-203).",
         "operationId": "start_debrief_debriefs_post",
         "requestBody": {
           "required": true,
@@ -293,7 +477,7 @@
     "/debriefs/{debrief_id}/review": {
       "post": {
         "summary": "Answer Review",
-        "description": "One decision per point: approve, correct (with the text) or reject, with a reason unless approved.",
+        "description": "One decision per point: approve, correct (with the text) or reject, with a reason unless approved. Each\ndecision is logged with the agent's text, once the agent accepts the review.",
         "operationId": "answer_review_debriefs__debrief_id__review_post",
         "parameters": [
           {
@@ -323,6 +507,95 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Debrief"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/decisions": {
+      "get": {
+        "summary": "List Decisions",
+        "description": "The journal of the reviews, the latest first.",
+        "operationId": "list_decisions_decisions_get",
+        "parameters": [
+          {
+            "name": "debrief",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Only those of this debrief",
+              "title": "Debrief"
+            },
+            "description": "Only those of this debrief"
+          },
+          {
+            "name": "action",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "enum": [
+                      "approve",
+                      "correct",
+                      "reject"
+                    ],
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Action"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1000,
+              "minimum": 1,
+              "default": 200,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/JournalEntry"
+                  },
+                  "title": "Response List Decisions Decisions Get"
                 }
               }
             }
@@ -378,6 +651,34 @@
         "title": "Analysis",
         "description": "One analysis of the closed catalog: a tool and its arguments, decided by code."
       },
+      "BestLap": {
+        "properties": {
+          "driver": {
+            "$ref": "#/components/schemas/Driver"
+          },
+          "lap": {
+            "type": "integer",
+            "title": "Lap"
+          },
+          "lap_time_s": {
+            "type": "number",
+            "title": "Lap Time S"
+          },
+          "gap_s": {
+            "type": "number",
+            "title": "Gap S",
+            "description": "Behind the fastest lap of the race"
+          }
+        },
+        "type": "object",
+        "required": [
+          "driver",
+          "lap",
+          "lap_time_s",
+          "gap_s"
+        ],
+        "title": "BestLap"
+      },
       "Clarification": {
         "properties": {
           "field": {
@@ -429,6 +730,144 @@
           "option"
         ],
         "title": "ClarificationAnswer"
+      },
+      "Classified": {
+        "properties": {
+          "position": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Position",
+            "description": "Finishing order, also for drivers not classified"
+          },
+          "position_text": {
+            "type": "string",
+            "title": "Position Text",
+            "description": "A number, or R retired, D disqualified, W withdrawn, N not classified"
+          },
+          "driver": {
+            "$ref": "#/components/schemas/Driver"
+          },
+          "number": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Number"
+          },
+          "grid": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grid",
+            "description": "Starting position; 0 for a pit lane start"
+          },
+          "places_gained": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Places Gained",
+            "description": "Grid minus finish: positive when the driver gained places"
+          },
+          "laps": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Laps"
+          },
+          "time_s": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Time S",
+            "description": "Race time, the winner only"
+          },
+          "gap_s": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gap S",
+            "description": "Gap to the winner, finishers on the lead lap only"
+          },
+          "laps_behind": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Laps Behind",
+            "description": "Laps down on the winner, finishers lapped only"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          },
+          "points": {
+            "type": "number",
+            "title": "Points",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": [
+          "position",
+          "position_text",
+          "driver",
+          "number",
+          "grid",
+          "places_gained",
+          "laps",
+          "time_s",
+          "gap_s",
+          "laps_behind",
+          "status",
+          "points"
+        ],
+        "title": "Classified"
       },
       "Debrief": {
         "properties": {
@@ -489,10 +928,34 @@
           },
           "points": {
             "items": {
-              "$ref": "#/components/schemas/Point"
+              "$ref": "#/components/schemas/ShownPoint"
             },
             "type": "array",
             "title": "Points"
+          },
+          "facts": {
+            "items": {
+              "$ref": "#/components/schemas/Fact"
+            },
+            "type": "array",
+            "title": "Facts",
+            "description": "The analyses run, which `Point.facts` cite"
+          },
+          "sources": {
+            "items": {
+              "$ref": "#/components/schemas/Source"
+            },
+            "type": "array",
+            "title": "Sources",
+            "description": "The rule passages, which `Point.sources` cite"
+          },
+          "decisions": {
+            "items": {
+              "$ref": "#/components/schemas/Decision"
+            },
+            "type": "array",
+            "title": "Decisions",
+            "description": "The review's, once made"
           },
           "deliverable": {
             "anyOf": [
@@ -528,6 +991,9 @@
           "clarification",
           "plan",
           "points",
+          "facts",
+          "sources",
+          "decisions",
           "deliverable",
           "stop_reason"
         ],
@@ -693,6 +1159,90 @@
         ],
         "title": "Driver"
       },
+      "DriverStanding": {
+        "properties": {
+          "position": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Position"
+          },
+          "driver": {
+            "$ref": "#/components/schemas/Driver"
+          },
+          "points": {
+            "type": "number",
+            "title": "Points"
+          },
+          "wins": {
+            "type": "integer",
+            "title": "Wins"
+          },
+          "change": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Change",
+            "description": "Places gained in the championship with this round"
+          }
+        },
+        "type": "object",
+        "required": [
+          "position",
+          "driver",
+          "points",
+          "wins",
+          "change"
+        ],
+        "title": "DriverStanding"
+      },
+      "Fact": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "ok": {
+            "type": "boolean",
+            "title": "Ok"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error",
+            "description": "Why it gave no number"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "label",
+          "ok",
+          "error"
+        ],
+        "title": "Fact",
+        "description": "An analysis the agent ran: the points cite it for their numbers."
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -737,6 +1287,144 @@
         ],
         "title": "Info"
       },
+      "JournalEntry": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "debrief": {
+            "type": "string",
+            "title": "Debrief"
+          },
+          "request": {
+            "type": "string",
+            "title": "Request"
+          },
+          "subject": {
+            "$ref": "#/components/schemas/Subject"
+          },
+          "point": {
+            "type": "string",
+            "title": "Point"
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "approve",
+              "correct",
+              "reject"
+            ],
+            "title": "Action"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "wrong_number",
+                  "wrong_source",
+                  "off_topic",
+                  "wording",
+                  "other"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "text_before": {
+            "type": "string",
+            "title": "Text Before",
+            "description": "The agent's text"
+          },
+          "text_after": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text After",
+            "description": "The corrected text"
+          },
+          "point_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Point Status",
+            "description": "What the agent's check said of the point"
+          },
+          "decided_by": {
+            "type": "string",
+            "title": "Decided By"
+          },
+          "decided_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Decided At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "debrief",
+          "request",
+          "subject",
+          "point",
+          "action",
+          "reason",
+          "text_before",
+          "text_after",
+          "point_status",
+          "decided_by",
+          "decided_at"
+        ],
+        "title": "JournalEntry",
+        "description": "A decision of a review, kept with the agent's text it judged."
+      },
+      "Neutralization": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "safety_car",
+              "virtual_safety_car",
+              "red_flag"
+            ],
+            "title": "Kind"
+          },
+          "start_lap": {
+            "type": "integer",
+            "title": "Start Lap"
+          },
+          "end_lap": {
+            "type": "integer",
+            "title": "End Lap"
+          },
+          "duration_s": {
+            "type": "number",
+            "title": "Duration S"
+          }
+        },
+        "type": "object",
+        "required": [
+          "kind",
+          "start_lap",
+          "end_lap",
+          "duration_s"
+        ],
+        "title": "Neutralization"
+      },
       "NewDebrief": {
         "properties": {
           "request": {
@@ -747,6 +1435,39 @@
             "examples": [
               "Débrief stratégique du GP d'Italie 2025 pour Ferrari"
             ]
+          },
+          "season": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 2100.0,
+                "minimum": 2018.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Season",
+            "description": "The race chosen, with `round`: never asked for"
+          },
+          "round": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 30.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Round"
+          },
+          "question": {
+            "type": "boolean",
+            "title": "Question",
+            "description": "A precise question on the race: the debrief answers it first",
+            "default": false
           }
         },
         "type": "object",
@@ -774,6 +1495,52 @@
         "title": "Option",
         "description": "One answer proposed to a person: what is shown, and what it sets in the subject."
       },
+      "Penalty": {
+        "properties": {
+          "driver": {
+            "$ref": "#/components/schemas/Driver"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "time",
+              "drive_through",
+              "stop_go"
+            ],
+            "title": "Kind"
+          },
+          "seconds": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seconds"
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason",
+            "description": "In French"
+          },
+          "lap": {
+            "type": "integer",
+            "title": "Lap",
+            "description": "Lap race control announced it"
+          }
+        },
+        "type": "object",
+        "required": [
+          "driver",
+          "kind",
+          "seconds",
+          "reason",
+          "lap"
+        ],
+        "title": "Penalty"
+      },
       "PlanAnswer": {
         "properties": {
           "analyses": {
@@ -791,7 +1558,217 @@
         ],
         "title": "PlanAnswer"
       },
-      "Point": {
+      "Race": {
+        "properties": {
+          "summary": {
+            "$ref": "#/components/schemas/RaceSummary"
+          },
+          "total_laps": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Laps"
+          },
+          "classification": {
+            "items": {
+              "$ref": "#/components/schemas/Classified"
+            },
+            "type": "array",
+            "title": "Classification"
+          },
+          "fastest_lap": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BestLap"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "best_laps": {
+            "items": {
+              "$ref": "#/components/schemas/BestLap"
+            },
+            "type": "array",
+            "title": "Best Laps",
+            "description": "Each driver's best lap, fastest first"
+          },
+          "strategies": {
+            "items": {
+              "$ref": "#/components/schemas/Strategy"
+            },
+            "type": "array",
+            "title": "Strategies",
+            "description": "In finishing order"
+          },
+          "neutralizations": {
+            "items": {
+              "$ref": "#/components/schemas/Neutralization"
+            },
+            "type": "array",
+            "title": "Neutralizations"
+          },
+          "penalties": {
+            "items": {
+              "$ref": "#/components/schemas/Penalty"
+            },
+            "type": "array",
+            "title": "Penalties"
+          },
+          "driver_standings": {
+            "items": {
+              "$ref": "#/components/schemas/DriverStanding"
+            },
+            "type": "array",
+            "title": "Driver Standings",
+            "description": "After this round"
+          },
+          "team_standings": {
+            "items": {
+              "$ref": "#/components/schemas/TeamStanding"
+            },
+            "type": "array",
+            "title": "Team Standings",
+            "description": "After this round"
+          },
+          "weather": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Weather"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "summary",
+          "total_laps",
+          "classification",
+          "fastest_lap",
+          "best_laps",
+          "strategies",
+          "neutralizations",
+          "penalties",
+          "driver_standings",
+          "team_standings",
+          "weather"
+        ],
+        "title": "Race",
+        "description": "A Grand Prix as its page shows it. A section without data is empty, never filled with a guess."
+      },
+      "RaceSummary": {
+        "properties": {
+          "season": {
+            "type": "integer",
+            "title": "Season"
+          },
+          "round": {
+            "type": "integer",
+            "title": "Round"
+          },
+          "grand_prix": {
+            "type": "string",
+            "title": "Grand Prix",
+            "description": "In French"
+          },
+          "event": {
+            "type": "string",
+            "title": "Event",
+            "description": "The official name in English, as the data names it"
+          },
+          "location": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Location"
+          },
+          "country": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Country"
+          },
+          "date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date",
+            "description": "Start of the race, UTC"
+          },
+          "sprint": {
+            "type": "boolean",
+            "title": "Sprint",
+            "description": "A sprint weekend",
+            "default": false
+          },
+          "winner": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Driver"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "None until the race has results"
+          }
+        },
+        "type": "object",
+        "required": [
+          "season",
+          "round",
+          "grand_prix",
+          "event",
+          "location",
+          "country",
+          "date",
+          "sprint",
+          "winner"
+        ],
+        "title": "RaceSummary"
+      },
+      "ReviewAnswer": {
+        "properties": {
+          "decisions": {
+            "items": {
+              "$ref": "#/components/schemas/Decision"
+            },
+            "type": "array",
+            "title": "Decisions"
+          }
+        },
+        "type": "object",
+        "required": [
+          "decisions"
+        ],
+        "title": "ReviewAnswer"
+      },
+      "ShownPoint": {
         "properties": {
           "id": {
             "type": "string",
@@ -840,26 +1817,195 @@
         "type": "object",
         "required": [
           "id",
-          "text"
+          "text",
+          "facts",
+          "sources",
+          "status",
+          "problems"
         ],
-        "title": "Point",
-        "description": "One point of the deliverable: a text, the results its numbers come from, the sources it cites."
+        "title": "ShownPoint",
+        "description": "A point of the debrief, its lists always present."
       },
-      "ReviewAnswer": {
+      "Source": {
         "properties": {
-          "decisions": {
-            "items": {
-              "$ref": "#/components/schemas/Decision"
-            },
-            "type": "array",
-            "title": "Decisions"
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
           }
         },
         "type": "object",
         "required": [
-          "decisions"
+          "id",
+          "label",
+          "text"
         ],
-        "title": "ReviewAnswer"
+        "title": "Source",
+        "description": "A passage of the FIA documents the points may cite."
+      },
+      "Stint": {
+        "properties": {
+          "stint": {
+            "type": "integer",
+            "title": "Stint"
+          },
+          "compound": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Compound",
+            "description": "SOFT, MEDIUM, HARD, INTERMEDIATE or WET"
+          },
+          "start_lap": {
+            "type": "integer",
+            "title": "Start Lap"
+          },
+          "end_lap": {
+            "type": "integer",
+            "title": "End Lap"
+          },
+          "laps": {
+            "type": "integer",
+            "title": "Laps"
+          },
+          "fresh": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fresh",
+            "description": "A new set, rather than one used in an earlier session"
+          }
+        },
+        "type": "object",
+        "required": [
+          "stint",
+          "compound",
+          "start_lap",
+          "end_lap",
+          "laps",
+          "fresh"
+        ],
+        "title": "Stint"
+      },
+      "Stop": {
+        "properties": {
+          "stop_number": {
+            "type": "integer",
+            "title": "Stop Number"
+          },
+          "lap": {
+            "type": "integer",
+            "title": "Lap",
+            "description": "In-lap"
+          },
+          "pit_lane_time_s": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pit Lane Time S"
+          },
+          "stationary_time_s": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stationary Time S"
+          },
+          "time_lost_s": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Time Lost S",
+            "description": "What the stop cost against two normal laps (pit_stop_loss)"
+          },
+          "compound_after": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Compound After"
+          },
+          "neutralized": {
+            "type": "boolean",
+            "title": "Neutralized",
+            "description": "Under safety car, VSC or red flag: the stop cost less",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "stop_number",
+          "lap",
+          "pit_lane_time_s",
+          "stationary_time_s",
+          "time_lost_s",
+          "compound_after",
+          "neutralized"
+        ],
+        "title": "Stop"
+      },
+      "Strategy": {
+        "properties": {
+          "driver": {
+            "$ref": "#/components/schemas/Driver"
+          },
+          "stints": {
+            "items": {
+              "$ref": "#/components/schemas/Stint"
+            },
+            "type": "array",
+            "title": "Stints"
+          },
+          "stops": {
+            "items": {
+              "$ref": "#/components/schemas/Stop"
+            },
+            "type": "array",
+            "title": "Stops"
+          }
+        },
+        "type": "object",
+        "required": [
+          "driver",
+          "stints",
+          "stops"
+        ],
+        "title": "Strategy"
       },
       "Subject": {
         "properties": {
@@ -939,6 +2085,12 @@
             ],
             "title": "Colour",
             "description": "The colour of the team followed, or of the first driver's team"
+          },
+          "question": {
+            "type": "boolean",
+            "title": "Question",
+            "description": "A precise question on the race: its request is its title",
+            "default": false
           }
         },
         "type": "object",
@@ -949,10 +2101,71 @@
           "kind",
           "teams",
           "focus",
-          "colour"
+          "colour",
+          "question"
         ],
         "title": "Subject",
         "description": "What a request is about, as far as the agent resolved it: nothing yet while it asks which race."
+      },
+      "TeamStanding": {
+        "properties": {
+          "position": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Position"
+          },
+          "team": {
+            "type": "string",
+            "title": "Team"
+          },
+          "colour": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Colour"
+          },
+          "points": {
+            "type": "number",
+            "title": "Points"
+          },
+          "wins": {
+            "type": "integer",
+            "title": "Wins"
+          },
+          "change": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Change",
+            "description": "Places gained in the championship with this round"
+          }
+        },
+        "type": "object",
+        "required": [
+          "position",
+          "team",
+          "colour",
+          "points",
+          "wins",
+          "change"
+        ],
+        "title": "TeamStanding"
       },
       "ValidationError": {
         "properties": {
@@ -993,6 +2206,47 @@
           "type"
         ],
         "title": "ValidationError"
+      },
+      "Weather": {
+        "properties": {
+          "air_temp_min_c": {
+            "type": "number",
+            "title": "Air Temp Min C",
+            "description": "Lowest during the race"
+          },
+          "air_temp_max_c": {
+            "type": "number",
+            "title": "Air Temp Max C"
+          },
+          "track_temp_min_c": {
+            "type": "number",
+            "title": "Track Temp Min C"
+          },
+          "track_temp_max_c": {
+            "type": "number",
+            "title": "Track Temp Max C"
+          },
+          "humidity_pct": {
+            "type": "number",
+            "title": "Humidity Pct",
+            "description": "Average"
+          },
+          "rainfall": {
+            "type": "boolean",
+            "title": "Rainfall",
+            "description": "Rain at some point of the race"
+          }
+        },
+        "type": "object",
+        "required": [
+          "air_temp_min_c",
+          "air_temp_max_c",
+          "track_temp_min_c",
+          "track_temp_max_c",
+          "humidity_pct",
+          "rainfall"
+        ],
+        "title": "Weather"
       }
     }
   }

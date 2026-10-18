@@ -117,6 +117,9 @@ Status = Literal["running", "waiting", "stopped", "published"]
 class AgentState(BaseModel):
     request: str
     trace_id: str | None = None
+    # What the person chose beside the request (a theme's subject fields, e.g. the race picked from a list): taken as
+    # is, over what the request is read to say, so the agent never asks for it.
+    given: dict[str, Any] = Field(default_factory=dict)
     subject: dict[str, Any] = Field(default_factory=dict)
     clarification: Clarification | None = None  # the open question, if any
     clarifications: list[Clarification] = Field(default_factory=list)  # the answered ones

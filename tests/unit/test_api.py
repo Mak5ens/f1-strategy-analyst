@@ -1,4 +1,4 @@
-from collections.abc import Iterator
+from collections.abc import Iterator, Sequence
 from datetime import UTC, datetime
 from importlib.metadata import version
 from pathlib import Path
@@ -8,7 +8,7 @@ import pytest
 from fastapi.testclient import TestClient
 from test_agent import FakeTheme, agent
 
-from core.agent import Agent, Run
+from core.agent import Agent, Decision, Point, Run
 from f1.api import app, get_agent, get_requests, openapi_document, subject
 
 OPENAPI = Path(__file__).parents[2] / "web" / "openapi.json"
@@ -19,6 +19,7 @@ class FakeRequests:
 
     def __init__(self) -> None:
         self.rows: dict[str, dict[str, Any]] = {}
+        self.journal: list[dict[str, Any]] = []
 
     def record(self, run: Run) -> None:
         now = datetime.now(UTC)
@@ -31,8 +32,35 @@ class FakeRequests:
             updated_at=now,
         )
 
-    def list(self, *, status: str | None = None, limit: int = 50) -> list[dict[str, Any]]:
-        rows = [row for row in self.rows.values() if status is None or row["status"] == status]
+    def log_decisions(self, thread_id: str, points: Sequence[Point], decisions: Sequence[Decision], *, by: str) -> None:
+        texts = {point.id: (point.text, point.status) for point in points}
+        for decision in decisions:
+            before, status = texts[decision.point]
+            self.journal.insert(0, {
+                "id": len(self.journal) + 1, "thread_id": thread_id, "point": decision.point,
+                "action": decision.action, "reason": decision.reason, "text_before": before,
+                "text_after": decision.text if decision.action == "correct" else None, "point_status": status,
+                "decided_by": by, "decided_at": datetime.now(UTC), "request": self.rows[thread_id]["request"],
+                "subject": self.rows[thread_id]["subject"],
+            })  # fmt: skip
+
+    def decisions(
+        self, *, thread_id: str | None = None, actions: Sequence[str] | None = None, limit: int = 500
+    ) -> list[dict[str, Any]]:
+        return [
+            row
+            for row in self.journal
+            if (thread_id is None or row["thread_id"] == thread_id) and (not actions or row["action"] in actions)
+        ][:limit]
+
+    def list(
+        self, *, status: str | None = None, subject: dict[str, Any] | None = None, limit: int = 50
+    ) -> list[dict[str, Any]]:
+        rows = [
+            row
+            for row in self.rows.values()
+            if (status is None or row["status"] == status) and (subject or {}).items() <= row["subject"].items()
+        ]
         return sorted(rows, key=lambda row: row["updated_at"], reverse=True)[:limit]
 
 
@@ -77,6 +105,30 @@ def test_a_debrief_goes_through_its_stops_and_is_listed_where_it_stands(client: 
     assert [item["id"] for item in client.get("/debriefs", params={"status": "published"}).json()] == [debrief["id"]]
 
 
+def test_each_decision_of_a_review_is_logged_with_the_agents_text(client: TestClient) -> None:
+    debrief = client.post("/debriefs", json={"request": "Débrief de Monza"}).json()
+    reviewed = client.post(f"/debriefs/{debrief['id']}/plan", json={"analyses": ["loss:LEC", "sc"]}).json()
+    assert reviewed["facts"] and {fact["id"] for fact in reviewed["facts"]} >= {"loss:LEC"}
+    first, second = reviewed["points"][:2]
+    decisions = [
+        {"point": first["id"], "action": "correct", "text": "Texte corrigé.", "reason": "wording"},
+        {"point": second["id"], "action": "reject", "reason": "wrong_number"},
+        *({"point": point["id"], "action": "approve"} for point in reviewed["points"][2:]),
+    ]
+
+    published = client.post(f"/debriefs/{debrief['id']}/review", json={"decisions": decisions}).json()
+
+    assert [decision["action"] for decision in published["decisions"]][:2] == ["correct", "reject"]
+    rejected = client.get("/decisions", params={"action": ["correct", "reject"]}).json()
+    assert [(entry["action"], entry["reason"]) for entry in rejected] == [
+        ("reject", "wrong_number"),
+        ("correct", "wording"),
+    ]
+    assert rejected[1]["text_before"] == first["text"] and rejected[1]["text_after"] == "Texte corrigé."
+    assert rejected[0]["decided_by"] == "analyste" and rejected[0]["subject"]["round"] == 16
+    assert len(client.get("/decisions", params={"debrief": debrief["id"]}).json()) == len(decisions)
+
+
 def test_an_ambiguous_request_waits_for_a_clarification_answered_by_label(client: TestClient) -> None:
     debrief = client.post("/debriefs", json={"request": "Débrief du dernier GP"}).json()
     assert debrief["waiting"] == "clarification"
@@ -85,6 +137,16 @@ def test_an_ambiguous_request_waits_for_a_clarification_answered_by_label(client
     answered = client.post(f"/debriefs/{debrief['id']}/clarification", json={"option": "Monza 2025"}).json()
 
     assert answered["waiting"] == "plan" and answered["clarification"] is None
+
+
+def test_a_question_carries_the_race_chosen_beside_it(client: TestClient) -> None:
+    body = {"request": "Pourquoi Leclerc s'est-il arrêté si tôt ?", "season": 2025, "round": 16}
+
+    debrief = client.post("/debriefs", json={**body, "question": True}).json()
+
+    assert debrief["waiting"] == "plan"
+    assert debrief["subject"]["question"] is True and debrief["subject"]["round"] == 16
+    assert client.post("/debriefs", json={"request": "Pourquoi ?", "season": 2025}).status_code == 422
 
 
 def test_an_answer_to_another_stop_is_refused(client: TestClient) -> None:

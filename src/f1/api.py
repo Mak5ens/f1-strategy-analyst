@@ -1,12 +1,14 @@
-"""HTTP API of the app: the debrief agent's requests, their three stops, and the published debriefs (LAB-152).
+"""HTTP API of the app: the races of the lake (LAB-202), the debrief agent's requests, their three stops, and the
+published debriefs (LAB-152).
 
 The front in `web/` calls it through a client generated from this app's OpenAPI document, committed as
 `web/openapi.json` (`just web-gen-client`): `tests/unit/test_api.py` fails while the two differ.
 
     uv run python -m f1.api > web/openapi.json
 
-A request runs inside the HTTP call that starts or answers it, until its next stop: a few seconds to the plan, up to
-half a minute from the plan to the review when rules are needed.
+The races' pages are read from the lake, without a model. A request runs inside the HTTP call that starts or
+answers it, until its next stop: a few seconds to the plan, up to half a minute from the plan to the review when
+rules are needed.
 """
 
 import json
@@ -19,11 +21,13 @@ from importlib.metadata import version
 from typing import Annotated, Any, Literal
 
 from fastapi import Depends, FastAPI, HTTPException, Query
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, Field, model_validator
 
 from core.agent import Agent, Analysis, Clarification, Decision, Point, Run
+from core.agent.state import RejectReason
 from core.agent.store import RequestStore
-from f1.display import grand_prix_fr, team_colour
+from f1.display import Driver, Response, grand_prix_fr, team_colour
+from f1.grand_prix import GrandPrix, Race, RaceSummary
 
 # The version of the API contract, not the app's: release-please bumps the app's on every release, and the OpenAPI
 # document, and the front's generated client, would change with it.
@@ -33,13 +37,6 @@ Status = Literal["running", "waiting", "stopped", "published"]
 Stop = Literal["clarification", "plan", "review"]
 
 
-class Response(BaseModel):
-    """What the API returns: every field always present, its default included, so the generated client needs no
-    `?? []`."""
-
-    model_config = ConfigDict(json_schema_serialization_defaults_required=True)
-
-
 class Health(BaseModel):
     status: str
 
@@ -47,13 +44,6 @@ class Health(BaseModel):
 class Info(BaseModel):
     name: str
     version: str
-
-
-class Driver(Response):
-    code: str
-    name: str
-    team: str | None = None
-    colour: str | None = Field(None, description="The team's colour, #rrggbb, when known")
 
 
 class Subject(Response):
@@ -66,6 +56,7 @@ class Subject(Response):
     teams: list[str] = Field(default_factory=list)
     focus: list[Driver] = Field(default_factory=list, description="The drivers the debrief follows")
     colour: str | None = Field(None, description="The colour of the team followed, or of the first driver's team")
+    question: bool = Field(False, description="A precise question on the race: its request is its title")
 
 
 class DebriefSummary(Response):
@@ -78,6 +69,27 @@ class DebriefSummary(Response):
     updated_at: datetime
 
 
+class ShownPoint(Response, Point):
+    """A point of the debrief, its lists always present."""
+
+
+class Fact(Response):
+    """An analysis the agent ran: the points cite it for their numbers."""
+
+    id: str
+    label: str
+    ok: bool
+    error: str | None = Field(None, description="Why it gave no number")
+
+
+class Source(Response):
+    """A passage of the FIA documents the points may cite."""
+
+    id: str
+    label: str
+    text: str
+
+
 class Debrief(Response):
     """A request and everything a person needs at its stop."""
 
@@ -88,15 +100,51 @@ class Debrief(Response):
     subject: Subject
     clarification: Clarification | None = Field(None, description="The open question, when waiting for it")
     plan: list[Analysis] = Field(default_factory=list)
-    points: list[Point] = Field(default_factory=list)
+    points: list[ShownPoint] = Field(default_factory=list)
+    facts: list[Fact] = Field(default_factory=list, description="The analyses run, which `Point.facts` cite")
+    sources: list[Source] = Field(default_factory=list, description="The rule passages, which `Point.sources` cite")
+    decisions: list[Decision] = Field(default_factory=list, description="The review's, once made")
     deliverable: str | None = Field(None, description="The published debrief, in Markdown")
     stop_reason: str | None = None
+
+
+class JournalEntry(Response):
+    """A decision of a review, kept with the agent's text it judged."""
+
+    id: int
+    debrief: str
+    request: str
+    subject: Subject
+    point: str
+    action: Literal["approve", "correct", "reject"]
+    reason: RejectReason | None = None
+    text_before: str = Field(description="The agent's text")
+    text_after: str | None = Field(None, description="The corrected text")
+    point_status: str | None = Field(None, description="What the agent's check said of the point")
+    decided_by: str
+    decided_at: datetime
 
 
 class NewDebrief(BaseModel):
     request: str = Field(
         min_length=3, max_length=500, examples=["Débrief stratégique du GP d'Italie 2025 pour Ferrari"]
     )
+    season: int | None = Field(None, ge=2018, le=2100, description="The race chosen, with `round`: never asked for")
+    round: int | None = Field(None, ge=1, le=30)
+    question: bool = Field(False, description="A precise question on the race: the debrief answers it first")
+
+    @model_validator(mode="after")
+    def _race_whole(self) -> "NewDebrief":
+        if (self.season is None) != (self.round is None):
+            raise ValueError("a race is a season and a round")
+        return self
+
+    def given(self) -> dict[str, Any]:
+        """What the person chose beside the request, as the agent's subject fields."""
+        given: dict[str, Any] = {"question": True} if self.question else {}
+        if self.season is not None and self.round is not None:
+            given |= {"season": self.season, "round": self.round}
+        return given
 
 
 class ClarificationAnswer(BaseModel):
@@ -117,6 +165,7 @@ _resources = ExitStack()
 _lock = threading.Lock()
 _agent: Agent | None = None
 _requests: RequestStore | None = None
+_grand_prix: GrandPrix | None = None
 
 
 def get_agent() -> Agent:
@@ -137,8 +186,19 @@ def get_requests() -> RequestStore:
     return _requests
 
 
+def get_grand_prix() -> GrandPrix:
+    global _grand_prix
+    with _lock:
+        if _grand_prix is None:
+            from f1.data import connect
+
+            _grand_prix = GrandPrix(connect())
+    return _grand_prix
+
+
 AgentDep = Annotated[Agent, Depends(get_agent)]
 RequestsDep = Annotated[RequestStore, Depends(get_requests)]
+GrandPrixDep = Annotated[GrandPrix, Depends(get_grand_prix)]
 
 
 @app.get("/healthz")
@@ -153,13 +213,53 @@ def info() -> Info:
     return Info(name="f1-strategy-analyst", version=version("f1-strategy-analyst"))
 
 
+@app.get("/seasons")
+def list_seasons(grand_prix: GrandPrixDep) -> list[int]:
+    """The seasons with races in the data, the latest first."""
+    return grand_prix.seasons()
+
+
+@app.get("/races")
+def list_races(
+    grand_prix: GrandPrixDep, season: Annotated[int | None, Query(description="The latest season if omitted")] = None
+) -> list[RaceSummary]:
+    """The calendar of a season, as far as the data goes: every round, with its winner once raced."""
+    seasons = grand_prix.seasons()
+    return grand_prix.calendar(season or seasons[0]) if seasons else []
+
+
+@app.get("/races/featured")
+def featured_races(grand_prix: GrandPrixDep, requests: RequestsDep) -> list[RaceSummary]:
+    """The races to put forward: the last one raced, then the latest with a debrief, then the rounds before."""
+    debriefed = [
+        (row["subject"]["season"], row["subject"]["round"])
+        for row in requests.list(limit=200)
+        if row["subject"].get("season") and row["subject"].get("round")
+    ]
+    return grand_prix.featured(debriefed)
+
+
+@app.get("/races/{season}/{round_number}")
+def get_race(season: int, round_number: int, grand_prix: GrandPrixDep) -> Race:
+    """What a Grand Prix's page shows: result, grid, best laps, strategies, stops, neutralizations, penalties,
+    standings after the round, weather. Read from the lake: no model is called."""
+    race = grand_prix.race(season, round_number)
+    if race is None:
+        raise HTTPException(404, f"no data for round {round_number} of {season}")
+    return race
+
+
 @app.get("/debriefs")
 def list_debriefs(
     requests: RequestsDep,
     status: Annotated[Status | None, Query(description="Only the requests of this status")] = None,
+    season: Annotated[int | None, Query(description="Only the requests on a race of this season")] = None,
+    round_number: Annotated[int | None, Query(alias="round", description="Only those on this round")] = None,
     limit: Annotated[int, Query(ge=1, le=200)] = 50,
 ) -> list[DebriefSummary]:
-    """The requests, the latest first: those waiting for a person with `status=waiting`."""
+    """The requests, the latest first: those waiting for a person with `status=waiting`, those on a race with
+    `season` and `round`."""
+    race = {key: value for key, value in (("season", season), ("round", round_number)) if value is not None}
     return [
         DebriefSummary(
             id=row["thread_id"],
@@ -170,14 +270,15 @@ def list_debriefs(
             created_at=row["created_at"],
             updated_at=row["updated_at"],
         )
-        for row in requests.list(status=status, limit=limit)
+        for row in requests.list(status=status, subject=race, limit=limit)
     ]
 
 
 @app.post("/debriefs", status_code=201)
 def start_debrief(body: NewDebrief, agent: AgentDep) -> Debrief:
-    """Start a debrief: the agent runs until its first stop, usually the plan, or a clarification."""
-    return debrief(agent.start(body.request, thread_id=str(uuid.uuid4())))
+    """Start a debrief: the agent runs until its first stop, usually the plan, or a clarification. A race given with
+    `season` and `round` is never asked for; `question` asks for an answer first (LAB-203)."""
+    return debrief(agent.start(body.request, thread_id=str(uuid.uuid4()), given=body.given()))
 
 
 @app.get("/debriefs/{debrief_id}")
@@ -199,11 +300,46 @@ def answer_plan(debrief_id: str, body: PlanAnswer, agent: AgentDep) -> Debrief:
     return debrief(agent.resume(debrief_id, body.analyses))
 
 
+# Who decides, until the site has accounts (milestone 6): its owner, the analyst.
+REVIEWER = "analyste"
+
+
 @app.post("/debriefs/{debrief_id}/review")
-def answer_review(debrief_id: str, body: ReviewAnswer, agent: AgentDep) -> Debrief:
-    """One decision per point: approve, correct (with the text) or reject, with a reason unless approved."""
-    _waiting(agent, debrief_id, "review")
-    return debrief(agent.resume(debrief_id, [decision.model_dump() for decision in body.decisions]))
+def answer_review(debrief_id: str, body: ReviewAnswer, agent: AgentDep, requests: RequestsDep) -> Debrief:
+    """One decision per point: approve, correct (with the text) or reject, with a reason unless approved. Each
+    decision is logged with the agent's text, once the agent accepts the review."""
+    points = _waiting(agent, debrief_id, "review").state.points
+    run = agent.resume(debrief_id, [decision.model_dump() for decision in body.decisions])
+    if run.waiting is None or run.waiting.kind != "review":
+        requests.log_decisions(debrief_id, points, body.decisions, by=REVIEWER)
+    return debrief(run)
+
+
+@app.get("/decisions")
+def list_decisions(
+    requests: RequestsDep,
+    debrief_id: Annotated[str | None, Query(alias="debrief", description="Only those of this debrief")] = None,
+    action: Annotated[list[Literal["approve", "correct", "reject"]] | None, Query()] = None,
+    limit: Annotated[int, Query(ge=1, le=1000)] = 200,
+) -> list[JournalEntry]:
+    """The journal of the reviews, the latest first."""
+    return [
+        JournalEntry(
+            id=row["id"],
+            debrief=row["thread_id"],
+            request=row["request"],
+            subject=subject(row["subject"]),
+            point=row["point"],
+            action=row["action"],
+            reason=row["reason"],
+            text_before=row["text_before"],
+            text_after=row["text_after"],
+            point_status=row["point_status"],
+            decided_by=row["decided_by"],
+            decided_at=row["decided_at"],
+        )
+        for row in requests.decisions(thread_id=debrief_id, actions=action, limit=limit)
+    ]
 
 
 def _run(agent: Agent, debrief_id: str) -> Run:
@@ -213,10 +349,11 @@ def _run(agent: Agent, debrief_id: str) -> Run:
         raise HTTPException(404, f"no debrief {debrief_id}") from None
 
 
-def _waiting(agent: Agent, debrief_id: str, stop: Stop) -> None:
+def _waiting(agent: Agent, debrief_id: str, stop: Stop) -> Run:
     run = _run(agent, debrief_id)
     if run.waiting is None or run.waiting.kind != stop:
         raise HTTPException(409, f"debrief {debrief_id} is not waiting for its {stop} ({run.status})")
+    return run
 
 
 def debrief(run: Run) -> Debrief:
@@ -230,7 +367,10 @@ def debrief(run: Run) -> Debrief:
         subject=subject(state.subject),
         clarification=state.clarification if waiting == "clarification" else None,
         plan=state.plan,
-        points=state.points,
+        points=[ShownPoint.model_validate(point.model_dump()) for point in state.points],
+        facts=[Fact(id=r.id, label=r.label, ok=r.ok, error=r.error) for r in state.results],
+        sources=[Source(id=src.id, label=src.label, text=src.text) for rule in state.rules for src in rule.sources],
+        decisions=state.decisions,
         deliverable=state.deliverable,
         stop_reason=state.stop_reason,
     )
@@ -254,6 +394,7 @@ def subject(raw: Mapping[str, Any]) -> Subject:
         teams=teams,
         focus=focus,
         colour=team_colour(lead),
+        question=bool(raw.get("question")),
     )
 
 

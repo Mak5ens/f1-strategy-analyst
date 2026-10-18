@@ -3,6 +3,8 @@
 - A restart during each of the three waits loses nothing: a new agent on the same database goes on.
 - A whole debrief of a Grand Prix has no number that does not come from an analysis.
 - An ambiguous request ("le dernier GP") asks instead of guessing.
+- A question on a race chosen from its page (LAB-203) is never asked which race, answers first, every number backed,
+  and ends on what the data cannot say.
 """
 
 import uuid
@@ -45,7 +47,7 @@ def test_a_debrief_survives_a_restart_at_each_stop_and_every_number_is_backed() 
         assert run.waiting is not None and run.waiting.kind == "clarification"  # no season: which one?
     with debrief_agent() as agent:  # restarted while waiting for the clarification
         options = [option["label"] for option in agent.get(thread).waiting.payload["options"]]  # type: ignore[union-attr]
-        run = agent.resume(thread, options.index("Italian Grand Prix 2025"))
+        run = agent.resume(thread, options.index("Grand Prix d'Italie 2025"))
         assert run.waiting is not None and run.waiting.kind == "plan"
     with debrief_agent() as agent:  # restarted while waiting for the plan
         plan = agent.get(thread).waiting.payload["analyses"]  # type: ignore[union-attr]
@@ -60,6 +62,23 @@ def test_a_debrief_survives_a_restart_at_each_stop_and_every_number_is_backed() 
     assert_backed(run.state)
     published = PublishedStore().get(thread)
     assert published is not None and published["deliverable"] == run.state.deliverable
+
+
+def test_a_question_on_a_chosen_race_answers_first(agent: Agent) -> None:
+    # Singapore 2024: Hamilton started on softs, one of 2 cars to do so, from 3rd on the grid.
+    given = {"season": 2024, "round": 18, "question": True}
+    run = agent.start("Pourquoi Hamilton est-il parti en pneus tendres ?", thread_id=str(uuid.uuid4()), given=given)
+    assert run.waiting is not None and run.waiting.kind == "plan"  # the race is not asked for
+    plan = {analysis["id"]: analysis for analysis in run.waiting.payload["analyses"]}
+    assert plan["strategies"]["selected"] and "stops:HAM" in plan
+
+    run = agent.resume(run.thread_id, [id_ for id_, analysis in plan.items() if analysis["selected"]])
+
+    assert run.waiting is not None and run.waiting.kind == "review", run.state.stop_reason
+    points = run.state.points
+    assert "tendre" in points[0].text.lower() and "strategies" in points[0].facts
+    assert not any(char.isdigit() for char in points[-1].text)  # what the data cannot say: no number
+    assert all(point.status == "verified" for point in points), [point.problems for point in points]
 
 
 def assert_backed(state: AgentState) -> None:

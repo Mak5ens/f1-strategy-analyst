@@ -14,6 +14,7 @@ Decided with the product owner on 2026-10-15, from screenshots of formula1.com: 
 | Cards and hero bands in a team's colour | `DebriefCard`: the team's colour fading into the card, from the API's `colour` |
 | The driver's number, huge, behind the photo | The round number, huge and faint, where a photo would be |
 | The red double slash | `.slash`, the app's signature, red or in the team's colour |
+| Tyre strategy charts, the fastest lap in purple | `StrategyChart`: the compounds' broadcast colours (`--soft`, `--medium`, `--hard`...), a used set striped; `--fastest` |
 
 ## What "smoother" means
 
