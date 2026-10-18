@@ -81,6 +81,28 @@ _IN_WORDS = re.compile(
 _WORDS = ["un", "deux", "trois", "quatre", "cinq", "six", "sept", "huit", "neuf", "dix", "onze", "douze", "treize",
           "quatorze", "quinze", "seize"]  # fmt: skip
 _TENS = {"vingt": 20, "trente": 30, "quarante": 40, "cinquante": 50, "soixante": 60, "cent": 100}
+# The analyses a question's words call for, whatever the model picks: tyres, qualifying, the classification.
+_WANTED = {
+    "strategies": re.compile(r"\b(pneus?|gommes?|composes?|tendres?|mediums?|durs|intermediaires?|relais)\b"),
+    "qualifying": re.compile(r"\b(pole|qualifs?|qualifications?|q[123])\b"),
+    "result": re.compile(r"\b(meilleur tour|classement|vainqueur|gagne|podium|arrive|termine|fini)"),
+}
+_STOPS = re.compile(r"\b(arrets?|stands?|undercut|overcut|cycle)\b")
+
+
+def _wanted(text: str, subject: Mapping[str, Any], ids: Sequence[str]) -> list[str]:
+    """The analyses a question calls for, read by code (LAB-154): its words; and for the stops of two drivers it
+    names, their pit cycle and the race's neutralizations. A model picked the gap instead of the cycle, and never
+    the neutralizations, so it missed a safety car that decided a swap."""
+    found = [id_ for id_, words in _WANTED.items() if id_ in ids and words.search(text)]
+    named = list(subject.get("named") or [])
+    if _STOPS.search(text) and len(named) == 2:
+        first, second = named
+        found += [id_ for id_ in (f"cycle:{first}:{second}", f"cycle:{second}:{first}") if id_ in ids][:1]
+        found += [id_ for id_ in ("neutralizations",) if id_ in ids]
+    return found
+
+
 # An article of the regulations as a text names it: "article 55.14", "B6.2.4".
 _ARTICLE = re.compile(r"\b(?:[Aa]rticles? \d+(?:\.\d+)*[a-z]?|[A-Z]\d+(?:\.\d+)+)")
 
@@ -544,6 +566,7 @@ class F1Theme:
             analyses += [
                 analysis("strategies", "race_strategies", "Pneus de départ, relais et arrêts de chaque pilote"),
                 analysis("weather", "race_weather", "Météo et température de piste"),
+                analysis("qualifying", "session_result", "Qualifications : pole position, ordre et temps", session="Q"),
             ]
         laps, stop = list(subject.get("laps") or []), int(subject.get("stop") or 1)
         if subject.get("question") and laps:  # "l'écart entre Alonso et Piastri au tour 43": those laps only
@@ -679,10 +702,13 @@ class F1Theme:
             user=f"{_history_block(history)}<question>\n{question}\n</question>\n<catalog>\n{catalog_text}\n</catalog>",
             name="agent.chat.pick", session_id=session_id,
         )  # fmt: skip
+        # What the question asks, read by code: the model picked the tyre wear for "quels pneus" (LAB-154).
+        wanted = _wanted(plain(question), subject, ids)
+        analyses = list(dict.fromkeys([*wanted, *picked.analyses]))  # type: ignore[attr-defined]
         rule_question: str | None = picked.rule_question  # type: ignore[attr-defined]
         if rule_question and not _YEAR.search(rule_question):  # the retrieval filters on the season it reads
             rule_question = f"{rule_question.rstrip(' ?')} dans le règlement sportif {subject['season']} ?"
-        return Pick(analyses=list(picked.analyses), rule_question=rule_question)  # type: ignore[attr-defined]
+        return Pick(analyses=analyses, rule_question=rule_question)
 
     def reply(
         self,

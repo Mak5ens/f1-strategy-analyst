@@ -563,7 +563,7 @@ export interface components {
       /** Text */
       text?: string | null;
       /** Reason */
-      reason?: ("wrong_number" | "wrong_source" | "off_topic" | "wording" | "other") | null;
+      reason?: ("wrong_number" | "wrong_meaning" | "wrong_source" | "off_topic" | "wording" | "other") | null;
     };
     /** Driver */
     Driver: {
@@ -707,7 +707,7 @@ export interface components {
        */
       action: "approve" | "correct" | "reject";
       /** Reason */
-      reason: ("wrong_number" | "wrong_source" | "off_topic" | "wording" | "other") | null;
+      reason: ("wrong_number" | "wrong_meaning" | "wrong_source" | "off_topic" | "wording" | "other") | null;
       /**
        * Text Before
        * @description The agent's text

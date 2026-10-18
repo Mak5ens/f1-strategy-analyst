@@ -56,6 +56,7 @@ class Record:
     seconds: float = 0.0
     trace_id: str | None = None
     error: str | None = None
+    meta: dict[str, Any] = field(default_factory=dict)  # what the system adds: the path taken, its spend...
 
     @property
     def output(self) -> str:

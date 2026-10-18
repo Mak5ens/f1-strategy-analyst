@@ -1432,6 +1432,7 @@
                 "type": "string",
                 "enum": [
                   "wrong_number",
+                  "wrong_meaning",
                   "wrong_source",
                   "off_topic",
                   "wording",
@@ -1807,6 +1808,7 @@
                 "type": "string",
                 "enum": [
                   "wrong_number",
+                  "wrong_meaning",
                   "wrong_source",
                   "off_topic",
                   "wording",

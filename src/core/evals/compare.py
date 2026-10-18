@@ -128,12 +128,15 @@ def side_by_side(
     *,
     priced: Callable[[str], bool] = lambda model: True,
 ) -> str:
-    """Runs of several models on the same cases, one column each: the gated metric of every family, the share of
-    questions answered, the latency of a question and the cost of answering. `priced` tells a model whose cost is a
-    real price from one the gateway counts at an internal price (a local model: its cost is the hardware's)."""
+    """Runs of several models, or systems, on the same cases, one column each: the gated metric of every family, the
+    share of questions answered, the latency of a question and the cost of answering. `priced` tells a model whose
+    cost is a real price from one the gateway counts at an internal price (a local model: its cost is the
+    hardware's). A column is named by its model, or by its system and model when the systems differ."""
     models = [str(report.get("model") or report["run"]) for report in reports]
+    systems = [str(report.get("system") or "") for report in reports]
+    labels = models if len(set(systems)) == 1 else [f"{s} · {m}" for s, m in zip(systems, models, strict=True)]
     lines = [
-        "| Family | Metric | " + " | ".join(f"`{model}`" for model in models) + " |",
+        "| Family | Metric | " + " | ".join(f"`{label}`" for label in labels) + " |",
         "| -- | -- |" + " --: |" * len(models),
     ]
     for family, metrics in gated.items():

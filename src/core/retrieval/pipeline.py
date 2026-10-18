@@ -22,7 +22,7 @@ The theme supplies a `Profile`: its filters, prompts and how a passage is cited.
 
 import re
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Any, Literal, Protocol
 
 from openai import OpenAI
@@ -198,6 +198,8 @@ class Answer:
     attempts: int = 0
     trace_id: str | None = None
     checks: Sequence[Check] = field(default_factory=tuple)
+    # Every passage the search kept, best first, cited or not: what the retrieval metrics compare (LAB-154).
+    retrieved: Sequence[Passage] = field(default_factory=tuple)
 
     @property
     def answered(self) -> bool:
@@ -272,6 +274,9 @@ class RetrievalPipeline:
         return Retrieval(understanding, passages, self.gate(passages))
 
     def _answer(self, retrieval: Retrieval, trace_id: str | None) -> Answer:
+        return replace(self._answered(retrieval, trace_id), retrieved=tuple(retrieval.passages))
+
+    def _answered(self, retrieval: Retrieval, trace_id: str | None) -> Answer:
         scope = retrieval.understanding.scope
         if retrieval.abstention:
             return Answer(retrieval.understanding.question, [], [], scope, retrieval.abstention, trace_id=trace_id)

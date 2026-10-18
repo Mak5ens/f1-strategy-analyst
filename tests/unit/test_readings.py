@@ -134,3 +134,21 @@ def test_who_was_ahead_is_checked_by_code(text: str, contradicted: list[str]) ->
 
     assert len(found) == len(contradicted)
     assert all(name in problem for name, problem in zip(contradicted, found, strict=True))
+
+
+def test_the_fastest_lap_and_a_qualifying_read_in_minutes() -> None:
+    race = {**CLASSIFICATION, "session": "R",
+            "fastest_lap": {"driver": "HAM", "name": "Lewis Hamilton", "lap": 40, "lap_time_s": 95.069}}  # fmt: skip
+    qualifying = {"session": "Q", "classification": [
+        {"driver": "NOR", "name": "Lando Norris", "position": "1", "q1_s": 76.2, "q2_s": 75.9, "q3_s": 75.227},
+        {"driver": "ALB", "name": "Alexander Albon", "position": "14", "q1_s": 76.9, "q2_s": 76.6, "q3_s": None},
+    ]}  # fmt: skip
+
+    assert (
+        reading("session_result", race, NAMES)[-1]
+        == "Meilleur tour en course : Lewis Hamilton, en 1:35.069 au tour 40."
+    )
+    assert reading("session_result", qualifying, NAMES) == [
+        "Lando Norris : pole position, 1:15.227 en Q3.",
+        "Alexander Albon : 14e des qualifications, 1:16.600 en Q2.",
+    ]
