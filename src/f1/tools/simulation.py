@@ -23,14 +23,14 @@ Not a tool of the agent: the analyst reads its refusals on the simulator, so the
 
 import statistics
 from collections.abc import Mapping, Sequence
-from typing import Any
+from typing import Any, NamedTuple
 
 from pydantic import BaseModel, Field
 
 from core.tools import ToolError
 from f1.evals.simulation import compound_error, expected_error
 from f1.tools.data import DriverCode, RaceData, SessionRef, integer, is_neutralized, number
-from f1.tools.degradation import DEFAULT_FUEL_EFFECT_S_PER_LAP, StintFit, by_stint, compound_shift, fit, race_fits
+from f1.tools.degradation import DEFAULT_FUEL_EFFECT_S_PER_LAP, StintFit, by_stint, compound_shift, fit, race_fits, wear
 from f1.tools.pit_loss import stop_loss
 
 
@@ -137,10 +137,9 @@ def simulate_strategy(data: RaceData, request: SimulationInput) -> SimulationOut
 
     raced_lines = [_own(one) for one in fits]
 
-    def lap_time(lap: int, bounds: Sequence[tuple[int, int]], by: Sequence[tuple[float, float]]) -> float:
+    def lap_time(lap: int, bounds: Sequence[tuple[int, int]], by: Sequence[Line]) -> float:
         k = next(index for index, (start, end) in enumerate(bounds) if start <= lap <= end)
-        intercept, slope = by[k]
-        return intercept + slope * (first_age[k] + lap - bounds[k][0])  # the fuel is the same lap: it cancels
+        return wear(*by[k], first_age[k] + lap - bounds[k][0])  # the fuel is the same lap: it cancels
 
     def stop_cost(in_lap: int) -> float:
         quiet = not any(is_neutralized(mine.get(lap, {}).get("track_status")) for lap in (in_lap, in_lap + 1))
@@ -185,7 +184,7 @@ def simulate_strategy(data: RaceData, request: SimulationInput) -> SimulationOut
                 raced_to=raced_bounds[k][1],
                 asked_from=asked_bounds[k][0],
                 asked_to=asked_bounds[k][1],
-                degradation_s_per_lap=round(lines[k][1], 4),
+                degradation_s_per_lap=round(lines[k].slope, 4),
                 extrapolated_laps=_extrapolated(one, first_age[k], raced_bounds[k], asked_bounds[k]),
             )
             for k, one in enumerate(fits)
@@ -209,9 +208,19 @@ def _expected(found: dict[str, Any] | None) -> ExpectedError | None:
     return ExpectedError(laps_from=low, laps_to=high, **rest)
 
 
-def _own(line: StintFit) -> tuple[float, float]:
+class Line(NamedTuple):
+    """A stint's line as `degradation.wear` reads it: bent past the last tyre age it was fitted on."""
+
+    intercept: float
+    slope: float
+    curvature: float
+    last_age: float
+
+
+def _own(line: StintFit) -> Line:
     assert line.intercept_s is not None and line.summary.degradation_s_per_lap is not None
-    return line.intercept_s, line.summary.degradation_s_per_lap
+    last = line.ages[1] if line.ages else 0
+    return Line(line.intercept_s, line.summary.degradation_s_per_lap, line.curvature_s, last)
 
 
 def _compounds(asked: Sequence[str | None] | None, raced: Sequence[str | None]) -> list[str | None]:
@@ -237,11 +246,11 @@ def _lines(
     fits: Sequence[StintFit],
     raced: Sequence[str | None],
     asked: Sequence[str | None],
-) -> list[tuple[float, float]]:
+) -> list[Line]:
     """Each stint's line asked: the one raced, or shifted to the compound asked as the other drivers measure it."""
     lines, field = [], None
     for k, one in enumerate(fits):
-        intercept, slope = _own(one)
+        line = _own(one)
         before, after = raced[k], asked[k]
         if after != before:
             if before is None or after is None:
@@ -253,8 +262,13 @@ def _lines(
                     f"trop peu de pilotes ont couru en {_french(before)} et en {_french(after)} dans cette course pour "
                     "mesurer ce que change le composé."
                 )
-            intercept, slope = intercept + shift.intercept_s, slope + shift.degradation_s_per_lap
-        lines.append((intercept, slope))
+            # Not bent: the curvature measured is the compound raced's, and bending it projects worse (docs/tools.md).
+            line = line._replace(
+                intercept=line.intercept + shift.intercept_s,
+                slope=line.slope + shift.degradation_s_per_lap,
+                curvature=0.0,
+            )
+        lines.append(line)
     return lines
 
 

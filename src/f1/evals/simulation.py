@@ -30,7 +30,7 @@ from pathlib import Path
 from typing import Any
 
 from f1.tools.data import RaceData, SessionRef, is_clean, number
-from f1.tools.degradation import DEFAULT_FUEL_EFFECT_S_PER_LAP, StintFit, by_stint, compound_shift, fit, race_fits
+from f1.tools.degradation import DEFAULT_FUEL_EFFECT_S_PER_LAP, StintFit, by_stint, compound_shift, fit, race_fits, wear
 
 REPORTS = Path("evals/reports")
 MIN_CLEAN = 15
@@ -47,13 +47,12 @@ def extension_errors(laps: Sequence[dict[str, Any]], stint: int) -> list[tuple[i
         return []
     cut = int(len(clean) * FITTED_SHARE)
     fitted = fit(stint, [lap for lap in laps if int(lap["lap_number"]) <= int(clean[cut - 1]["lap_number"])])
-    slope, intercept = fitted.summary.degradation_s_per_lap, fitted.intercept_s
-    if slope is None or intercept is None:
+    if fitted.summary.degradation_s_per_lap is None or fitted.intercept_s is None:
         return []
     errors, total = [], 0.0
     for k, lap in enumerate(clean[cut:], start=1):
         age = number(lap["tyre_life"]) or float(lap["lap_number"])
-        projected = intercept + slope * age - DEFAULT_FUEL_EFFECT_S_PER_LAP * (int(lap["lap_number"]) - 1)
+        projected = fitted.at(age) - DEFAULT_FUEL_EFFECT_S_PER_LAP * (int(lap["lap_number"]) - 1)
         total += projected - float(lap["lap_time_s"])
         errors.append((k, round(total, 3)))
     return errors
@@ -79,10 +78,12 @@ def compound_errors(
                 continue
             intercept = source.intercept_s + shift.intercept_s
             slope = source.summary.degradation_s_per_lap + shift.degradation_s_per_lap
+            last = source.ages[1] if source.ages else 0.0
             total = 0.0
             for k, lap in enumerate(clean, start=1):
                 age = number(lap["tyre_life"]) or float(lap["lap_number"])
-                projected = intercept + slope * age - DEFAULT_FUEL_EFFECT_S_PER_LAP * (int(lap["lap_number"]) - 1)
+                projected = wear(intercept, slope, 0.0, last, age)  # not bent: its curvature is another compound's
+                projected -= DEFAULT_FUEL_EFFECT_S_PER_LAP * (int(lap["lap_number"]) - 1)
                 total += projected - float(lap["lap_time_s"])
                 errors.append((k, round(total, 3)))
     return errors

@@ -234,10 +234,10 @@ export const fr = {
       lineError: (value: string) =>
         `Les droites de dégradation s'écartent de ${value} des tours propres qu'elles décrivent, en moyenne quadratique.`,
       extended: (laps: number, low: number, high: number, median: string, p90: string, bias: string, season: number) =>
-        `Un relais prolongé de ${laps} tour${laps > 1 ? "s" : ""} : sur ${season}, les relais prolongés de ${low} à ${high} tours se trompent de ${median} en médiane (9 fois sur 10 moins de ${p90}), avec un biais de ${bias} (les pneus s'usent plus vite en fin de relais qu'une droite ne le dit).`,
+        `Un relais prolongé de ${laps} tour${laps > 1 ? "s" : ""} : sur ${season}, les relais prolongés de ${low} à ${high} tours se trompent de ${median} en médiane (9 fois sur 10 moins de ${p90}), avec un biais de ${bias}. Au-delà des âges de pneus mesurés, la droite se courbe de la moitié de l'accélération d'usure que montre le relais.`,
       tooSmall: "La différence projetée est plus petite que l'erreur mesurée : le modèle ne permet pas de conclure.",
       extrapolated: (stint: number, laps: number) =>
-        `Relais ${stint} : ${laps} tour${laps > 1 ? "s" : ""} au-delà des âges de pneus mesurés, la droite est prolongée.`,
+        `Relais ${stint} : ${laps} tour${laps > 1 ? "s" : ""} au-delà des âges de pneus mesurés, la droite est prolongée en se courbant.`,
       assumptions: "Ce que le modèle ne sait pas",
       limits: [
         "le trafic et les dépassements que la nouvelle stratégie aurait rencontrés ;",
