@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.6.0](https://github.com/Mak5ens/f1-strategy-analyst/compare/v0.5.0...v0.6.0) (2026-10-19)
+
+
+### Features
+
+* **agent:** debriefs prepared after each race, with its top 5 moments (LAB-204) ([#31](https://github.com/Mak5ens/f1-strategy-analyst/issues/31)) ([c5174c4](https://github.com/Mak5ens/f1-strategy-analyst/commit/c5174c4174849136711a84b1c3b4ea4349239209))
+* **agent:** debriefs that explain the race, their meaning checked (LAB-207) ([#30](https://github.com/Mak5ens/f1-strategy-analyst/issues/30)) ([d0ea883](https://github.com/Mak5ens/f1-strategy-analyst/commit/d0ea883e08925e7f499a08443972da474066892d))
+* **agent:** questions on a published debrief, answered and checked by code (LAB-205) ([#28](https://github.com/Mak5ens/f1-strategy-analyst/issues/28)) ([b938f1b](https://github.com/Mak5ens/f1-strategy-analyst/commit/b938f1b2bae2abd61b94719b67999c93af53f6f7))
+* **evals:** the agent against the baseline, and the review's acceptance rate (LAB-154) ([#32](https://github.com/Mak5ens/f1-strategy-analyst/issues/32)) ([6f6acae](https://github.com/Mak5ens/f1-strategy-analyst/commit/6f6acae8f89f6e5bee9ed847357cc95470b33552))
+* **web:** a debrief's point opens the chart of the numbers it cites (LAB-189) ([#37](https://github.com/Mak5ens/f1-strategy-analyst/issues/37)) ([bf96cc6](https://github.com/Mak5ens/f1-strategy-analyst/commit/bf96cc694fcd20ca2334917ff68c7c306b092aa7))
+* **web:** debrief API and the analyst's screens (LAB-152) ([#24](https://github.com/Mak5ens/f1-strategy-analyst/issues/24)) ([d5065a4](https://github.com/Mak5ens/f1-strategy-analyst/commit/d5065a4f039b948f06e380d02ba270fca99c13cc))
+* **web:** duel of two drivers over a season, measured by code (LAB-212) ([#39](https://github.com/Mak5ens/f1-strategy-analyst/issues/39)) ([c6760b8](https://github.com/Mak5ens/f1-strategy-analyst/commit/c6760b8ec505a50aed130d0685d96c5bcf2004a7))
+* **web:** free question on the home page, routed by code (LAB-206) ([#29](https://github.com/Mak5ens/f1-strategy-analyst/issues/29)) ([ac53121](https://github.com/Mak5ens/f1-strategy-analyst/commit/ac53121b82329164e8431e333ed33d3c6d502c02))
+* **web:** Grand Prix pages and season calendar read from the lake (LAB-202) ([#25](https://github.com/Mak5ens/f1-strategy-analyst/issues/25)) ([acd2f7f](https://github.com/Mak5ens/f1-strategy-analyst/commit/acd2f7fc9236da44f7ed5f20dc5eb0a13b27288d))
+* **web:** Next.js front skeleton with a client generated from the API's OpenAPI, and ADR-026 (LAB-187) ([#22](https://github.com/Mak5ens/f1-strategy-analyst/issues/22)) ([568e795](https://github.com/Mak5ens/f1-strategy-analyst/commit/568e7951ea99e19592eba2bf97eb2b7327f4bb30))
+* **web:** strategy simulator, the same stops on other laps, with its measured error (LAB-213) ([#40](https://github.com/Mak5ens/f1-strategy-analyst/issues/40)) ([c129915](https://github.com/Mak5ens/f1-strategy-analyst/commit/c1299155f99a82bf7cb148aa3e89eb3a906a82e0))
+* **web:** the race lap by lap, positions and gaps charts (LAB-189) ([#34](https://github.com/Mak5ens/f1-strategy-analyst/issues/34)) ([b379e29](https://github.com/Mak5ens/f1-strategy-analyst/commit/b379e2919525a590baa20ea6558db5161ba022c2))
+* **web:** the race's pace per stint and its chronology linked to the FIA's texts (LAB-189) ([#36](https://github.com/Mak5ens/f1-strategy-analyst/issues/36)) ([eb7cb1c](https://github.com/Mak5ens/f1-strategy-analyst/commit/eb7cb1c02446934f49eacf6022ab33f8516ca713))
+
+
+### Bug Fixes
+
+* **web:** tyre compounds said by their letter and name, not by colour alone (LAB-189) ([#38](https://github.com/Mak5ens/f1-strategy-analyst/issues/38)) ([6310063](https://github.com/Mak5ens/f1-strategy-analyst/commit/6310063d6d43e8e98886b796c62b46b125acdb05))
+
 ## [0.5.0](https://github.com/Mak5ens/f1-strategy-analyst/compare/v0.4.0...v0.5.0) (2026-10-15)
 
 
