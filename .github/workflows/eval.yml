@@ -46,7 +46,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  GATEWAY_VERSION: 0.5.3
+  GATEWAY_VERSION: 0.5.5
 
 jobs:
   eval:
