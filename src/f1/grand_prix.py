@@ -138,6 +138,34 @@ class Race(Response):
     weather: Weather | None = None
 
 
+class Lap(Response):
+    lap: int
+    position: int | None = Field(None, description="At the end of the lap")
+    gap_s: float | None = Field(
+        None, description="Behind the leader at the line, the end of this lap: the race's gap, as `gaps` computes it"
+    )
+    lap_time_s: float | None = None
+    compound: str | None = None
+    tyre_age: int | None = Field(None, description="Laps on this set, this lap included, earlier sessions too")
+    pit: Literal["in", "out"] | None = Field(None, description="The in-lap or the out-lap of a stop")
+
+
+class DriverLaps(Response):
+    driver: Driver
+    grid: int | None = Field(None, description="Starting position, the chart's lap 0; 0 for a pit lane start")
+    laps: list[Lap] = Field(default_factory=list)
+
+
+class RaceLaps(Response):
+    """A race lap by lap, for its charts (LAB-189): read from the lake, as the tools read it, never by a model."""
+
+    season: int
+    round: int
+    total_laps: int | None = None
+    drivers: list[DriverLaps] = Field(default_factory=list, description="In finishing order")
+    neutralizations: list[Neutralization] = Field(default_factory=list)
+
+
 class GrandPrix:
     """The races of the lake. Each query runs on its own cursor, as the tools' (`RaceData`).
 
@@ -148,6 +176,7 @@ class GrandPrix:
         self._db = connection
         self._data = RaceData(connection)
         self._raced: dict[tuple[int, int], Race] = {}
+        self._lapped: dict[tuple[int, int], RaceLaps] = {}
 
     def seasons(self) -> list[int]:
         """The seasons with at least one race in the lake, the latest first."""
@@ -218,6 +247,25 @@ class GrandPrix:
         if summary.winner:
             self._raced[season, round_number] = race
         return race
+
+    def laps(self, season: int, round_number: int) -> RaceLaps | None:
+        """Every lap of every driver of a race; None when it has no results yet. Kept, as a race's page is."""
+        if (season, round_number) in self._lapped:
+            return self._lapped[season, round_number]
+        race = self.race(season, round_number)
+        if race is None or not race.summary.winner:
+            return None
+        ref = SessionRef(season=season, round=round_number)
+        laps = [lap for lap in self._rows(lambda: self._data.laps(ref)) if not lap.get("fastf1_generated")]
+        lapped = RaceLaps(
+            season=season,
+            round=round_number,
+            total_laps=race.total_laps,
+            drivers=_driver_laps(race, laps),
+            neutralizations=race.neutralizations,
+        )
+        self._lapped[season, round_number] = lapped
+        return lapped
 
     def _race(self, summary: RaceSummary) -> Race:
         season, round_number = summary.season, summary.round
@@ -480,6 +528,47 @@ def _best_laps(laps: list[dict[str, Any]], drivers: dict[str, Driver]) -> list[B
         )
         for lap in ordered
     ]
+
+
+def _driver_laps(race: Race, laps: list[dict[str, Any]]) -> list[DriverLaps]:
+    """Each driver's laps, the gap to the leader at the end of each: the time between their crossings of the line,
+    the leader's being the first (`lap_end_session_s`, as `gaps_at_line` reads it)."""
+    first: dict[int, float] = {}
+    for lap in laps:
+        if (end := number(lap["lap_end_session_s"])) is not None:
+            number_ = int(lap["lap_number"])
+            first[number_] = min(first.get(number_, end), end)
+    of: dict[str, list[dict[str, Any]]] = {}
+    for lap in sorted(laps, key=lambda row: int(row["lap_number"])):
+        of.setdefault(str(lap["driver"]), []).append(lap)
+    rows = []
+    for classified in race.classification:
+        mine = of.get(classified.driver.code, [])
+        rows.append(
+            DriverLaps(
+                driver=classified.driver,
+                grid=classified.grid,
+                laps=[
+                    Lap(
+                        lap=int(lap["lap_number"]),
+                        position=integer(lap["position"]),
+                        gap_s=None
+                        if (end := number(lap["lap_end_session_s"])) is None
+                        else round(end - first[int(lap["lap_number"])], 3),
+                        lap_time_s=number(lap["lap_time_s"]),
+                        compound=_text(lap["compound"]),
+                        tyre_age=integer(lap["tyre_life"]),
+                        pit="in"
+                        if number(lap["pit_in_session_s"]) is not None
+                        else "out"
+                        if number(lap["pit_out_session_s"]) is not None
+                        else None,
+                    )
+                    for lap in mine
+                ],
+            )
+        )
+    return rows
 
 
 def _stop(laps: dict[int, dict[str, Any]], stop: dict[str, Any]) -> Stop:

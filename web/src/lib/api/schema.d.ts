@@ -125,6 +125,27 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/races/{season}/{round_number}/laps": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Race Laps
+     * @description A race lap by lap for its charts (LAB-189): each driver's position, gap to the leader at the line, lap time
+     *     and tyres, with the neutralizations. Read from the lake: no model is called.
+     */
+    get: operations["get_race_laps_races__season___round_number__laps_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/debriefs": {
     parameters: {
       query?: never;
@@ -579,6 +600,17 @@ export interface components {
        */
       colour: string | null;
     };
+    /** DriverLaps */
+    DriverLaps: {
+      driver: components["schemas"]["Driver"];
+      /**
+       * Grid
+       * @description Starting position, the chart's lap 0; 0 for a pit lane start
+       */
+      grid: number | null;
+      /** Laps */
+      laps: components["schemas"]["Lap"][];
+    };
     /** DriverStanding */
     DriverStanding: {
       /** Position */
@@ -730,6 +762,35 @@ export interface components {
        * Format: date-time
        */
       decided_at: string;
+    };
+    /** Lap */
+    Lap: {
+      /** Lap */
+      lap: number;
+      /**
+       * Position
+       * @description At the end of the lap
+       */
+      position: number | null;
+      /**
+       * Gap S
+       * @description Behind the leader at the line, the end of this lap: the race's gap, as `gaps` computes it
+       */
+      gap_s: number | null;
+      /** Lap Time S */
+      lap_time_s: number | null;
+      /** Compound */
+      compound: string | null;
+      /**
+       * Tyre Age
+       * @description Laps on this set, this lap included, earlier sessions too
+       */
+      tyre_age: number | null;
+      /**
+       * Pit
+       * @description The in-lap or the out-lap of a stop
+       */
+      pit: ("in" | "out") | null;
     };
     /** Neutralization */
     Neutralization: {
@@ -911,6 +972,25 @@ export interface components {
        */
       team_standings: components["schemas"]["TeamStanding"][];
       weather: components["schemas"]["Weather"] | null;
+    };
+    /**
+     * RaceLaps
+     * @description A race lap by lap, for its charts (LAB-189): read from the lake, as the tools read it, never by a model.
+     */
+    RaceLaps: {
+      /** Season */
+      season: number;
+      /** Round */
+      round: number;
+      /** Total Laps */
+      total_laps: number | null;
+      /**
+       * Drivers
+       * @description In finishing order
+       */
+      drivers: components["schemas"]["DriverLaps"][];
+      /** Neutralizations */
+      neutralizations: components["schemas"]["Neutralization"][];
     };
     /** RaceLink */
     RaceLink: {
@@ -1310,6 +1390,38 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["Race"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_race_laps_races__season___round_number__laps_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        season: number;
+        round_number: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["RaceLaps"];
         };
       };
       /** @description Validation Error */

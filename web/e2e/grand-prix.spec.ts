@@ -13,6 +13,14 @@ test("the calendar leads to a race's page, its tabs and its standings after the 
   await expect(page.getByText("Manche 2 · 2025")).toBeVisible();
   await expect(page.getByRole("cell", { name: "Max Verstappen Red Bull Racing" }).first()).toBeVisible();
 
+  await page.getByRole("tab", { name: "Course" }).click();
+  const positions = page.getByRole("slider", { name: "Positions" });
+  await positions.focus();
+  await positions.press("Home");
+  await expect(page.getByText("Tour 1", { exact: true })).toBeVisible();
+  const drivers = page.getByRole("group", { name: "Pilotes mis en avant" }).getByRole("button");
+  await expect(drivers.first()).toHaveAttribute("aria-pressed", "true"); // the winner, highlighted
+
   await page.getByRole("tab", { name: "Stratégie" }).click();
   await expect(page.getByRole("heading", { name: "Arrêts" })).toBeVisible();
   await page.getByRole("tab", { name: "Classements" }).click();

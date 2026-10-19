@@ -191,6 +191,55 @@
         }
       }
     },
+    "/races/{season}/{round_number}/laps": {
+      "get": {
+        "summary": "Get Race Laps",
+        "description": "A race lap by lap for its charts (LAB-189): each driver's position, gap to the leader at the line, lap time\nand tyres, with the neutralizations. Read from the lake: no model is called.",
+        "operationId": "get_race_laps_races__season___round_number__laps_get",
+        "parameters": [
+          {
+            "name": "season",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Season"
+            }
+          },
+          {
+            "name": "round_number",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Round Number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RaceLaps"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/debriefs": {
       "get": {
         "summary": "List Debriefs",
@@ -1497,6 +1546,39 @@
         ],
         "title": "Driver"
       },
+      "DriverLaps": {
+        "properties": {
+          "driver": {
+            "$ref": "#/components/schemas/Driver"
+          },
+          "grid": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grid",
+            "description": "Starting position, the chart's lap 0; 0 for a pit lane start"
+          },
+          "laps": {
+            "items": {
+              "$ref": "#/components/schemas/Lap"
+            },
+            "type": "array",
+            "title": "Laps"
+          }
+        },
+        "type": "object",
+        "required": [
+          "driver",
+          "grid",
+          "laps"
+        ],
+        "title": "DriverLaps"
+      },
       "DriverStanding": {
         "properties": {
           "position": {
@@ -1877,6 +1959,99 @@
         ],
         "title": "JournalEntry",
         "description": "A decision of a review, kept with the agent's text it judged."
+      },
+      "Lap": {
+        "properties": {
+          "lap": {
+            "type": "integer",
+            "title": "Lap"
+          },
+          "position": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Position",
+            "description": "At the end of the lap"
+          },
+          "gap_s": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gap S",
+            "description": "Behind the leader at the line, the end of this lap: the race's gap, as `gaps` computes it"
+          },
+          "lap_time_s": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lap Time S"
+          },
+          "compound": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Compound"
+          },
+          "tyre_age": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tyre Age",
+            "description": "Laps on this set, this lap included, earlier sessions too"
+          },
+          "pit": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "in",
+                  "out"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pit",
+            "description": "The in-lap or the out-lap of a stop"
+          }
+        },
+        "type": "object",
+        "required": [
+          "lap",
+          "position",
+          "gap_s",
+          "lap_time_s",
+          "compound",
+          "tyre_age",
+          "pit"
+        ],
+        "title": "Lap"
       },
       "Neutralization": {
         "properties": {
@@ -2306,6 +2481,54 @@
         ],
         "title": "Race",
         "description": "A Grand Prix as its page shows it. A section without data is empty, never filled with a guess."
+      },
+      "RaceLaps": {
+        "properties": {
+          "season": {
+            "type": "integer",
+            "title": "Season"
+          },
+          "round": {
+            "type": "integer",
+            "title": "Round"
+          },
+          "total_laps": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Laps"
+          },
+          "drivers": {
+            "items": {
+              "$ref": "#/components/schemas/DriverLaps"
+            },
+            "type": "array",
+            "title": "Drivers",
+            "description": "In finishing order"
+          },
+          "neutralizations": {
+            "items": {
+              "$ref": "#/components/schemas/Neutralization"
+            },
+            "type": "array",
+            "title": "Neutralizations"
+          }
+        },
+        "type": "object",
+        "required": [
+          "season",
+          "round",
+          "total_laps",
+          "drivers",
+          "neutralizations"
+        ],
+        "title": "RaceLaps",
+        "description": "A race lap by lap, for its charts (LAB-189): read from the lake, as the tools read it, never by a model."
       },
       "RaceLink": {
         "properties": {
