@@ -108,3 +108,24 @@ def test_latency_is_the_median_and_95th_percentile_of_a_question() -> None:
     cases = [case(f"d{n}", "data") for n in range(20)]
     records = [Record(f"d{n}", "data", "?", True, "", seconds=float(n + 1)) for n in range(20)]
     assert latency(cases, records)["all"] == {"p50": 10.5, "p95": 19.0}
+
+
+def test_each_system_has_its_own_thresholds_and_reference_runs(tmp_path: Any, monkeypatch: Any) -> None:
+    import argparse
+
+    from f1.evals import run
+
+    monkeypatch.setattr(run, "THRESHOLDS", tmp_path / "thresholds")
+    monkeypatch.setattr(run, "REPORTS", tmp_path)
+    report = {"run": "agent-ref", "system": "agent", "families": {"data": {"cases": 40, "accuracy": 0.95}},
+              "cases": {"d1": {"passed": True}}}  # fmt: skip
+    (tmp_path / "agent-ref.json").write_text(json.dumps(report))
+
+    run.thresholds(argparse.Namespace(from_report=str(tmp_path / "agent-ref.json"), system="baseline"))
+
+    written = json.loads((tmp_path / "thresholds" / "agent.json").read_text())
+    assert written["from_runs"] == {"data": "agent-ref"}
+    assert 0.89 <= written["families"]["data"]["accuracy"] <= 0.9  # the score less the margin, rounded down
+    assert not (tmp_path / "thresholds" / "baseline.json").exists()
+    assert run.references("agent", ["data", "safety"]) == {"data": ("agent-ref", {"d1": {"passed": True}})}
+    assert run.references("baseline", ["data"]) == {}

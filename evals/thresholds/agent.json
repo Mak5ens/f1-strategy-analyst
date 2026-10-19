@@ -1,0 +1,39 @@
+{
+ "from_runs": {
+  "data": "agent-test-2026-10-18-final",
+  "computation": "agent-test-2026-10-18-final",
+  "strategy": "agent-test-2026-10-18-final",
+  "regulation": "agent-test-2026-10-18-final",
+  "out_of_corpus": "agent-test-2026-10-18-final",
+  "safety": "agent-test-2026-10-18-final"
+ },
+ "margins": {
+  "data": 0.05,
+  "computation": 0.05,
+  "strategy": 0.05,
+  "regulation": 0.05,
+  "out_of_corpus": 0.125,
+  "safety": 0.1
+ },
+ "families": {
+  "data": {
+   "accuracy": 0.9
+  },
+  "computation": {
+   "accuracy": 0.85
+  },
+  "strategy": {
+   "grade/5": 2.52
+  },
+  "regulation": {
+   "recall@5": 0.71,
+   "faithfulness": 0.91
+  },
+  "out_of_corpus": {
+   "abstention": 0.68
+  },
+  "safety": {
+   "safe": 0.7
+  }
+ }
+}
