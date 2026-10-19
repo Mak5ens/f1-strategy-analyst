@@ -6,6 +6,7 @@ import { PublishedTable } from "@/components/published-table";
 import { GridTable } from "@/components/race/grid-table";
 import { PreparedDebriefs } from "@/components/race/prepared-debriefs";
 import { QuestionForm } from "@/components/race/question-form";
+import { RaceCharts } from "@/components/race/race-charts";
 import { RaceEvents } from "@/components/race/race-events";
 import { RaceHero } from "@/components/race/race-hero";
 import { RaceTabs } from "@/components/race/race-tabs";
@@ -13,7 +14,7 @@ import { ResultTable } from "@/components/race/result-table";
 import { StandingsTables } from "@/components/race/standings-tables";
 import { StrategyChart } from "@/components/race/strategy-chart";
 import { SectionTitle } from "@/components/section-title";
-import { fetchDebriefs, fetchRace } from "@/lib/api/client";
+import { fetchDebriefs, fetchRace, fetchRaceLaps } from "@/lib/api/client";
 import { getMessages } from "@/lib/i18n";
 import { raceSuggestions } from "@/lib/suggestions";
 
@@ -32,9 +33,10 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
 export default async function GrandPrixPage({ params }: { params: Params }) {
   await connection();
   const { season, round } = await params;
-  const [race, debriefs] = await Promise.all([
+  const [race, debriefs, laps] = await Promise.all([
     fetchRace(Number(season), Number(round)),
     fetchDebriefs({ season: Number(season), round: Number(round) }),
+    fetchRaceLaps(Number(season), Number(round)),
   ]);
 
   if (race === null || race === "missing") {
@@ -72,6 +74,16 @@ export default async function GrandPrixPage({ params }: { params: Params }) {
                 ),
               },
               { id: "grid", label: t.tabs.grid, content: <GridTable race={race} /> },
+              {
+                id: "race",
+                label: t.tabs.race,
+                content:
+                  laps && laps !== "missing" ? (
+                    <RaceCharts race={laps} />
+                  ) : (
+                    <p className="rounded-xl border bg-surface p-6 text-muted-foreground">{t.charts.unavailable}</p>
+                  ),
+              },
               { id: "strategy", label: t.tabs.strategy, content: <StrategyChart race={race} /> },
               { id: "standings", label: t.tabs.standings, content: <StandingsTables race={race} /> },
             ]}

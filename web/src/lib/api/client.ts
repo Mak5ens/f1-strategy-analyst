@@ -16,6 +16,7 @@ export type Source = components["schemas"]["Source"];
 export type JournalEntry = components["schemas"]["JournalEntry"];
 export type QuestionReply = components["schemas"]["QuestionReply"];
 export type Race = components["schemas"]["Race"];
+export type RaceLaps = components["schemas"]["RaceLaps"];
 export type RaceSummary = components["schemas"]["RaceSummary"];
 export type FreeAnswer = components["schemas"]["FreeAnswer"];
 export type Choice = components["schemas"]["Choice"];
@@ -97,6 +98,24 @@ export async function fetchRaces(season?: number, client: Client = apiClient()):
  * The page of a race: the race, "missing" when the data has no such round, or null when the API does not answer.
  * A race with results does not change: Next.js may keep it.
  */
+/** A race lap by lap, for its charts; "missing" when it has no laps, null when the API cannot be reached. */
+export async function fetchRaceLaps(
+  season: number,
+  round: number,
+  client: Client = apiClient(),
+): Promise<RaceLaps | "missing" | null> {
+  try {
+    const { data, response } = await client.GET("/races/{season}/{round_number}/laps", {
+      params: { path: { season, round_number: round } },
+      signal: AbortSignal.timeout(15000),
+    });
+    if (response.status === 404) return "missing";
+    return data ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export async function fetchRace(
   season: number,
   round: number,

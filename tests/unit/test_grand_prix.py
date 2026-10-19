@@ -221,6 +221,28 @@ def test_a_round_not_raced_yet_has_a_page_without_results(grand_prix: GrandPrix)
     assert grand_prix.race(2025, 9) is None
 
 
+def test_the_laps_of_a_race_give_the_gaps_the_gaps_tool_computes(grand_prix: GrandPrix, lake: Lake) -> None:
+    from f1.tools.data import RaceData
+    from f1.tools.gaps import GapInput, gap_between_drivers
+
+    laps = grand_prix.laps(2025, 2)
+    assert laps is not None and grand_prix.laps(2025, 3) is None  # not raced yet
+
+    drivers = {row.driver.code: row for row in laps.drivers}
+    assert list(drivers) == ["VER", "LEC", "HAM", "NOR"]  # finishing order, drivers without laps kept
+    assert (drivers["VER"].grid, drivers["HAM"].grid, drivers["HAM"].laps) == (2, 0, [])
+    ver, lec = ({lap.lap: lap for lap in drivers[code].laps} for code in ("VER", "LEC"))
+    assert [ver[lap].position for lap in (3, 4, 6)] == [1, 2, 1]
+    assert (ver[3].pit, ver[4].pit, ver[4].compound, ver[4].tyre_age) == ("in", "out", "HARD", 1)
+    assert min(ver[lap].gap_s or 0 for lap in ver) == 0.0  # the leader's own gap
+
+    tool = gap_between_drivers(RaceData(connect(lake)), GapInput(**RACE, driver="LEC", reference_driver="VER"))
+    for row in tool.laps:  # the chart's gaps are the tool's: LEC's gap to the leader less VER's
+        mine, theirs = lec[row.lap].gap_s, ver[row.lap].gap_s
+        assert mine is not None and theirs is not None
+        assert round(mine - theirs, 3) == row.gap_s
+
+
 @pytest.fixture
 def client(grand_prix: GrandPrix) -> Iterator[TestClient]:
     requests = FakeRequests()
@@ -240,6 +262,8 @@ def test_the_api_serves_the_calendar_and_the_race_pages(client: TestClient) -> N
     assert race["summary"]["grand_prix"] == "Grand Prix de Chine"
     assert race["classification"][0]["driver"]["colour"] == "#3671c6"
     assert client.get("/races/2025/9").status_code == 404
+    assert [row["driver"]["code"] for row in client.get("/races/2025/2/laps").json()["drivers"]][:2] == ["VER", "LEC"]
+    assert client.get("/races/2025/3/laps").status_code == 404
 
 
 def test_the_debriefs_of_a_race(client: TestClient) -> None:

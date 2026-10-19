@@ -89,7 +89,7 @@ export const fr = {
       rain: "Pluie",
       dry: "Sec",
     },
-    tabs: { result: "Résultat", grid: "Grille", strategy: "Stratégie", standings: "Classements" },
+    tabs: { result: "Résultat", grid: "Grille", race: "Course", strategy: "Stratégie", standings: "Classements" },
     result: {
       position: "Pos.",
       driver: "Pilote",
@@ -118,6 +118,28 @@ export const fr = {
       change: "Places",
       pitLane: "Stands",
       lead: "Places gagnées ou perdues entre la grille et l'arrivée.",
+    },
+    charts: {
+      lead: "La course tour par tour, telle que le chronométrage l'a mesurée. Les bandes jaunes marquent la voiture de sécurité ou le VSC, les rouges un drapeau rouge ; un rond, un passage aux stands.",
+      drivers: "Pilotes mis en avant",
+      reset: "Podium",
+      all: "Tous",
+      positions: "Positions",
+      positionsLead: "La place de chaque pilote à la fin de chaque tour, depuis la grille.",
+      gaps: "Écarts",
+      gapsLead: (reference: string | null) =>
+        reference
+          ? `Le retard sur ${reference} à chaque passage sur la ligne.`
+          : "Le retard sur le leader à chaque passage sur la ligne.",
+      reference: "Écart par rapport à",
+      leader: "Leader",
+      lap: "Tour",
+      pitIn: "rentre aux stands",
+      pitOut: "sort des stands",
+      hint: "Survolez un graphique, ou sélectionnez-le et utilisez les flèches, pour lire un tour.",
+      table: "Voir les données tour par tour",
+      unavailable: "Les données tour par tour de cette course ne sont pas disponibles.",
+      seconds: "s",
     },
     strategy: {
       lead: "Les relais de chaque pilote, tour par tour. Les bandes jaunes marquent la voiture de sécurité ou le VSC, les rouges un drapeau rouge.",

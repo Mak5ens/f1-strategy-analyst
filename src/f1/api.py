@@ -29,7 +29,7 @@ from core.agent.chat import Chat, Exchange, Reply
 from core.agent.state import AgentState, RejectReason
 from core.agent.store import RequestStore
 from f1.display import Driver, Response, grand_prix_fr, team_colour
-from f1.grand_prix import GrandPrix, Race, RaceSummary
+from f1.grand_prix import GrandPrix, Race, RaceLaps, RaceSummary
 from f1.questions import FreeAnswer, FreeQuestions, FreeQuestionStore
 from f1.router import Route, Router
 
@@ -322,6 +322,16 @@ def get_race(season: int, round_number: int, grand_prix: GrandPrixDep) -> Race:
     if race is None:
         raise HTTPException(404, f"no data for round {round_number} of {season}")
     return race
+
+
+@app.get("/races/{season}/{round_number}/laps")
+def get_race_laps(season: int, round_number: int, grand_prix: GrandPrixDep) -> RaceLaps:
+    """A race lap by lap for its charts (LAB-189): each driver's position, gap to the leader at the line, lap time
+    and tyres, with the neutralizations. Read from the lake: no model is called."""
+    laps = grand_prix.laps(season, round_number)
+    if laps is None:
+        raise HTTPException(404, f"no laps for round {round_number} of {season}: not raced, or not in the lake")
+    return laps
 
 
 @app.get("/debriefs")
