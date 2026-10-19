@@ -13,6 +13,7 @@ import { RaceTabs } from "@/components/race/race-tabs";
 import { ResultTable } from "@/components/race/result-table";
 import { StandingsTables } from "@/components/race/standings-tables";
 import { StrategyChart } from "@/components/race/strategy-chart";
+import { StrategySimulator } from "@/components/race/strategy-simulator";
 import { SectionTitle } from "@/components/section-title";
 import { fetchDebriefs, fetchRace, fetchRaceLaps } from "@/lib/api/client";
 import { getMessages } from "@/lib/i18n";
@@ -89,6 +90,16 @@ export default async function GrandPrixPage({ params, searchParams }: { params: 
                   ),
               },
               { id: "strategy", label: t.tabs.strategy, content: <StrategyChart race={race} /> },
+              {
+                id: "simulator",
+                label: t.tabs.simulator,
+                content:
+                  laps && laps !== "missing" ? (
+                    <StrategySimulator race={laps} />
+                  ) : (
+                    <p className="rounded-xl border bg-surface p-6 text-muted-foreground">{t.charts.unavailable}</p>
+                  ),
+              },
               { id: "standings", label: t.tabs.standings, content: <StandingsTables race={race} /> },
             ]}
           />

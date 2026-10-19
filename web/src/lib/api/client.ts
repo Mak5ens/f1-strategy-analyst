@@ -19,6 +19,7 @@ export type Race = components["schemas"]["Race"];
 export type RaceLaps = components["schemas"]["RaceLaps"];
 export type FactChart = components["schemas"]["FactChart"];
 export type Duel = components["schemas"]["Duel"];
+export type Simulation = components["schemas"]["SimulationOutput"];
 export type RaceSummary = components["schemas"]["RaceSummary"];
 export type FreeAnswer = components["schemas"]["FreeAnswer"];
 export type Choice = components["schemas"]["Choice"];

@@ -191,6 +191,105 @@
         }
       }
     },
+    "/races/{season}/{round_number}/simulation": {
+      "get": {
+        "summary": "Get Simulation",
+        "description": "What another strategy would have given a driver (LAB-213): the same stops on other laps, projected by code\nfrom the race's measures, with the error measured on real stints extended as much. A model, not a measure.",
+        "operationId": "get_simulation_races__season___round_number__simulation_get",
+        "parameters": [
+          {
+            "name": "season",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Season"
+            }
+          },
+          {
+            "name": "round_number",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Round Number"
+            }
+          },
+          {
+            "name": "driver",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "The driver whose strategy changes, e.g. LEC",
+              "title": "Driver"
+            },
+            "description": "The driver whose strategy changes, e.g. LEC"
+          },
+          {
+            "name": "stops",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "The in-laps asked, in order; as raced if none",
+              "title": "Stops"
+            },
+            "description": "The in-laps asked, in order; as raced if none"
+          },
+          {
+            "name": "rival",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "The driver gaps are measured to; the leader by default",
+              "title": "Rival"
+            },
+            "description": "The driver gaps are measured to; the leader by default"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SimulationOutput"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/seasons/{season}/drivers": {
       "get": {
         "summary": "Get Season Drivers",
@@ -2050,6 +2149,53 @@
         ],
         "title": "DuelSummary"
       },
+      "ExpectedError": {
+        "properties": {
+          "laps_from": {
+            "type": "integer",
+            "title": "Laps From",
+            "description": "The range of laps extended this error was measured on"
+          },
+          "laps_to": {
+            "type": "integer",
+            "title": "Laps To"
+          },
+          "samples": {
+            "type": "integer",
+            "title": "Samples"
+          },
+          "median_s": {
+            "type": "number",
+            "title": "Median S",
+            "description": "Median absolute error on the time of those laps"
+          },
+          "p90_s": {
+            "type": "number",
+            "title": "P90 S"
+          },
+          "bias_s": {
+            "type": "number",
+            "title": "Bias S",
+            "description": "Median signed error: negative, the line projects them too fast"
+          },
+          "season": {
+            "type": "integer",
+            "title": "Season"
+          }
+        },
+        "type": "object",
+        "required": [
+          "laps_from",
+          "laps_to",
+          "samples",
+          "median_s",
+          "p90_s",
+          "bias_s",
+          "season"
+        ],
+        "title": "ExpectedError",
+        "description": "The error measured on real stints' lines extended by as many laps (`f1.evals.simulation`)."
+      },
       "Fact": {
         "properties": {
           "id": {
@@ -3373,6 +3519,261 @@
         ],
         "title": "ShownPoint",
         "description": "A point of the debrief, its lists always present."
+      },
+      "SimulatedLap": {
+        "properties": {
+          "lap": {
+            "type": "integer",
+            "title": "Lap"
+          },
+          "difference_s": {
+            "type": "number",
+            "title": "Difference S",
+            "description": "Time the strategy asked gains (negative) or loses on this lap"
+          },
+          "raced_gap_s": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Raced Gap S",
+            "description": "Gap to the rival (or the leader) at the line, as raced"
+          },
+          "projected_gap_s": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Projected Gap S"
+          },
+          "raced_position": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Raced Position"
+          },
+          "projected_position": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Projected Position"
+          }
+        },
+        "type": "object",
+        "required": [
+          "lap",
+          "difference_s",
+          "raced_gap_s",
+          "projected_gap_s",
+          "raced_position",
+          "projected_position"
+        ],
+        "title": "SimulatedLap"
+      },
+      "SimulatedStint": {
+        "properties": {
+          "compound": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Compound"
+          },
+          "raced_from": {
+            "type": "integer",
+            "title": "Raced From",
+            "description": "First lap raced on it"
+          },
+          "raced_to": {
+            "type": "integer",
+            "title": "Raced To"
+          },
+          "asked_from": {
+            "type": "integer",
+            "title": "Asked From",
+            "description": "First lap on it in the strategy asked"
+          },
+          "asked_to": {
+            "type": "integer",
+            "title": "Asked To"
+          },
+          "degradation_s_per_lap": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Degradation S Per Lap"
+          },
+          "extrapolated_laps": {
+            "type": "integer",
+            "title": "Extrapolated Laps",
+            "description": "Laps asked at tyre ages beyond those the line was fitted on"
+          }
+        },
+        "type": "object",
+        "required": [
+          "compound",
+          "raced_from",
+          "raced_to",
+          "asked_from",
+          "asked_to",
+          "degradation_s_per_lap",
+          "extrapolated_laps"
+        ],
+        "title": "SimulatedStint"
+      },
+      "SimulationOutput": {
+        "properties": {
+          "season": {
+            "type": "integer",
+            "title": "Season"
+          },
+          "round": {
+            "type": "integer",
+            "title": "Round"
+          },
+          "session": {
+            "type": "string",
+            "title": "Session"
+          },
+          "driver": {
+            "type": "string",
+            "title": "Driver"
+          },
+          "rival": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rival"
+          },
+          "raced_stops": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Raced Stops"
+          },
+          "stops": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Stops"
+          },
+          "stints": {
+            "items": {
+              "$ref": "#/components/schemas/SimulatedStint"
+            },
+            "type": "array",
+            "title": "Stints"
+          },
+          "green_stop_loss_s": {
+            "type": "number",
+            "title": "Green Stop Loss S",
+            "description": "What a green-flag stop costs the driver: the median measured"
+          },
+          "neutralized_stop_loss_s": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Neutralized Stop Loss S",
+            "description": "What a stop under a neutralization cost in this race"
+          },
+          "time_difference_s": {
+            "type": "number",
+            "title": "Time Difference S",
+            "description": "Race time of the strategy asked less the one raced: negative, gains"
+          },
+          "laps": {
+            "items": {
+              "$ref": "#/components/schemas/SimulatedLap"
+            },
+            "type": "array",
+            "title": "Laps"
+          },
+          "model_error_s": {
+            "type": "number",
+            "title": "Model Error S",
+            "description": "Root mean square error of the stints' lines on the clean laps fitted"
+          },
+          "extended_laps": {
+            "type": "integer",
+            "title": "Extended Laps",
+            "description": "The most laps a stint runs beyond its length as raced"
+          },
+          "expected_error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ExpectedError"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The error measured on real stints extended as much; None with no extension or no report"
+          },
+          "notes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Notes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "season",
+          "round",
+          "session",
+          "driver",
+          "rival",
+          "raced_stops",
+          "stops",
+          "stints",
+          "green_stop_loss_s",
+          "neutralized_stop_loss_s",
+          "time_difference_s",
+          "laps",
+          "model_error_s",
+          "extended_laps"
+        ],
+        "title": "SimulationOutput"
       },
       "Source": {
         "properties": {

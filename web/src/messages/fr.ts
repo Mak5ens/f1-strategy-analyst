@@ -119,7 +119,14 @@ export const fr = {
       rain: "Pluie",
       dry: "Sec",
     },
-    tabs: { result: "Résultat", grid: "Grille", race: "Course", strategy: "Stratégie", standings: "Classements" },
+    tabs: {
+      result: "Résultat",
+      grid: "Grille",
+      race: "Course",
+      strategy: "Stratégie",
+      simulator: "Simulateur",
+      standings: "Classements",
+    },
     result: {
       position: "Pos.",
       driver: "Pilote",
@@ -148,6 +155,42 @@ export const fr = {
       change: "Places",
       pitLane: "Stands",
       lead: "Places gagnées ou perdues entre la grille et l'arrivée.",
+    },
+    simulator: {
+      lead: "Et si le pilote s'était arrêté à d'autres tours ? Le code projette la différence tour par tour, à partir de ce que la course a mesuré : la dégradation de chaque relais et le coût des arrêts. C'est un modèle, pas une mesure : son erreur s'affiche avec chaque projection.",
+      driver: "Pilote",
+      rival: "Écart par rapport à",
+      leader: "Leader",
+      stop: (number: number) => `Arrêt ${number}`,
+      inLap: "tour d'entrée aux stands",
+      raced: (lap: number) => `couru au tour ${lap}`,
+      reset: "Revenir à la stratégie courue",
+      loading: "Projection en cours…",
+      difference: "Temps de course",
+      gains: (value: string) => `${value} gagnées`,
+      loses: (value: string) => `${value} perdues`,
+      same: "aucune différence",
+      finish: "À l'arrivée",
+      position: (raced: number, projected: number) =>
+        raced === projected ? `P${raced}, inchangé` : `P${raced} → P${projected}`,
+      gap: (raced: string, projected: string) => `écart ${raced} → ${projected}`,
+      chart: "Écart à chaque passage sur la ligne : couru (gris) et projeté",
+      trust: "Confiance",
+      lineError: (value: string) =>
+        `Les droites de dégradation s'écartent de ${value} des tours propres qu'elles décrivent, en moyenne quadratique.`,
+      extended: (laps: number, low: number, high: number, median: string, p90: string, bias: string, season: number) =>
+        `Un relais prolongé de ${laps} tour${laps > 1 ? "s" : ""} : sur ${season}, les relais prolongés de ${low} à ${high} tours se trompent de ${median} en médiane (9 fois sur 10 moins de ${p90}), avec un biais de ${bias} (les pneus s'usent plus vite en fin de relais qu'une droite ne le dit).`,
+      tooSmall: "La différence projetée est plus petite que l'erreur mesurée : le modèle ne permet pas de conclure.",
+      extrapolated: (stint: number, laps: number) =>
+        `Relais ${stint} : ${laps} tour${laps > 1 ? "s" : ""} au-delà des âges de pneus mesurés, la droite est prolongée.`,
+      assumptions: "Ce que le modèle ne sait pas",
+      limits: [
+        "le trafic et les dépassements que la nouvelle stratégie aurait rencontrés ;",
+        "les voitures de sécurité, qui tombent aux mêmes tours : un arrêt déplacé sous neutralisation en profite, mesuré sur les arrêts sous neutralisation de cette course ;",
+        "un autre composé : chaque relais garde ses pneus, seuls les tours d'arrêt changent.",
+      ],
+      error: "Cette stratégie ne peut pas être projetée :",
+      unreachable: "Les données ne répondent pas pour le moment.",
     },
     charts: {
       lead: "La course tour par tour, telle que le chronométrage l'a mesurée. Les bandes jaunes marquent la voiture de sécurité ou le VSC, les rouges un drapeau rouge ; un rond, un passage aux stands.",

@@ -121,6 +121,10 @@ debrief *args: _env
 eval *args: _env
     uv run f1-eval "$@"
 
+# How far the strategy simulation can be trusted (LAB-213): stints' lines extended past their fit, e.g. `just simulation-validate 2025`
+simulation-validate season: _env
+    uv run f1-simulation-validate {{season}}
+
 # Build the evaluation dataset (evals/datasets/): `just eval-dataset`, `check`, `push` (Langfuse), `draft-regulation`
 eval-dataset *args: _env
     uv run f1-eval-dataset "$@"
