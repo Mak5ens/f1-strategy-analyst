@@ -194,7 +194,7 @@
     "/races/{season}/{round_number}/simulation": {
       "get": {
         "summary": "Get Simulation",
-        "description": "What another strategy would have given a driver (LAB-213): the same stops on other laps, projected by code\nfrom the race's measures, with the error measured on real stints extended as much. A model, not a measure.",
+        "description": "What another strategy would have given a driver (LAB-213, LAB-214): the same stops on other laps, a stint on\nanother compound, projected by code from the race's measures, with the error measured on real stints projected\nas much. A model, not a measure.",
         "operationId": "get_simulation_races__season___round_number__simulation_get",
         "parameters": [
           {
@@ -264,6 +264,27 @@
               "title": "Rival"
             },
             "description": "The driver gaps are measured to; the leader by default"
+          },
+          {
+            "name": "compounds",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "The compound of each stint, in order; empty keeps the one raced",
+              "title": "Compounds"
+            },
+            "description": "The compound of each stint, in order; empty keeps the one raced"
           }
         ],
         "responses": {
@@ -3599,7 +3620,19 @@
                 "type": "null"
               }
             ],
-            "title": "Compound"
+            "title": "Compound",
+            "description": "The compound asked: the one raced unless another was chosen"
+          },
+          "raced_compound": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Raced Compound"
           },
           "raced_from": {
             "type": "integer",
@@ -3639,6 +3672,7 @@
         "type": "object",
         "required": [
           "compound",
+          "raced_compound",
           "raced_from",
           "raced_to",
           "asked_from",
@@ -3747,6 +3781,17 @@
               }
             ],
             "description": "The error measured on real stints extended as much; None with no extension or no report"
+          },
+          "compound_error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ExpectedError"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The error measured on real stints projected from another compound; None if none changes"
           },
           "notes": {
             "items": {

@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "cn";
+import Link from "next/link";
 import { type KeyboardEvent, type PointerEvent, type ReactNode, useId, useMemo, useState } from "react";
 import type { RaceLaps } from "@/lib/api/client";
 import { formatLapTime, formatSeconds } from "@/lib/format";
@@ -38,7 +39,8 @@ export type Series = { driver: DriverLaps; points: Point[]; highlighted: boolean
 /**
  * The race lap by lap (LAB-189): positions from the grid, and the gaps at the line to the leader or to a chosen
  * driver. The highlighted drivers are drawn in their team's colour, the others faded; hovering or the arrow keys
- * read one lap in both charts at once, and a table gives the same numbers.
+ * read one lap in both charts at once, and a table gives the same numbers. Two drivers highlighted open their duel
+ * over the season (LAB-214).
  */
 export function RaceCharts({ race, focus = [] }: { race: RaceLaps; focus?: string[] }) {
   const initial = useMemo(() => defaultHighlight(race, focus), [race, focus]);
@@ -120,6 +122,14 @@ export function RaceCharts({ race, focus = [] }: { race: RaceLaps; focus?: strin
             {t.all}
           </button>
         </div>
+        {highlight.length === 2 && (
+          <Link
+            href={`/duel?saison=${race.season}&a=${highlight[0]}&b=${highlight[1]}`}
+            className="self-start font-semibold text-primary text-sm hover:underline"
+          >
+            {t.duel(highlight[0] ?? "", highlight[1] ?? "", race.season)}
+          </Link>
+        )}
       </fieldset>
 
       <Readout race={race} lap={lap} highlight={highlight} reference={referenceDriver} />

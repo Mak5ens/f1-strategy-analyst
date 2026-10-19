@@ -2,6 +2,7 @@
 
 import statistics
 from collections import Counter
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -156,3 +157,55 @@ def _exclusion_reason(lap: dict[str, Any]) -> str:
     if lap["deleted"]:
         return "deleted"
     return "no lap time"
+
+
+@dataclass
+class Shift:
+    """What another compound changes to a stint's line in a race (`compound_shift`): its intercept and its slope."""
+
+    intercept_s: float
+    degradation_s_per_lap: float
+    drivers: int  # the drivers it is measured on
+
+
+MIN_SHIFT_DRIVERS = 2
+
+
+def race_fits(laps: Sequence[dict[str, Any]]) -> dict[str, list[StintFit]]:
+    """Every driver's stint lines in a race, the ones with a slope only."""
+    fits: dict[str, list[StintFit]] = {}
+    for code in sorted({str(lap["driver"]) for lap in laps}):
+        mine = {int(lap["lap_number"]): lap for lap in laps if lap["driver"] == code}
+        found = [
+            one for number_, stint in by_stint(mine).items() if (one := fit(number_, stint)).intercept_s is not None
+        ]
+        if found:
+            fits[code] = found
+    return fits
+
+
+def compound_shift(
+    fits: Mapping[str, Sequence[StintFit]], source: str, target: str, *, exclude: str | None = None
+) -> Shift | None:
+    """How the line of `target` differs from the line of `source` in this race, on the drivers who ran both: the
+    median over them of their own difference, so that a driver's level cancels out. None on fewer than 2 drivers."""
+    intercepts, slopes = [], []
+    for code, lines in fits.items():
+        if code == exclude:
+            continue
+        own = {compound: _line(lines, compound) for compound in (source, target)}
+        if (before := own[source]) and (after := own[target]):
+            intercepts.append(after[0] - before[0])
+            slopes.append(after[1] - before[1])
+    if len(intercepts) < MIN_SHIFT_DRIVERS:
+        return None
+    return Shift(round(statistics.median(intercepts), 4), round(statistics.median(slopes), 4), len(intercepts))
+
+
+def _line(lines: Sequence[StintFit], compound: str) -> tuple[float, float] | None:
+    """A driver's line on a compound: the median intercept and slope of their stints on it."""
+    on = [one for one in lines if one.summary.compound == compound]
+    if not on:
+        return None
+    intercept = statistics.median(float(one.intercept_s or 0) for one in on)
+    return intercept, statistics.median(float(one.summary.degradation_s_per_lap or 0) for one in on)

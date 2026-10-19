@@ -8,11 +8,15 @@ safety car, the traffic the race had) cancels out. On each lap:
 - else the difference of the two stints' lines at that lap, each the `degradation` tool's fuel-corrected line
   (lap time = intercept + degradation * tyre age - fuel effect * (lap - 1)): moving a stop changes the tyre age, and
   on which stint the lap falls;
+- on a stint run on another compound, its own line shifted by what that compound changes to a line in this race
+  (`degradation.compound_shift`: the median, over the other drivers who ran both compounds, of the difference of their
+  own lines), so that the driver's level stays theirs;
 - and the stops' cost, moved with them: what the driver's green-flag stops cost (`pit_stop_loss`, median), or what
   the stops under a neutralization cost in this race, when the new in- or out-lap is neutralized.
 
 What it does not know: traffic and overtaking the new strategy would have met, safety cars it would have met
-differently, and a stint run beyond the tyre ages it was fitted on (the line is extended, and the laps are counted).
+differently, a set of tyres other than the one raced for a new compound (the age it was fitted at is kept), and
+a stint run beyond the tyre ages it was fitted on (the line is extended, and the laps are counted).
 
 Not a tool of the agent: the analyst reads its refusals on the simulator, so they are written in French.
 """
@@ -24,9 +28,9 @@ from typing import Any
 from pydantic import BaseModel, Field
 
 from core.tools import ToolError
-from f1.evals.simulation import expected_error
+from f1.evals.simulation import compound_error, expected_error
 from f1.tools.data import DriverCode, RaceData, SessionRef, integer, is_neutralized, number
-from f1.tools.degradation import DEFAULT_FUEL_EFFECT_S_PER_LAP, StintFit, by_stint, fit
+from f1.tools.degradation import DEFAULT_FUEL_EFFECT_S_PER_LAP, StintFit, by_stint, compound_shift, fit, race_fits
 from f1.tools.pit_loss import stop_loss
 
 
@@ -36,6 +40,12 @@ class SimulationInput(SessionRef):
         None, description="The in-laps of the strategy asked, one per stop raced, in order; the ones raced if omitted"
     )
     rival: DriverCode | None = Field(None, description="The driver the gaps are measured to; the leader if omitted")
+    compounds: list[str | None] | None = Field(
+        None, description="The compound of each stint asked, in order; None (or omitted) keeps the one raced"
+    )
+
+
+DRY = ("SOFT", "MEDIUM", "HARD")
 
 
 class SimulatedLap(BaseModel):
@@ -48,7 +58,8 @@ class SimulatedLap(BaseModel):
 
 
 class SimulatedStint(BaseModel):
-    compound: str | None
+    compound: str | None = Field(description="The compound asked: the one raced unless another was chosen")
+    raced_compound: str | None
     raced_from: int = Field(description="First lap raced on it")
     raced_to: int
     asked_from: int = Field(description="First lap on it in the strategy asked")
@@ -87,6 +98,9 @@ class SimulationOutput(BaseModel):
     expected_error: ExpectedError | None = Field(
         None, description="The error measured on real stints extended as much; None with no extension or no report"
     )
+    compound_error: ExpectedError | None = Field(
+        None, description="The error measured on real stints projected from another compound; None if none changes"
+    )
     notes: list[str] = Field(default_factory=list)
 
 
@@ -112,17 +126,21 @@ def simulate_strategy(data: RaceData, request: SimulationInput) -> SimulationOut
                 "pour projeter son rythme."
             )
 
+    raced_compounds = [one.summary.compound for one in fits]
+    asked_compounds = _compounds(request.compounds, raced_compounds)
+    lines = _lines(every, request.driver, fits, raced_compounds, asked_compounds)
+
     green, neutralized = _losses(data, request, every, mine, stops)
     raced_bounds = _bounds(raced, last)
     asked_bounds = _bounds(asked, last)
     first_age = [integer(stint_laps[0]["tyre_life"]) or 1 for _, stint_laps in stints]
 
-    def lap_time(lap: int, bounds: Sequence[tuple[int, int]]) -> float:
+    raced_lines = [_own(one) for one in fits]
+
+    def lap_time(lap: int, bounds: Sequence[tuple[int, int]], by: Sequence[tuple[float, float]]) -> float:
         k = next(index for index, (start, end) in enumerate(bounds) if start <= lap <= end)
-        age = first_age[k] + lap - bounds[k][0]
-        line = fits[k]
-        assert line.intercept_s is not None and line.summary.degradation_s_per_lap is not None
-        return line.intercept_s + line.summary.degradation_s_per_lap * age  # the fuel is the same lap: it cancels
+        intercept, slope = by[k]
+        return intercept + slope * (first_age[k] + lap - bounds[k][0])  # the fuel is the same lap: it cancels
 
     def stop_cost(in_lap: int) -> float:
         quiet = not any(is_neutralized(mine.get(lap, {}).get("track_status")) for lap in (in_lap, in_lap + 1))
@@ -138,13 +156,19 @@ def simulate_strategy(data: RaceData, request: SimulationInput) -> SimulationOut
     differences: dict[int, float] = {}
     for lap in range(1, last + 1):
         neutral = is_neutralized(mine.get(lap, {}).get("track_status"))
-        differences[lap] = 0.0 if neutral or lap == 1 else lap_time(lap, asked_bounds) - lap_time(lap, raced_bounds)
+        if not (neutral or lap == 1):
+            differences[lap] = lap_time(lap, asked_bounds, lines) - lap_time(lap, raced_bounds, raced_lines)
+        else:
+            differences[lap] = 0.0
     for in_lap in raced:
         differences[min(in_lap + 1, last)] -= stop_cost(in_lap)
     for in_lap in asked:
         differences[min(in_lap + 1, last)] += stop_cost(in_lap)
 
     laps = _laps(every, mine, differences, request.rival)
+    changed = [
+        end - start + 1 for k, (start, end) in enumerate(asked_bounds) if asked_compounds[k] != raced_compounds[k]
+    ]
     return SimulationOutput(
         season=request.season,
         round=request.round,
@@ -155,12 +179,13 @@ def simulate_strategy(data: RaceData, request: SimulationInput) -> SimulationOut
         stops=list(asked),
         stints=[
             SimulatedStint(
-                compound=one.summary.compound,
+                compound=asked_compounds[k],
+                raced_compound=one.summary.compound,
                 raced_from=raced_bounds[k][0],
                 raced_to=raced_bounds[k][1],
                 asked_from=asked_bounds[k][0],
                 asked_to=asked_bounds[k][1],
-                degradation_s_per_lap=one.summary.degradation_s_per_lap,
+                degradation_s_per_lap=round(lines[k][1], 4),
                 extrapolated_laps=_extrapolated(one, first_age[k], raced_bounds[k], asked_bounds[k]),
             )
             for k, one in enumerate(fits)
@@ -171,17 +196,70 @@ def simulate_strategy(data: RaceData, request: SimulationInput) -> SimulationOut
         laps=laps,
         model_error_s=_error(fits, mine),
         extended_laps=(extended := _extended(raced_bounds, asked_bounds)),
-        expected_error=_expected(extended, request.season),
+        expected_error=_expected(expected_error(extended, request.season)),
+        compound_error=_expected(compound_error(max(changed), request.season) if changed else None),
         notes=_notes(fits, first_age, raced_bounds, asked_bounds),
     )
 
 
-def _expected(extended: int, season: int) -> ExpectedError | None:
-    found = expected_error(extended, season)
+def _expected(found: dict[str, Any] | None) -> ExpectedError | None:
     if found is None:
         return None
     (low, high), rest = found["laps"], {key: value for key, value in found.items() if key != "laps"}
     return ExpectedError(laps_from=low, laps_to=high, **rest)
+
+
+def _own(line: StintFit) -> tuple[float, float]:
+    assert line.intercept_s is not None and line.summary.degradation_s_per_lap is not None
+    return line.intercept_s, line.summary.degradation_s_per_lap
+
+
+def _compounds(asked: Sequence[str | None] | None, raced: Sequence[str | None]) -> list[str | None]:
+    """The compound of each stint asked, and the rule a dry race asks: two dry compounds at least."""
+    if asked is None:
+        return list(raced)
+    if len(asked) != len(raced):
+        raise ToolError(f"le pilote a couru {len(raced)} relais : il faut un composé par relais.")
+    found = [one.upper() if one else raced[k] for k, one in enumerate(asked)]
+    if any(one is not None and one not in DRY for one, before in zip(found, raced, strict=True) if one != before):
+        raise ToolError("seul un composé sec (tendre, médium ou dur) peut remplacer celui d'un relais.")
+    dry = all(one in DRY for one in raced if one) and len({one for one in raced if one}) >= 2
+    if dry and len({one for one in found if one}) < 2:
+        raise ToolError(
+            "en course sèche, le règlement sportif impose d'utiliser au moins deux composés secs différents."
+        )
+    return found
+
+
+def _lines(
+    every: Sequence[dict[str, Any]],
+    driver: str,
+    fits: Sequence[StintFit],
+    raced: Sequence[str | None],
+    asked: Sequence[str | None],
+) -> list[tuple[float, float]]:
+    """Each stint's line asked: the one raced, or shifted to the compound asked as the other drivers measure it."""
+    lines, field = [], None
+    for k, one in enumerate(fits):
+        intercept, slope = _own(one)
+        before, after = raced[k], asked[k]
+        if after != before:
+            if before is None or after is None:
+                raise ToolError(f"le composé du relais {k + 1} n'est pas connu : il ne peut pas être changé.")
+            field = field if field is not None else race_fits(list(every))
+            shift = compound_shift(field, before, after, exclude=driver)
+            if shift is None:
+                raise ToolError(
+                    f"trop peu de pilotes ont couru en {_french(before)} et en {_french(after)} dans cette course pour "
+                    "mesurer ce que change le composé."
+                )
+            intercept, slope = intercept + shift.intercept_s, slope + shift.degradation_s_per_lap
+        lines.append((intercept, slope))
+    return lines
+
+
+def _french(compound: str) -> str:
+    return {"SOFT": "tendres", "MEDIUM": "médiums", "HARD": "durs"}.get(compound, compound.lower())
 
 
 def _extended(raced: Sequence[tuple[int, int]], asked: Sequence[tuple[int, int]]) -> int:

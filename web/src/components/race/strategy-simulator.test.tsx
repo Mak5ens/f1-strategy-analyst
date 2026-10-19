@@ -1,4 +1,4 @@
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { RaceLaps, Simulation } from "@/lib/api/client";
 import { StrategySimulator } from "./strategy-simulator";
@@ -35,6 +35,7 @@ const projection = (difference: number): Simulation =>
     stints: [
       {
         compound: "SOFT",
+        raced_compound: "SOFT",
         raced_from: 1,
         raced_to: 14,
         asked_from: 1,
@@ -66,7 +67,7 @@ describe("StrategySimulator", () => {
     simulate.mockResolvedValue({ result: projection(5.5), error: null });
     render(<StrategySimulator race={race} />);
     await waitFor(() => expect(screen.getByText("+5,5 s")).toBeTruthy());
-    expect(simulate).toHaveBeenCalledWith(2025, 4, "PIA", null, "RUS");
+    expect(simulate).toHaveBeenCalledWith(2025, 4, "PIA", null, "RUS", null);
     expect(screen.getByText("P1, inchangé")).toBeTruthy();
     expect(screen.getByText(/se trompent de 0,8 s en médiane/)).toBeTruthy();
     expect(screen.getByText(/Relais 1 : 5 tours au-delà/)).toBeTruthy();
@@ -85,5 +86,23 @@ describe("StrategySimulator", () => {
     await waitFor(() =>
       expect(screen.getByText(/ne peut pas être projetée : les tours d’arrêt doivent se suivre/)).toBeTruthy(),
     );
+  });
+
+  it("asks for a stint on another compound, keeping the controls when it is refused", async () => {
+    simulate.mockResolvedValue({ result: projection(5.5), error: null });
+    render(<StrategySimulator race={race} />);
+    const stint = await screen.findByRole("combobox", { name: "Relais 1, composé" });
+    expect([...stint.querySelectorAll("option")].map((option) => option.textContent)).toEqual([
+      "Tendre (couru)",
+      "Medium",
+      "Dur",
+    ]);
+    simulate.mockResolvedValue({ result: null, error: "trop peu de pilotes ont couru en tendres et en durs." });
+    fireEvent.change(stint, { target: { value: "HARD" } });
+    await waitFor(() => expect(simulate).toHaveBeenLastCalledWith(2025, 4, "PIA", null, "RUS", ["HARD"]));
+    await screen.findByText(/ne peut pas être projetée : trop peu de pilotes/);
+    expect(screen.getByRole("combobox", { name: "Relais 1, composé" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Revenir à la stratégie courue" }));
+    await waitFor(() => expect(simulate).toHaveBeenLastCalledWith(2025, 4, "PIA", null, "RUS", null));
   });
 });

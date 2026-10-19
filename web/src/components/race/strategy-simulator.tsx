@@ -17,9 +17,12 @@ const signed = new Intl.NumberFormat("fr-FR", {
   signDisplay: "exceptZero",
 });
 const s = (value: number, format = seconds) => `${format.format(value)} s`;
+const DRY = ["SOFT", "MEDIUM", "HARD"];
+const compoundName = (compound: string | null) =>
+  compound ? (getMessages().race.strategy.compounds[compound] ?? compound) : getMessages().race.strategy.unknown;
 
 /**
- * Another strategy for a driver (LAB-213): each stop on another lap, projected by code at every change (the API's
+ * Another strategy for a driver (LAB-213, LAB-214): each stop on another lap, each stint on another compound, projected by code at every change (the API's
  * `simulation`), next to the race as it was, with the error measured on real stints and what the model ignores.
  */
 export function StrategySimulator({ race }: { race: RaceLaps }) {
@@ -27,7 +30,10 @@ export function StrategySimulator({ race }: { race: RaceLaps }) {
   const [driver, setDriver] = useState(drivers[0]?.driver.code ?? "");
   const [rival, setRival] = useState(() => race.drivers[1]?.driver.code ?? "");
   const [stops, setStops] = useState<number[] | null>(null);
+  const [compounds, setCompounds] = useState<(string | null)[] | null>(null);
   const [state, setState] = useState<SimulationState>({ result: null, error: null });
+  // The driver's last projection: its stops and stints keep the controls up when a strategy asked is refused.
+  const [controls, setControls] = useState<Simulation | null>(null);
   const [pending, start] = useTransition();
   const total = lastLap(race);
 
@@ -36,20 +42,39 @@ export function StrategySimulator({ race }: { race: RaceLaps }) {
     const timer = setTimeout(
       () =>
         start(async () => {
-          setState(await simulate(race.season, race.round, driver, stops, rival && rival !== driver ? rival : null));
+          const next = await simulate(
+            race.season,
+            race.round,
+            driver,
+            stops,
+            rival && rival !== driver ? rival : null,
+            compounds,
+          );
+          setState(next);
+          if (next.result) setControls(next.result);
         }),
       stops === null ? 0 : 250,
     );
     return () => clearTimeout(timer);
-  }, [race.season, race.round, driver, stops, rival]);
+  }, [race.season, race.round, driver, stops, rival, compounds]);
 
   const { result, error } = state;
-  const shown = stops ?? result?.raced_stops ?? [];
+  const shown = stops ?? controls?.raced_stops ?? [];
   const select = "rounded-md border bg-surface px-3 py-2 text-sm";
   const pick = (code: string) => {
     setDriver(code);
     setStops(null);
+    setCompounds(null);
+    setControls(null);
   };
+  const reset = () => {
+    setStops(null);
+    setCompounds(null);
+  };
+  const choose = (index: number, compound: string) =>
+    setCompounds((current) =>
+      (controls?.stints ?? []).map((_, at) => (at === index ? compound || null : (current?.[at] ?? null))),
+    );
   return (
     <div className="flex flex-col gap-6">
       <p className="max-w-3xl text-muted-foreground text-sm">{t.lead}</p>
@@ -77,17 +102,17 @@ export function StrategySimulator({ race }: { race: RaceLaps }) {
               ))}
           </select>
         </label>
-        {stops !== null && (
-          <button type="button" onClick={() => setStops(null)} className="py-2 font-semibold text-primary text-sm">
+        {(stops !== null || compounds?.some(Boolean)) && (
+          <button type="button" onClick={reset} className="py-2 font-semibold text-primary text-sm">
             {t.reset}
           </button>
         )}
       </div>
 
-      {result && (
+      {controls && (
         <div className="flex flex-col gap-3">
           {shown.map((lap, index) => (
-            <label key={result.raced_stops[index]} className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+            <label key={controls.raced_stops[index]} className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
               <span className="w-20 font-semibold">{t.stop(index + 1)}</span>
               <input
                 type="range"
@@ -103,7 +128,25 @@ export function StrategySimulator({ race }: { race: RaceLaps }) {
               <span className="figures w-16">
                 {getMessages().race.charts.lap} {lap}
               </span>
-              <span className="text-muted-foreground text-xs">{t.raced(result.raced_stops[index] ?? lap)}</span>
+              <span className="text-muted-foreground text-xs">{t.raced(controls.raced_stops[index] ?? lap)}</span>
+            </label>
+          ))}
+          {controls.stints.map((stint, index) => (
+            <label key={stint.raced_from} className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+              <span className="w-20 font-semibold">{t.stint(index + 1)}</span>
+              <select
+                value={compounds?.[index] ?? ""}
+                onChange={(event) => choose(index, event.target.value)}
+                aria-label={`${t.stint(index + 1)}, ${t.compound}`}
+                className={select}
+              >
+                <option value="">{t.racedCompound(compoundName(stint.raced_compound))}</option>
+                {DRY.filter((one) => one !== stint.raced_compound).map((one) => (
+                  <option key={one} value={one}>
+                    {compoundName(one)}
+                  </option>
+                ))}
+              </select>
             </label>
           ))}
         </div>
@@ -190,7 +233,9 @@ function Projection({ race, result }: { race: RaceLaps; result: Simulation }) {
 
       <section className="flex flex-col gap-2 rounded-xl border bg-surface p-4 text-sm">
         <h3 className="font-semibold text-muted-foreground text-xs uppercase tracking-wide">{t.trust}</h3>
-        {error && Math.abs(difference) < error.median_s && <p className="font-semibold text-warning">{t.tooSmall}</p>}
+        {Math.abs(difference) < Math.max(error?.median_s ?? 0, result.compound_error?.median_s ?? 0) && (
+          <p className="font-semibold text-warning">{t.tooSmall}</p>
+        )}
         {error && (
           <p>
             {t.extended(
@@ -201,6 +246,17 @@ function Projection({ race, result }: { race: RaceLaps; result: Simulation }) {
               s(error.p90_s),
               s(error.bias_s, signed),
               error.season,
+            )}
+          </p>
+        )}
+        {result.compound_error && (
+          <p>
+            {t.otherCompound(
+              result.compound_error.laps_from,
+              result.compound_error.laps_to,
+              s(result.compound_error.median_s),
+              s(result.compound_error.p90_s),
+              result.compound_error.season,
             )}
           </p>
         )}

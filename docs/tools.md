@@ -106,15 +106,16 @@ Checked on the reference races: Hungary 2024 gives Norris losing the lead at the
 
 Limits: the data says how many places or seconds, not why (the reading says so). A position handed back by team order (Hungary 2024, lap 68) is a pass like any other. Penalties are not moments yet: whether one changed the result needs the classification before it, which the data does not hold.
 
-## Strategy simulation (LAB-213)
+## Strategy simulation (LAB-213, LAB-214)
 
-`f1.tools.simulation.simulate_strategy`, behind the GP page's « Simulateur » tab (`GET /races/{season}/{round}/simulation?driver=&stops=&rival=`): the same stops on other laps, each stint keeping its tyres. Not a tool of the agent, so its refusals are in French.
+`f1.tools.simulation.simulate_strategy`, behind the GP page's « Simulateur » tab (`GET /races/{season}/{round}/simulation?driver=&stops=&rival=&compounds=`): the same stops on other laps, and each stint on its compound or another dry one. Not a tool of the agent, so its refusals are in French.
 
 - **By difference**: it projects the difference between the strategy asked and the one raced, lap by lap, and adds it to the times the driver set. What both share (the driver's level, the fuel, the laps under a safety car, the race's traffic) cancels out.
 - **A lap under a neutralization**: no difference, since the safety car set the lap.
 - **Any other lap**: the difference of the two stints' fuel-corrected lines at that lap, from `degradation.fit`: lap time = intercept + degradation × tyre age − 0.06 × (lap − 1).
+- **A stint on another compound** (LAB-214): the driver's own line for that stint, shifted by what the compound changes to a line in this race (`degradation.compound_shift`): for each other driver who ran both compounds, their line on the one asked less their line on the one raced (intercept and slope, the median of their stints on each); the shift is the median of those differences over at least 2 drivers, so that each driver's level cancels out. The set keeps the tyre age the stint was raced on.
 - **The stops' cost moves with them**: the median of the driver's green-flag stops (`pit_stop_loss`), or the median of the race's stops under a neutralization when the new in- or out-lap is neutralized. With none measured, it refuses.
-- **Refused**: a stint under 5 clean laps (no line), a number of stops other than the one raced, in-laps out of order.
+- **Refused**: a stint under 5 clean laps (no line), a number of stops other than the one raced, in-laps out of order; a compound that is not dry, fewer than 2 other drivers who ran both compounds, or a dry race on a single dry compound (the sporting regulations ask for two).
 
 **Validation** (`just simulation-validate 2025`, `f1.evals.simulation`, report in `evals/reports/simulation-2025.json`): on 748 race stints of 2025 with at least 15 clean laps, the line fitted on the first 60 % of the clean laps projects the following ones. The table gives the error on the time of the laps extended.
 
@@ -125,6 +126,16 @@ Limits: the data says how many places or seconds, not why (the reading says so).
 | 11 to 20 | 5.7 s | 15.4 s | −0.9 s |
 
 The bias is negative: tyres wear faster late in a stint than a line says, so a longer stint is projected too fast. The page shows the error of the longest extension next to each projection. It says the model cannot conclude when the difference is smaller than the median error.
+
+**Validation of another compound**: the same report, for each driver of 2025 who ran two compounds in a race. Their line on one, shifted by the other drivers' difference (the driver left out), projects the stint on the other, whose times are known: the error on the time of its first k clean laps (stints of at least 8). Next to it, the same projection without a shift (the line of the compound raced kept as is), and with the intercept alone shifted.
+
+| Laps on the other compound | Median error | 90 % under | Bias | Without a shift (median, 90 %) | Intercept alone (median, 90 %) |
+| --: | --: | --: | --: | --: | --: |
+| 1 to 10 | 2.5 s | 9.6 s | −0.2 s | 2.8 s, 10.8 s | 2.8 s, 10.8 s |
+| 11 to 20 | 6.5 s | 21.0 s | −0.2 s | 6.7 s, 22.8 s | 8.0 s, 28.5 s |
+| 21 to 40 | 12.0 s | 44.5 s | −1.6 s | 13.4 s, 55.9 s | 17.7 s, 68.2 s |
+
+The shift helps, most on long stints (the 90th percentile from 56 s to 44 s over 21 to 40 laps), but the error stays about 0.3 s a lap: a line fitted on another stint carries that stint's track, traffic and fuel, which the shift does not remove. Shifting only the level is worse than no shift: the compounds differ by their wear more than by their pace. The page shows this error for the longest stint on another compound, and the projection does not conclude under it.
 
 ## Duel of two drivers (LAB-212)
 
