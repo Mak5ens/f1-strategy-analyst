@@ -167,6 +167,27 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/seasons/{season}/overview": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Season Overview
+     * @description A season told by its numbers (LAB-215): the championship round by round, the drivers' form and the teams'
+     *     pace in qualifying and in the race, computed in the lake by code (`f1.season`). No model is called.
+     */
+    get: operations["get_season_overview_seasons__season__overview_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/duels": {
     parameters: {
       query?: never;
@@ -675,6 +696,39 @@ export interface components {
       laps: components["schemas"]["Lap"][];
       /** Pace */
       pace: components["schemas"]["StintPace"][];
+    };
+    /** DriverSeason */
+    DriverSeason: {
+      driver: components["schemas"]["Driver"];
+      /**
+       * Position
+       * @description In the championship after the last round
+       */
+      position: number;
+      /** Points */
+      points: number;
+      /** Wins */
+      wins: number;
+      /**
+       * Form Points
+       * @description Points of the last rounds raced (`form_rounds`)
+       */
+      form_points: number;
+      /**
+       * Cumulative
+       * @description Points after each round, in the order of `rounds`
+       */
+      cumulative: number[];
+      /**
+       * Positions
+       * @description Place in the championship after each round
+       */
+      positions: number[];
+      /**
+       * Results
+       * @description Each round's result; None when not raced
+       */
+      results: (components["schemas"]["RoundResult"] | null)[];
     };
     /** DriverStanding */
     DriverStanding: {
@@ -1321,6 +1375,60 @@ export interface components {
       /** Decisions */
       decisions: components["schemas"]["Decision"][];
     };
+    /** RoundResult */
+    RoundResult: {
+      /**
+       * Text
+       * @description The place, or R retired, D disqualified, W withdrawn...
+       */
+      text: string;
+      /** Position */
+      position: number | null;
+      /** Grid */
+      grid: number | null;
+      /**
+       * Points
+       * @description Race and sprint of the weekend
+       */
+      points: number;
+    };
+    /** SeasonOverview */
+    SeasonOverview: {
+      /** Season */
+      season: number;
+      /**
+       * Rounds
+       * @description The rounds raced, in order
+       */
+      rounds: components["schemas"]["SeasonRound"][];
+      /** Form Rounds */
+      form_rounds: number;
+      /**
+       * Drivers
+       * @description In championship order
+       */
+      drivers: components["schemas"]["DriverSeason"][];
+      /**
+       * Teams
+       * @description In championship order
+       */
+      teams: components["schemas"]["TeamSeason"][];
+    };
+    /** SeasonRound */
+    SeasonRound: {
+      /** Round */
+      round: number;
+      /**
+       * Grand Prix
+       * @description In French
+       */
+      grand_prix: string;
+      /**
+       * Sprint
+       * @description A sprint was raced that weekend
+       */
+      sprint: boolean;
+    };
     /**
      * ShownPoint
      * @description A point of the debrief, its lists always present.
@@ -1610,6 +1718,33 @@ export interface components {
        */
       prepared: ("team" | "moments" | "driver") | null;
     };
+    /** TeamSeason */
+    TeamSeason: {
+      /** Team */
+      team: string;
+      /** Colour */
+      colour: string | null;
+      /** Position */
+      position: number;
+      /** Points */
+      points: number;
+      /** Wins */
+      wins: number;
+      /** Cumulative */
+      cumulative: number[];
+      /** Positions */
+      positions: number[];
+      /**
+       * Qualifying Gap Pct
+       * @description Best qualifying lap's gap to the best of all, in %
+       */
+      qualifying_gap_pct: (number | null)[];
+      /**
+       * Race Gap Pct
+       * @description Median race lap gap to the fastest team, in %
+       */
+      race_gap_pct: (number | null)[];
+    };
     /** TeamStanding */
     TeamStanding: {
       /** Position */
@@ -1877,6 +2012,37 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["Driver"][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_season_overview_seasons__season__overview_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        season: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["SeasonOverview"];
         };
       };
       /** @description Validation Error */

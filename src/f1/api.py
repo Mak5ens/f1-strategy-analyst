@@ -35,6 +35,7 @@ from f1.duels import Duel
 from f1.grand_prix import GrandPrix, Race, RaceLaps, RaceSummary
 from f1.questions import FreeAnswer, FreeQuestions, FreeQuestionStore
 from f1.router import Route, Router
+from f1.season import SeasonOverview
 from f1.tools.simulation import SimulationInput, SimulationOutput
 
 # The version of the API contract, not the app's: release-please bumps the app's on every release, and the OpenAPI
@@ -370,6 +371,16 @@ def get_simulation(
 def get_season_drivers(season: int, grand_prix: GrandPrixDep) -> list[Driver]:
     """The drivers who raced in a season, most points first, with the team of their last race."""
     return grand_prix.drivers(season)
+
+
+@app.get("/seasons/{season}/overview")
+def get_season_overview(season: int, grand_prix: GrandPrixDep) -> SeasonOverview:
+    """A season told by its numbers (LAB-215): the championship round by round, the drivers' form and the teams'
+    pace in qualifying and in the race, computed in the lake by code (`f1.season`). No model is called."""
+    found = grand_prix.season(season)
+    if found is None:
+        raise HTTPException(404, f"no race of {season} in the lake")
+    return found
 
 
 @app.get("/duels")

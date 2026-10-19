@@ -18,6 +18,7 @@ from core.tools import ToolError
 from f1.display import Driver, Response, driver, grand_prix_fr
 from f1.duels import Duel, duel, season_drivers
 from f1.race_rules import RaceRules
+from f1.season import SeasonOverview, overview
 from f1.tools.data import RaceData, SessionRef, integer, number
 from f1.tools.degradation import by_stint, fit
 from f1.tools.neutralizations import Kind, find_periods
@@ -216,6 +217,7 @@ class GrandPrix:
         self._data = RaceData(connection)
         self._raced: dict[tuple[int, int], Race] = {}
         self._lapped: dict[tuple[int, int], RaceLaps] = {}
+        self._seasons: dict[tuple[int, int], SeasonOverview] = {}
 
     def seasons(self) -> list[int]:
         """The seasons with at least one race in the lake, the latest first."""
@@ -294,6 +296,21 @@ class GrandPrix:
     def duel(self, season: int, first: str, second: str) -> Duel | None:
         """Two drivers face to face over a season (LAB-212); None when either did not race in it."""
         return duel(self._data, season, first, second)
+
+    def season(self, season: int) -> SeasonOverview | None:
+        """A season told by its numbers (LAB-215); kept until another round is raced. None before its first race."""
+        if season not in self.seasons():
+            return None
+        rows = self._query("SELECT max(round) AS last FROM results WHERE season = ? AND session = 'R'", [season])
+        last = integer(rows[0]["last"]) if rows else None
+        if last is None:
+            return None
+        if (season, last) not in self._seasons:
+            found = overview(self._data, season)
+            if found is None:
+                return None
+            self._seasons[season, last] = found
+        return self._seasons[season, last]
 
     def drivers(self, season: int) -> list[Driver]:
         """The drivers of a season, most points first."""

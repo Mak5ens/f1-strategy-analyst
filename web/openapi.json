@@ -355,6 +355,46 @@
         }
       }
     },
+    "/seasons/{season}/overview": {
+      "get": {
+        "summary": "Get Season Overview",
+        "description": "A season told by its numbers (LAB-215): the championship round by round, the drivers' form and the teams'\npace in qualifying and in the race, computed in the lake by code (`f1.season`). No model is called.",
+        "operationId": "get_season_overview_seasons__season__overview_get",
+        "parameters": [
+          {
+            "name": "season",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Season"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SeasonOverview"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/duels": {
       "get": {
         "summary": "Get Duel",
@@ -1808,6 +1848,74 @@
           "pace"
         ],
         "title": "DriverLaps"
+      },
+      "DriverSeason": {
+        "properties": {
+          "driver": {
+            "$ref": "#/components/schemas/Driver"
+          },
+          "position": {
+            "type": "integer",
+            "title": "Position",
+            "description": "In the championship after the last round"
+          },
+          "points": {
+            "type": "number",
+            "title": "Points"
+          },
+          "wins": {
+            "type": "integer",
+            "title": "Wins"
+          },
+          "form_points": {
+            "type": "number",
+            "title": "Form Points",
+            "description": "Points of the last rounds raced (`form_rounds`)"
+          },
+          "cumulative": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array",
+            "title": "Cumulative",
+            "description": "Points after each round, in the order of `rounds`"
+          },
+          "positions": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Positions",
+            "description": "Place in the championship after each round"
+          },
+          "results": {
+            "items": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/RoundResult"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Results",
+            "description": "Each round's result; None when not raced"
+          }
+        },
+        "type": "object",
+        "required": [
+          "driver",
+          "position",
+          "points",
+          "wins",
+          "form_points",
+          "cumulative",
+          "positions",
+          "results"
+        ],
+        "title": "DriverSeason"
       },
       "DriverStanding": {
         "properties": {
@@ -3448,6 +3556,120 @@
         ],
         "title": "ReviewAnswer"
       },
+      "RoundResult": {
+        "properties": {
+          "text": {
+            "type": "string",
+            "title": "Text",
+            "description": "The place, or R retired, D disqualified, W withdrawn..."
+          },
+          "position": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Position"
+          },
+          "grid": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grid"
+          },
+          "points": {
+            "type": "number",
+            "title": "Points",
+            "description": "Race and sprint of the weekend"
+          }
+        },
+        "type": "object",
+        "required": [
+          "text",
+          "position",
+          "grid",
+          "points"
+        ],
+        "title": "RoundResult"
+      },
+      "SeasonOverview": {
+        "properties": {
+          "season": {
+            "type": "integer",
+            "title": "Season"
+          },
+          "rounds": {
+            "items": {
+              "$ref": "#/components/schemas/SeasonRound"
+            },
+            "type": "array",
+            "title": "Rounds",
+            "description": "The rounds raced, in order"
+          },
+          "form_rounds": {
+            "type": "integer",
+            "title": "Form Rounds"
+          },
+          "drivers": {
+            "items": {
+              "$ref": "#/components/schemas/DriverSeason"
+            },
+            "type": "array",
+            "title": "Drivers",
+            "description": "In championship order"
+          },
+          "teams": {
+            "items": {
+              "$ref": "#/components/schemas/TeamSeason"
+            },
+            "type": "array",
+            "title": "Teams",
+            "description": "In championship order"
+          }
+        },
+        "type": "object",
+        "required": [
+          "season",
+          "rounds",
+          "form_rounds",
+          "drivers",
+          "teams"
+        ],
+        "title": "SeasonOverview"
+      },
+      "SeasonRound": {
+        "properties": {
+          "round": {
+            "type": "integer",
+            "title": "Round"
+          },
+          "grand_prix": {
+            "type": "string",
+            "title": "Grand Prix",
+            "description": "In French"
+          },
+          "sprint": {
+            "type": "boolean",
+            "title": "Sprint",
+            "description": "A sprint was raced that weekend"
+          }
+        },
+        "type": "object",
+        "required": [
+          "round",
+          "grand_prix",
+          "sprint"
+        ],
+        "title": "SeasonRound"
+      },
       "ShownPoint": {
         "properties": {
           "id": {
@@ -4220,6 +4442,94 @@
         ],
         "title": "Subject",
         "description": "What a request is about, as far as the agent resolved it: nothing yet while it asks which race."
+      },
+      "TeamSeason": {
+        "properties": {
+          "team": {
+            "type": "string",
+            "title": "Team"
+          },
+          "colour": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Colour"
+          },
+          "position": {
+            "type": "integer",
+            "title": "Position"
+          },
+          "points": {
+            "type": "number",
+            "title": "Points"
+          },
+          "wins": {
+            "type": "integer",
+            "title": "Wins"
+          },
+          "cumulative": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array",
+            "title": "Cumulative"
+          },
+          "positions": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Positions"
+          },
+          "qualifying_gap_pct": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Qualifying Gap Pct",
+            "description": "Best qualifying lap's gap to the best of all, in %"
+          },
+          "race_gap_pct": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Race Gap Pct",
+            "description": "Median race lap gap to the fastest team, in %"
+          }
+        },
+        "type": "object",
+        "required": [
+          "team",
+          "colour",
+          "position",
+          "points",
+          "wins",
+          "cumulative",
+          "positions",
+          "qualifying_gap_pct",
+          "race_gap_pct"
+        ],
+        "title": "TeamSeason"
       },
       "TeamStanding": {
         "properties": {
