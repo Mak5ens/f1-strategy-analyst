@@ -21,7 +21,7 @@ export function RaceTabs({ tabs, initial }: { tabs: RaceTab[]; initial?: string 
         ))}
       </Tabs.List>
       {tabs.map((tab) => (
-        <Tabs.Content key={tab.id} value={tab.id} className="outline-none">
+        <Tabs.Content key={tab.id} value={tab.id} className="enter outline-none">
           {tab.content}
         </Tabs.Content>
       ))}

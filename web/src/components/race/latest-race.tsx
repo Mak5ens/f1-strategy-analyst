@@ -16,7 +16,7 @@ export function LatestRace({ race }: { race: RaceSummary }) {
     >
       <span
         aria-hidden
-        className="display figures pointer-events-none absolute -right-4 -bottom-10 text-[10rem] text-white/[0.05] italic sm:-bottom-14 sm:text-[15rem]"
+        className="display figures pointer-events-none absolute -right-4 -bottom-10 text-[10rem] text-watermark italic sm:-bottom-14 sm:text-[15rem]"
       >
         {String(race.round).padStart(2, "0")}
       </span>
@@ -35,7 +35,7 @@ export function LatestRace({ race }: { race: RaceSummary }) {
             <span className="font-normal text-muted-foreground">· {race.winner.team}</span>
           </p>
         )}
-        <p className="mt-3 font-semibold text-primary text-sm transition-transform group-hover:translate-x-1">
+        <p className="mt-3 font-semibold text-primary-text text-sm transition-transform group-hover:translate-x-1">
           {t.home.seeRace} →
         </p>
       </div>

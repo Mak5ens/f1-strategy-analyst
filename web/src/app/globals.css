@@ -5,6 +5,7 @@
  * Design tokens, the only place colours live: components use bg-background, bg-surface, text-muted-foreground...
  * Dark only (docs/design.md): a near-black blue-grey page, black bands for navigation and tables, one red accent.
  * Team colours are data (the API's `colour`), passed to a component as the --team variable.
+ * Every text colour reaches WCAG AA (4.5:1) on every surface it sits on: src/app/tokens.test.ts measures it.
  */
 :root {
   color-scheme: dark;
@@ -18,8 +19,10 @@
   --card-foreground: var(--foreground);
   --popover: var(--surface-raised);
   --popover-foreground: var(--foreground);
-  --primary: #e8202f;
+  /* Red as a fill (buttons, the active tab's rule, a win), and red as text on the dark surfaces, lighter. */
+  --primary: #dd1c2b;
   --primary-foreground: #ffffff;
+  --primary-text: #ff5a66;
   --secondary: var(--surface-raised);
   --secondary-foreground: var(--foreground);
   --muted: var(--surface);
@@ -31,7 +34,19 @@
   --warning: #f5b83d;
   --border: rgb(255 255 255 / 9%);
   --input: rgb(255 255 255 / 14%);
-  --ring: rgb(232 32 47 / 60%);
+  --ring: rgb(255 90 102 / 70%);
+  /* A row under the pointer, the faint giant number behind a hero, the hero's stripes. */
+  --hover: rgb(255 255 255 / 3%);
+  --watermark: rgb(255 255 255 / 4.5%);
+  --stripe: rgb(255 255 255 / 2.5%);
+  /* Text on a saturated data colour (a soft or a wet tyre), and the stripes of a used set. */
+  --on-data: #ffffff;
+  --used: rgb(0 0 0 / 18%);
+  /* Motion: short and sharp, never in the way of reading (docs/design.md). */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --duration-fast: 150ms;
+  --duration: 260ms;
+  --duration-draw: 700ms;
   /* Tyre compounds, as the broadcast colours them (FastF1's plotting colours); data, like the teams'. */
   --soft: #da291c;
   --medium: #ffd12e;
@@ -59,6 +74,10 @@
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-primary-text: var(--primary-text);
+  --color-hover: var(--hover);
+  --color-watermark: var(--watermark);
+  --color-on-data: var(--on-data);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
@@ -117,5 +136,58 @@
   /* Numbers that line up: timings, gaps, laps. */
   .figures {
     font-variant-numeric: tabular-nums;
+  }
+
+  /* A section or a tab's panel arriving: up a few pixels while it fades in. */
+  .enter {
+    animation: enter var(--duration) var(--ease-out) both;
+  }
+
+  /* A chart's line drawn from the first lap to the last (an SVG path with pathLength="1"). */
+  .draw {
+    stroke-dasharray: 1;
+    animation: draw var(--duration-draw) var(--ease-out) both;
+  }
+
+  /* The hero's stripes, faint and leaning like the slash. */
+  .stripes {
+    background: repeating-linear-gradient(115deg, transparent 0 46px, var(--stripe) 46px 92px);
+  }
+
+  /* A used set of tyres on the strategy chart. */
+  .used {
+    background: repeating-linear-gradient(135deg, transparent 0 4px, var(--used) 4px 8px);
+  }
+}
+
+@keyframes enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@keyframes draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* Whoever asked their system for less motion gets none: every animation and transition ends at once. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    /* biome-ignore lint/complexity/noImportantStyles: reduced motion must beat every animation and transition */
+    animation-duration: 0.01ms !important;
+    /* biome-ignore lint/complexity/noImportantStyles: reduced motion must beat every animation and transition */
+    animation-iteration-count: 1 !important;
+    /* biome-ignore lint/complexity/noImportantStyles: reduced motion must beat every animation and transition */
+    transition-duration: 0.01ms !important;
+    /* biome-ignore lint/complexity/noImportantStyles: reduced motion must beat every animation and transition */
+    scroll-behavior: auto !important;
   }
 }

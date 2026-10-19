@@ -20,4 +20,4 @@ export function Panel({
 
 export const th = "py-4 pr-4 font-semibold";
 export const thead = "text-muted-foreground text-xs uppercase tracking-wide";
-export const row = "border-b transition-colors last:border-0 hover:bg-white/[0.03]";
+export const row = "border-b transition-colors last:border-0 hover:bg-hover";

@@ -40,7 +40,7 @@ export function PointEvidence({
           (fact) =>
             fact.chart && (
               <details key={fact.id} className="group rounded-lg bg-band px-3 py-2">
-                <summary className="cursor-pointer font-medium text-xs marker:text-primary">
+                <summary className="cursor-pointer font-medium text-xs marker:text-primary-text">
                   {charts.showChart} · {fact.label}
                 </summary>
                 <div className="mt-3">
@@ -54,7 +54,7 @@ export function PointEvidence({
           <span className="text-muted-foreground text-xs uppercase tracking-wide">{t.sources}</span>
           {sources.map((source) => (
             <details key={source.id} className="group rounded-lg bg-band px-3 py-2">
-              <summary className="cursor-pointer font-medium text-xs marker:text-primary">{source.label}</summary>
+              <summary className="cursor-pointer font-medium text-xs marker:text-primary-text">{source.label}</summary>
               <p className="mt-2 whitespace-pre-line text-muted-foreground text-xs leading-relaxed">{source.text}</p>
             </details>
           ))}

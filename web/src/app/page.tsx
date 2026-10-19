@@ -50,10 +50,10 @@ export default async function Home({
       <section className="relative overflow-hidden border-b bg-band">
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-y-0 right-0 w-1/2 bg-[repeating-linear-gradient(115deg,transparent_0_46px,rgb(255_255_255/0.025)_46px_92px)] [mask-image:linear-gradient(to_left,black,transparent)]"
+          className="pointer-events-none absolute inset-y-0 right-0 w-1/2 stripes [mask-image:linear-gradient(to_left,black,transparent)]"
         />
         <div className="relative mx-auto flex max-w-6xl flex-col gap-6 px-4 py-12 sm:py-16">
-          <p className="flex items-center gap-2 font-semibold text-primary text-sm uppercase tracking-wider">
+          <p className="flex items-center gap-2 font-semibold text-primary-text text-sm uppercase tracking-wider">
             <span className="slash" aria-hidden />
             {t.eyebrow}
           </p>

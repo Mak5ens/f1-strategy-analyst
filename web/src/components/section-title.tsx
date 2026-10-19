@@ -10,7 +10,7 @@ export function SectionTitle({ children, href, link }: { children: ReactNode; hr
         {children}
       </h2>
       {href && link && (
-        <Link href={href} className="font-semibold text-sm hover:text-primary">
+        <Link href={href} className="font-semibold text-sm hover:text-primary-text">
           {link} →
         </Link>
       )}

@@ -95,7 +95,7 @@ export function PointChart({ race, chart, label }: { race: RaceLaps; chart: Fact
             : undefined
         }
       />
-      <Link href={href} className="self-start font-semibold text-primary text-xs hover:underline">
+      <Link href={href} className="self-start font-semibold text-primary-text text-xs hover:underline">
         {t.openRace} →
       </Link>
     </div>

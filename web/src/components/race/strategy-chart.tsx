@@ -9,11 +9,11 @@ const t = getMessages().race.strategy;
 
 // Each compound's colour token, and a dark letter on the light ones.
 const compounds: Record<string, { bar: string; letter: string }> = {
-  SOFT: { bar: "bg-soft text-white", letter: "S" },
+  SOFT: { bar: "bg-soft text-on-data", letter: "S" },
   MEDIUM: { bar: "bg-medium text-band", letter: "M" },
   HARD: { bar: "bg-hard text-band", letter: "H" },
-  INTERMEDIATE: { bar: "bg-intermediate text-white", letter: "I" },
-  WET: { bar: "bg-wet text-white", letter: "W" },
+  INTERMEDIATE: { bar: "bg-intermediate text-band", letter: "I" },
+  WET: { bar: "bg-wet text-on-data", letter: "W" },
 };
 const unknown = { bar: "bg-surface-raised text-muted-foreground", letter: "?" };
 
@@ -69,7 +69,7 @@ export function StrategyChart({ race }: { race: Race }) {
                 <span className="h-4 w-1 rounded-full bg-[var(--team)]" aria-hidden />
                 {strategy.driver.code}
               </span>
-              <div className="relative h-7 border-white/5 border-b">
+              <div className="relative h-7 border-border/50 border-b">
                 {race.neutralizations.map((period) => (
                   <span
                     key={`${period.kind}-${period.start_lap}`}
@@ -93,8 +93,7 @@ export function StrategyChart({ race }: { race: Race }) {
                       className={cn(
                         "figures absolute inset-y-1 flex items-center justify-center overflow-hidden rounded-[4px] font-bold text-[0.65rem] sm:justify-start sm:px-1.5",
                         style.bar,
-                        stint.fresh === false &&
-                          "bg-[repeating-linear-gradient(135deg,transparent_0_4px,rgb(0_0_0/0.18)_4px_8px)]",
+                        stint.fresh === false && "used",
                       )}
                       style={{
                         left: `calc(${percent(stint.start_lap - 1, total)} + 1px)`,

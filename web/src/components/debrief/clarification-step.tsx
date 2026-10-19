@@ -33,7 +33,7 @@ export function ClarificationStep({ debrief }: { debrief: Debrief }) {
             className="flex items-center justify-between gap-3 rounded-xl border bg-surface px-5 py-4 text-left font-semibold transition hover:-translate-y-0.5 hover:border-primary/60 disabled:opacity-60"
           >
             {option.label}
-            {pending ? <LoaderCircle className="size-4 animate-spin" /> : <span className="text-primary">→</span>}
+            {pending ? <LoaderCircle className="size-4 animate-spin" /> : <span className="text-primary-text">→</span>}
           </button>
         ))}
       </form>

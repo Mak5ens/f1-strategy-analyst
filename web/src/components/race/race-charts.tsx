@@ -111,14 +111,14 @@ export function RaceCharts({ race, focus = [] }: { race: RaceLaps; focus?: strin
           <button
             type="button"
             onClick={() => setHighlight(initial)}
-            className="rounded-full px-2.5 py-1 font-semibold text-primary text-xs hover:underline"
+            className="rounded-full px-2.5 py-1 font-semibold text-primary-text text-xs hover:underline"
           >
             {t.reset}
           </button>
           <button
             type="button"
             onClick={() => setHighlight(drivers.map((driver) => driver.driver.code))}
-            className="rounded-full px-2.5 py-1 font-semibold text-primary text-xs hover:underline"
+            className="rounded-full px-2.5 py-1 font-semibold text-primary-text text-xs hover:underline"
           >
             {t.all}
           </button>
@@ -126,7 +126,7 @@ export function RaceCharts({ race, focus = [] }: { race: RaceLaps; focus?: strin
         {highlight.length === 2 && (
           <Link
             href={`/duel?saison=${race.season}&a=${highlight[0]}&b=${highlight[1]}`}
-            className="self-start font-semibold text-primary text-sm hover:underline"
+            className="self-start font-semibold text-primary-text text-sm hover:underline"
           >
             {t.duel(highlight[0] ?? "", highlight[1] ?? "", race.season)}
           </Link>
@@ -407,6 +407,9 @@ export function LapChart({
                     strokeWidth={highlighted ? 2.25 : 1.25}
                     strokeDasharray={dash && highlighted ? "6 4" : undefined}
                     strokeLinejoin="round"
+                    // Drawn lap by lap when highlighted; a dashed line keeps its dashes.
+                    pathLength={highlighted && !dash ? 1 : undefined}
+                    className={highlighted && !dash ? "draw" : undefined}
                   />
                 ) : (
                   highlighted &&
@@ -542,7 +545,7 @@ function LapTable({ race, highlight, reference }: { race: RaceLaps; highlight: s
   }));
   return (
     <details className="group">
-      <summary className="cursor-pointer font-semibold text-primary text-sm">{t.table}</summary>
+      <summary className="cursor-pointer font-semibold text-primary-text text-sm">{t.table}</summary>
       <Panel min={`${8 + drivers.length * 9}rem`} className="mt-3 max-h-[28rem] overflow-y-auto">
         <table className="w-full text-sm">
           <thead className={thead}>
@@ -639,7 +642,7 @@ function Chronology({ race, onLap }: { race: RaceLaps; onLap: (lap: number | nul
                 href={event.link.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-primary text-xs hover:underline"
+                className="text-primary-text text-xs hover:underline"
               >
                 {event.link.label} ↗
               </a>

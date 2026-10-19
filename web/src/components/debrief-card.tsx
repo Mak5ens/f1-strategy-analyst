@@ -28,7 +28,7 @@ export function DebriefCard({ debrief, now }: { debrief: DebriefSummary; now?: D
       {subject.round != null && (
         <span
           aria-hidden
-          className="display figures pointer-events-none absolute -right-2 -bottom-6 text-[8rem] text-white/[0.04] italic"
+          className="display figures pointer-events-none absolute -right-2 -bottom-6 text-[8rem] text-watermark italic"
         >
           {String(subject.round).padStart(2, "0")}
         </span>
@@ -55,7 +55,7 @@ export function DebriefCard({ debrief, now }: { debrief: DebriefSummary; now?: D
           </p>
         )}
         {stop && (
-          <p className="mt-4 font-semibold text-primary text-sm transition-transform group-hover:translate-x-1">
+          <p className="mt-4 font-semibold text-primary-text text-sm transition-transform group-hover:translate-x-1">
             {stop.action} →
           </p>
         )}

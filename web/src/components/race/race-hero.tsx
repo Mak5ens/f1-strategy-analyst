@@ -20,12 +20,12 @@ export function RaceHero({ summary, race }: { summary: RaceSummary; race?: Race 
       />
       <span
         aria-hidden
-        className="display figures pointer-events-none absolute -right-4 -bottom-10 text-[11rem] text-white/[0.04] italic sm:-bottom-16 sm:text-[18rem]"
+        className="display figures pointer-events-none absolute -right-4 -bottom-10 text-[11rem] text-watermark italic sm:-bottom-16 sm:text-[18rem]"
       >
         {String(summary.round).padStart(2, "0")}
       </span>
       <div className="relative mx-auto flex max-w-6xl flex-col gap-4 px-4 pt-12 pb-10 sm:pt-16">
-        <p className="flex items-center gap-2 font-semibold text-primary text-sm uppercase tracking-wider">
+        <p className="flex items-center gap-2 font-semibold text-primary-text text-sm uppercase tracking-wider">
           <span className="slash" aria-hidden />
           {t.round(summary.round, summary.season)}
           {summary.sprint && <span className="text-muted-foreground">· {t.sprint}</span>}
@@ -65,7 +65,7 @@ function Figures({ race }: { race: Race }) {
     });
   }
   return (
-    <dl className="mt-6 grid grid-cols-2 gap-x-6 gap-y-6 border-white/10 border-t pt-6 sm:grid-cols-3 lg:grid-cols-5">
+    <dl className="mt-6 grid grid-cols-2 gap-x-6 gap-y-6 border-t pt-6 sm:grid-cols-3 lg:grid-cols-5">
       {figures.map((figure) => (
         <div key={figure.label} className="min-w-0">
           <dt className="text-muted-foreground text-xs uppercase tracking-wide">{figure.label}</dt>

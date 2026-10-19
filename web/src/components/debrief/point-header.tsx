@@ -25,7 +25,7 @@ export function PointHeader({ point, number }: { point: Point; number?: number }
         )}
         <div className="flex items-baseline gap-3">
           {label ? (
-            <span className="font-semibold text-primary text-xs uppercase tracking-wider">{label}</span>
+            <span className="font-semibold text-primary-text text-xs uppercase tracking-wider">{label}</span>
           ) : (
             <span className="display figures text-muted-foreground text-xl">
               {String(number ?? 0).padStart(2, "0")}

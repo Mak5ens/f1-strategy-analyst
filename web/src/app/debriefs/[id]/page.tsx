@@ -101,7 +101,7 @@ function DebriefHeader({ debrief }: { debrief: Debrief }) {
       {subject.round != null && (
         <span
           aria-hidden
-          className="display figures pointer-events-none absolute -right-4 -bottom-10 text-[10rem] text-white/[0.04] italic sm:text-[15rem]"
+          className="display figures pointer-events-none absolute -right-4 -bottom-10 text-[10rem] text-watermark italic sm:text-[15rem]"
         >
           {String(subject.round).padStart(2, "0")}
         </span>
@@ -134,7 +134,7 @@ function DebriefHeader({ debrief }: { debrief: Debrief }) {
         {subject.season && subject.round && (
           <Link
             href={`/grand-prix/${subject.season}/${subject.round}`}
-            className="w-fit font-semibold text-primary text-sm"
+            className="w-fit font-semibold text-primary-text text-sm"
           >
             {t.seeRace} →
           </Link>

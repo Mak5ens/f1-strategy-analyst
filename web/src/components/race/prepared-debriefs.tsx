@@ -37,7 +37,7 @@ function Tile({ debrief, lead }: { debrief: DebriefSummary; lead?: string }) {
       <span
         className={cn(
           "shrink-0 rounded-full px-2.5 py-1 font-semibold text-xs uppercase tracking-wide",
-          ready ? "bg-primary/15 text-primary" : "bg-band text-muted-foreground",
+          ready ? "bg-primary/15 text-primary-text" : "bg-band text-muted-foreground",
         )}
       >
         {label}
@@ -66,7 +66,7 @@ export function PreparedDebriefs({ debriefs }: { debriefs: DebriefSummary[] }) {
       ))}
       {groups.map((group) => (
         <div key={group.id} className="flex flex-col gap-3">
-          <h3 className="font-semibold text-primary text-xs uppercase tracking-wider">{group.title}</h3>
+          <h3 className="font-semibold text-primary-text text-xs uppercase tracking-wider">{group.title}</h3>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {group.items.map((debrief) => (
               <Tile key={debrief.id} debrief={debrief} />

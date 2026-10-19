@@ -30,7 +30,7 @@ export function SiteHeader() {
         <Link href="/" className="flex h-14 shrink-0 items-center gap-2 sm:h-auto" aria-label={t.metadata.title}>
           <span className="slash text-2xl" aria-hidden />
           <span className="display whitespace-nowrap text-base sm:text-lg">
-            {t.brand.name} <span className="text-primary">{t.brand.tagline}</span>
+            {t.brand.name} <span className="text-primary-text">{t.brand.tagline}</span>
           </span>
         </Link>
         <nav className="-mx-3 -mb-px flex h-11 items-stretch overflow-x-auto sm:mx-0 sm:h-full">
