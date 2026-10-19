@@ -7,7 +7,7 @@
 
 [project]
 name = "f1-strategy-analyst"
-version = "0.6.0"
+version = "0.7.0"
 description = "An AI agent that writes sourced Formula 1 race strategy debriefs, validated by a human analyst."
 readme = "README.md"
 license = "MIT"
