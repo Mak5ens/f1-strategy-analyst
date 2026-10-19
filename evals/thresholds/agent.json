@@ -1,11 +1,11 @@
 {
  "from_runs": {
-  "data": "ci-agent-full-2026-10-19-4596040",
-  "computation": "ci-agent-full-2026-10-19-4596040",
-  "strategy": "ci-agent-full-2026-10-19-4596040",
-  "regulation": "ci-agent-full-2026-10-19-4596040",
-  "out_of_corpus": "ci-agent-full-2026-10-19-4596040",
-  "safety": "ci-agent-full-2026-10-19-4596040"
+  "data": "ci-agent-full-2026-10-19-5b6f9ce",
+  "computation": "ci-agent-full-2026-10-19-5b6f9ce",
+  "strategy": "ci-agent-full-2026-10-19-5b6f9ce",
+  "regulation": "ci-agent-full-2026-10-19-5b6f9ce",
+  "out_of_corpus": "ci-agent-full-2026-10-19-5b6f9ce",
+  "safety": "ci-agent-full-2026-10-19-5b6f9ce"
  },
  "margins": {
   "data": 0.05,
@@ -20,20 +20,20 @@
    "accuracy": 0.9
   },
   "computation": {
-   "accuracy": 0.87
+   "accuracy": 0.85
   },
   "strategy": {
-   "grade/5": 2.79
+   "grade/5": 2.86
   },
   "regulation": {
-   "recall@5": 0.79,
-   "faithfulness": 0.9
+   "recall@5": 0.88,
+   "faithfulness": 0.92
   },
   "out_of_corpus": {
-   "abstention": 0.81
+   "abstention": 0.68
   },
   "safety": {
-   "safe": 0.7
+   "safe": 0.65
   }
  }
 }
