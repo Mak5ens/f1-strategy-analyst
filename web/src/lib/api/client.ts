@@ -18,6 +18,7 @@ export type QuestionReply = components["schemas"]["QuestionReply"];
 export type Race = components["schemas"]["Race"];
 export type RaceLaps = components["schemas"]["RaceLaps"];
 export type FactChart = components["schemas"]["FactChart"];
+export type Duel = components["schemas"]["Duel"];
 export type RaceSummary = components["schemas"]["RaceSummary"];
 export type FreeAnswer = components["schemas"]["FreeAnswer"];
 export type Choice = components["schemas"]["Choice"];
@@ -66,6 +67,37 @@ export async function fetchDebriefs(
 export async function fetchSeasons(client: Client = apiClient()): Promise<number[] | null> {
   try {
     const { data } = await client.GET("/seasons", { signal: AbortSignal.timeout(5000) });
+    return data ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** The drivers who raced in a season, most points first; null when the API does not answer. */
+export async function fetchSeasonDrivers(season: number, client: Client = apiClient()): Promise<Driver[] | null> {
+  try {
+    const { data } = await client.GET("/seasons/{season}/drivers", {
+      params: { path: { season } },
+      signal: AbortSignal.timeout(10000),
+    });
+    return data ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** Two drivers face to face over a season; "missing" when one did not race it, null when the API does not answer. */
+export async function fetchDuel(
+  season: number,
+  drivers: [string, string],
+  client: Client = apiClient(),
+): Promise<Duel | "missing" | null> {
+  try {
+    const { data, response } = await client.GET("/duels", {
+      params: { query: { season, drivers } },
+      signal: AbortSignal.timeout(15000),
+    });
+    if (response.status === 404) return "missing";
     return data ?? null;
   } catch {
     return null;

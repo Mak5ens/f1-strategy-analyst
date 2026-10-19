@@ -125,6 +125,47 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/seasons/{season}/drivers": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Season Drivers
+     * @description The drivers who raced in a season, most points first, with the team of their last race.
+     */
+    get: operations["get_season_drivers_seasons__season__drivers_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/duels": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Duel
+     * @description Two drivers face to face over a season (LAB-212): qualifying, race and pace gaps round by round, measured in
+     *     the lake by code (`f1.duels`). No model is called.
+     */
+    get: operations["get_duel_duels_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/races/{season}/{round_number}/laps": {
     parameters: {
       query?: never;
@@ -627,6 +668,121 @@ export interface components {
        * @description Places gained in the championship with this round
        */
       change: number | null;
+    };
+    /** Duel */
+    Duel: {
+      /** Season */
+      season: number;
+      first: components["schemas"]["Driver"];
+      second: components["schemas"]["Driver"];
+      /**
+       * Rounds
+       * @description The rounds raced, in order
+       */
+      rounds: components["schemas"]["DuelRound"][];
+      summary: components["schemas"]["DuelSummary"];
+    };
+    /** DuelPace */
+    DuelPace: {
+      /**
+       * Laps
+       * @description Laps both covered clean, the same lap
+       */
+      laps: number;
+      /**
+       * Gap S
+       * @description Median of the first driver's lap time less the second's on those laps
+       */
+      gap_s: number;
+    };
+    /** DuelQualifying */
+    DuelQualifying: {
+      /**
+       * Part
+       * @description The last part both reached; None, no times
+       */
+      part: ("Q1" | "Q2" | "Q3") | null;
+      /** First S */
+      first_s: number | null;
+      /** Second S */
+      second_s: number | null;
+      /**
+       * Gap S
+       * @description First driver's time less the second's: positive, the first slower
+       */
+      gap_s: number | null;
+      /** First Position */
+      first_position: number | null;
+      /** Second Position */
+      second_position: number | null;
+    };
+    /** DuelRace */
+    DuelRace: {
+      /** First Position */
+      first_position: number | null;
+      /** Second Position */
+      second_position: number | null;
+      /**
+       * First Text
+       * @description A place, or R retired, D disqualified...
+       */
+      first_text: string;
+      /** Second Text */
+      second_text: string;
+      /**
+       * First Points
+       * @description Race and sprint of the weekend
+       */
+      first_points: number;
+      /** Second Points */
+      second_points: number;
+    };
+    /** DuelRound */
+    DuelRound: {
+      /** Round */
+      round: number;
+      /**
+       * Grand Prix
+       * @description In French
+       */
+      grand_prix: string;
+      qualifying: components["schemas"]["DuelQualifying"] | null;
+      race: components["schemas"]["DuelRace"] | null;
+      pace: components["schemas"]["DuelPace"] | null;
+    };
+    /** DuelSummary */
+    DuelSummary: {
+      /**
+       * Qualifying First
+       * @description Qualifying sessions the first driver was ahead in
+       */
+      qualifying_first: number;
+      /** Qualifying Second */
+      qualifying_second: number;
+      /**
+       * Race First
+       * @description Races the first driver finished ahead in
+       */
+      race_first: number;
+      /** Race Second */
+      race_second: number;
+      /**
+       * Points First
+       * @description Races and sprints
+       */
+      points_first: number;
+      /** Points Second */
+      points_second: number;
+      /**
+       * Qualifying Gap S
+       * @description Median of the qualifying gaps
+       */
+      qualifying_gap_s: number | null;
+      /**
+       * Pace Gap S
+       * @description Median of the races' pace gaps
+       */
+      pace_gap_s: number | null;
     };
     /**
      * Fact
@@ -1494,6 +1650,71 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["Race"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_season_drivers_seasons__season__drivers_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        season: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Driver"][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_duel_duels_get: {
+    parameters: {
+      query: {
+        /** @description The season */
+        season: number;
+        /** @description Two driver codes, e.g. LEC and HAM */
+        drivers: string[];
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Duel"];
         };
       };
       /** @description Validation Error */

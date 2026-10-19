@@ -276,6 +276,29 @@ def test_the_events_of_a_race_in_lap_order_with_their_links(lake: Lake) -> None:
     assert links["red_flag"] is None  # not found: no link
 
 
+def test_a_duel_compares_two_drivers_round_by_round_by_code(grand_prix: GrandPrix) -> None:
+    found = grand_prix.duel(2025, "VER", "LEC")
+    assert found is not None and grand_prix.duel(2025, "VER", "XXX") is None
+
+    first, second = found.rounds  # round 1 left only LEC's result: VER did not race it
+    assert (first.round, first.race, first.pace) == (1, None, None)
+    assert second.qualifying is None  # no qualifying in the synthetic season
+    assert second.race and (second.race.first_position, second.race.second_position) == (1, 2)
+    assert (second.race.first_points, second.race.second_points) == (25, 18)
+    # Laps both covered clean: 2 and 7 to 10 (VER stops on 3, out on 4; LEC on 5, out on 6). VER less LEC:
+    # -0.5, then 0.5 four times.
+    assert second.pace and (second.pace.laps, second.pace.gap_s) == (5, 0.5)
+    summary = found.summary
+    assert (summary.race_first, summary.race_second, summary.points_first, summary.points_second) == (1, 0, 25, 18)
+    assert (summary.qualifying_first, summary.qualifying_second, summary.qualifying_gap_s) == (0, 0, None)
+    assert summary.pace_gap_s == 0.5
+
+
+def test_the_drivers_of_a_season_most_points_first(grand_prix: GrandPrix) -> None:
+    assert [driver.code for driver in grand_prix.drivers(2025)] == ["LEC", "VER", "HAM", "NOR"]
+    assert grand_prix.drivers(2019) == []
+
+
 @pytest.fixture
 def client(grand_prix: GrandPrix) -> Iterator[TestClient]:
     requests = FakeRequests()
@@ -297,6 +320,11 @@ def test_the_api_serves_the_calendar_and_the_race_pages(client: TestClient) -> N
     assert client.get("/races/2025/9").status_code == 404
     assert [row["driver"]["code"] for row in client.get("/races/2025/2/laps").json()["drivers"]][:2] == ["VER", "LEC"]
     assert client.get("/races/2025/3/laps").status_code == 404
+    duel = client.get("/duels", params={"season": 2025, "drivers": ["ver", "lec"]}).json()
+    assert (duel["first"]["code"], duel["summary"]["pace_gap_s"]) == ("VER", 0.5)
+    assert client.get("/duels", params={"season": 2025, "drivers": ["VER"]}).status_code == 422
+    assert client.get("/duels", params={"season": 2025, "drivers": ["VER", "XXX"]}).status_code == 404
+    assert [driver["code"] for driver in client.get("/seasons/2025/drivers").json()][:2] == ["LEC", "VER"]
 
 
 def test_the_debriefs_of_a_race(client: TestClient) -> None:

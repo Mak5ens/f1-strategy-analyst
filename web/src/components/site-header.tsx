@@ -10,6 +10,7 @@ const t = getMessages();
 const links = [
   { href: "/", label: t.nav.home },
   { href: "/grand-prix", label: t.nav.races },
+  { href: "/duel", label: t.nav.duel },
   { href: "/en-attente", label: t.nav.waiting },
   { href: "/debriefs", label: t.nav.published },
   { href: "/journal", label: t.nav.journal },

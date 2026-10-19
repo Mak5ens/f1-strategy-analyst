@@ -191,6 +191,108 @@
         }
       }
     },
+    "/seasons/{season}/drivers": {
+      "get": {
+        "summary": "Get Season Drivers",
+        "description": "The drivers who raced in a season, most points first, with the team of their last race.",
+        "operationId": "get_season_drivers_seasons__season__drivers_get",
+        "parameters": [
+          {
+            "name": "season",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Season"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Driver"
+                  },
+                  "title": "Response Get Season Drivers Seasons  Season  Drivers Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/duels": {
+      "get": {
+        "summary": "Get Duel",
+        "description": "Two drivers face to face over a season (LAB-212): qualifying, race and pace gaps round by round, measured in\nthe lake by code (`f1.duels`). No model is called.",
+        "operationId": "get_duel_duels_get",
+        "parameters": [
+          {
+            "name": "season",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "description": "The season",
+              "title": "Season"
+            },
+            "description": "The season"
+          },
+          {
+            "name": "drivers",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "minItems": 2,
+              "maxItems": 2,
+              "description": "Two driver codes, e.g. LEC and HAM",
+              "title": "Drivers"
+            },
+            "description": "Two driver codes, e.g. LEC and HAM"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Duel"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/races/{season}/{round_number}/laps": {
       "get": {
         "summary": "Get Race Laps",
@@ -1633,6 +1735,320 @@
           "change"
         ],
         "title": "DriverStanding"
+      },
+      "Duel": {
+        "properties": {
+          "season": {
+            "type": "integer",
+            "title": "Season"
+          },
+          "first": {
+            "$ref": "#/components/schemas/Driver"
+          },
+          "second": {
+            "$ref": "#/components/schemas/Driver"
+          },
+          "rounds": {
+            "items": {
+              "$ref": "#/components/schemas/DuelRound"
+            },
+            "type": "array",
+            "title": "Rounds",
+            "description": "The rounds raced, in order"
+          },
+          "summary": {
+            "$ref": "#/components/schemas/DuelSummary"
+          }
+        },
+        "type": "object",
+        "required": [
+          "season",
+          "first",
+          "second",
+          "rounds",
+          "summary"
+        ],
+        "title": "Duel"
+      },
+      "DuelPace": {
+        "properties": {
+          "laps": {
+            "type": "integer",
+            "title": "Laps",
+            "description": "Laps both covered clean, the same lap"
+          },
+          "gap_s": {
+            "type": "number",
+            "title": "Gap S",
+            "description": "Median of the first driver's lap time less the second's on those laps"
+          }
+        },
+        "type": "object",
+        "required": [
+          "laps",
+          "gap_s"
+        ],
+        "title": "DuelPace"
+      },
+      "DuelQualifying": {
+        "properties": {
+          "part": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "Q1",
+                  "Q2",
+                  "Q3"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Part",
+            "description": "The last part both reached; None, no times"
+          },
+          "first_s": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "First S"
+          },
+          "second_s": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Second S"
+          },
+          "gap_s": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gap S",
+            "description": "First driver's time less the second's: positive, the first slower"
+          },
+          "first_position": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "First Position"
+          },
+          "second_position": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Second Position"
+          }
+        },
+        "type": "object",
+        "required": [
+          "part",
+          "first_s",
+          "second_s",
+          "gap_s",
+          "first_position",
+          "second_position"
+        ],
+        "title": "DuelQualifying"
+      },
+      "DuelRace": {
+        "properties": {
+          "first_position": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "First Position"
+          },
+          "second_position": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Second Position"
+          },
+          "first_text": {
+            "type": "string",
+            "title": "First Text",
+            "description": "A place, or R retired, D disqualified..."
+          },
+          "second_text": {
+            "type": "string",
+            "title": "Second Text"
+          },
+          "first_points": {
+            "type": "number",
+            "title": "First Points",
+            "description": "Race and sprint of the weekend"
+          },
+          "second_points": {
+            "type": "number",
+            "title": "Second Points"
+          }
+        },
+        "type": "object",
+        "required": [
+          "first_position",
+          "second_position",
+          "first_text",
+          "second_text",
+          "first_points",
+          "second_points"
+        ],
+        "title": "DuelRace"
+      },
+      "DuelRound": {
+        "properties": {
+          "round": {
+            "type": "integer",
+            "title": "Round"
+          },
+          "grand_prix": {
+            "type": "string",
+            "title": "Grand Prix",
+            "description": "In French"
+          },
+          "qualifying": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DuelQualifying"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "race": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DuelRace"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "pace": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DuelPace"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "round",
+          "grand_prix",
+          "qualifying",
+          "race",
+          "pace"
+        ],
+        "title": "DuelRound"
+      },
+      "DuelSummary": {
+        "properties": {
+          "qualifying_first": {
+            "type": "integer",
+            "title": "Qualifying First",
+            "description": "Qualifying sessions the first driver was ahead in"
+          },
+          "qualifying_second": {
+            "type": "integer",
+            "title": "Qualifying Second"
+          },
+          "race_first": {
+            "type": "integer",
+            "title": "Race First",
+            "description": "Races the first driver finished ahead in"
+          },
+          "race_second": {
+            "type": "integer",
+            "title": "Race Second"
+          },
+          "points_first": {
+            "type": "number",
+            "title": "Points First",
+            "description": "Races and sprints"
+          },
+          "points_second": {
+            "type": "number",
+            "title": "Points Second"
+          },
+          "qualifying_gap_s": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Qualifying Gap S",
+            "description": "Median of the qualifying gaps"
+          },
+          "pace_gap_s": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pace Gap S",
+            "description": "Median of the races' pace gaps"
+          }
+        },
+        "type": "object",
+        "required": [
+          "qualifying_first",
+          "qualifying_second",
+          "race_first",
+          "race_second",
+          "points_first",
+          "points_second",
+          "qualifying_gap_s",
+          "pace_gap_s"
+        ],
+        "title": "DuelSummary"
       },
       "Fact": {
         "properties": {

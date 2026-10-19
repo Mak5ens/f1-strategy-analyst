@@ -106,6 +106,17 @@ Checked on the reference races: Hungary 2024 gives Norris losing the lead at the
 
 Limits: the data says how many places or seconds, not why (the reading says so). A position handed back by team order (Hungary 2024, lap 68) is a pass like any other. Penalties are not moments yet: whether one changed the result needs the classification before it, which the data does not hold.
 
+## Duel of two drivers (LAB-212)
+
+Not a tool of the agent: `f1.duels.duel` computes the duel page's numbers (`GET /duels`), from two queries on the season (results, then the two drivers' race laps). Every gap is the first driver's time less the second's: negative, the first was faster.
+
+- **Qualifying**: the best laps of the last part both reached (Q3, else Q2, else Q1), from the results. The one ahead is the one with the better place. When the results have the places but not the times (Miami 2025 in the lake), the places count and the gap stays empty.
+- **Race**: the places at the end (every driver who started, classified or not) and the points of the weekend, races and sprints, so that they add up to the championship's. A race neither finished classified (both retired, both disqualified) counts for nobody.
+- **Pace**: the median gap on the laps both covered clean, the same lap of the same race (`is_clean`: not lap 1, no stop, green flag all lap, not deleted, a lap time). Under 5 such laps, no pace.
+- **Season**: who was ahead how often in qualifying and in the race, the points, and the medians of the qualifying and pace gaps.
+
+A round a driver did not race has no gap there, rather than one made up.
+
 ## Tests
 
 - `tests/unit/test_tools.py`: a synthetic 10-lap race whose every number is computed by hand, plus the error messages and the tool calling schemas. `tests/unit/test_moments.py`: a synthetic 6-lap race for `key_moments`, each score computed by hand.
