@@ -19,21 +19,58 @@ const race = {
   round: 2,
   total_laps: 4,
   neutralizations: [{ kind: "safety_car", start_lap: 2, end_lap: 3, duration_s: 200 }],
+  events: [
+    {
+      kind: "safety_car",
+      start_lap: 2,
+      end_lap: 3,
+      driver: null,
+      penalty: null,
+      seconds: null,
+      reason: null,
+      link: { label: "Article 55 du règlement sportif 2025", url: "https://fia.example/2025.pdf#page=64" },
+    },
+    {
+      kind: "penalty",
+      start_lap: 4,
+      end_lap: 4,
+      driver: { code: "LEC", name: "Charles Leclerc", team: "Ferrari", colour: "#e8002d" },
+      penalty: "time",
+      seconds: 5,
+      reason: "pour avoir provoqué une collision",
+      link: null,
+    },
+  ],
   drivers: [
     {
       driver: { code: "VER", name: "Max Verstappen", team: "Red Bull", colour: "#3671c6" },
       grid: 2,
       laps: [lap(1, 1, 0), lap(2, 1, 0, "in"), lap(3, 2, 1.2, "out"), lap(4, 1, 0)],
+      pace: [
+        {
+          stint: 2,
+          compound: "HARD",
+          start_lap: 3,
+          end_lap: 4,
+          laps: [3, 4],
+          degradation_s_per_lap: 0.0481,
+          raw_slope_s_per_lap: 0.5,
+          raw_intercept_s: 92,
+          r_squared: 0.6,
+        },
+      ],
     },
     {
       driver: { code: "LEC", name: "Charles Leclerc", team: "Ferrari", colour: "#e8002d" },
       grid: 1,
       laps: [lap(1, 2, 0.8), lap(2, 2, 1.5), lap(3, 1, 0), lap(4, 2, 2.4)],
+      pace: [],
     },
     {
       driver: { code: "HUL", name: "Nico Hülkenberg", team: "Kick Sauber", colour: null },
       grid: 3,
       laps: [],
+      pace: [],
     },
   ],
 } as unknown as RaceLaps;
@@ -58,7 +95,7 @@ describe("RaceCharts", () => {
     const positions = screen.getAllByRole("slider")[0] as HTMLElement;
     fireEvent.keyDown(positions, { key: "End" });
     expect(positions.getAttribute("aria-valuetext")).toBe("Tour 4");
-    const readout = screen.getByText("Tour 4").parentElement as HTMLElement;
+    const readout = screen.getByRole("status");
     expect(within(readout).getByText(/P2 · \+2,4 s/)).toBeTruthy(); // LEC, 2.4 s behind the leader
 
     fireEvent.change(screen.getByRole("combobox"), { target: { value: "LEC" } });
@@ -66,6 +103,26 @@ describe("RaceCharts", () => {
     fireEvent.click(screen.getByText("Voir les données tour par tour"));
     const cells = screen.getAllByRole("row").at(-1)?.querySelectorAll("td");
     expect([...(cells ?? [])].map((cell) => cell.textContent)).toEqual(["4", "P1 −2,4 s", "P2"]);
+  });
+
+  it("lists the race's events with the FIA text of each, and reads their lap", () => {
+    render(<RaceCharts race={race} />);
+    const article = screen.getByRole("link", { name: /Article 55 du règlement sportif 2025/ });
+    expect(article.getAttribute("href")).toBe("https://fia.example/2025.pdf#page=64");
+    expect(article.getAttribute("target")).toBe("_blank");
+    const penalty = screen.getByText("Pénalité de 5 s pour avoir provoqué une collision").closest("li") as HTMLElement;
+    expect(within(penalty).getByText("texte FIA introuvable")).toBeTruthy();
+    fireEvent.pointerEnter(penalty);
+    expect(screen.getAllByRole("slider")[0]?.getAttribute("aria-valuetext")).toBe("Tour 4");
+  });
+
+  it("draws each stint's fitted line at its tyre ages, its degradation as the tool gives it", () => {
+    const { container } = render(<RaceCharts race={race} />);
+    const line = container.querySelector('[data-stint="VER-2"]');
+    // Laps 3 and 4 at tyre ages 3 and 4: 92 + 0.5 × age, so 93.5 then 94.
+    const y = (value: number) => Number(line?.getAttribute(value === 93.5 ? "y1" : "y2"));
+    expect(y(93.5)).toBeLessThan(y(94)); // slower lower down
+    expect(screen.getByText("+0,048 s/tour")).toBeTruthy();
   });
 
   it("highlights a driver from the list", () => {

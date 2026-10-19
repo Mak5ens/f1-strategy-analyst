@@ -610,6 +610,8 @@ export interface components {
       grid: number | null;
       /** Laps */
       laps: components["schemas"]["Lap"][];
+      /** Pace */
+      pace: components["schemas"]["StintPace"][];
     };
     /** DriverStanding */
     DriverStanding: {
@@ -791,6 +793,16 @@ export interface components {
        * @description The in-lap or the out-lap of a stop
        */
       pit: ("in" | "out") | null;
+    };
+    /** Link */
+    Link: {
+      /**
+       * Label
+       * @description In French
+       */
+      label: string;
+      /** Url */
+      url: string;
     };
     /** Neutralization */
     Neutralization: {
@@ -974,6 +986,33 @@ export interface components {
       weather: components["schemas"]["Weather"] | null;
     };
     /**
+     * RaceEvent
+     * @description A neutralization or a penalty, with where the FIA's texts say what it means (`f1.race_rules`).
+     */
+    RaceEvent: {
+      /**
+       * Kind
+       * @enum {string}
+       */
+      kind: "safety_car" | "virtual_safety_car" | "red_flag" | "penalty";
+      /** Start Lap */
+      start_lap: number;
+      /** End Lap */
+      end_lap: number;
+      driver: components["schemas"]["Driver"] | null;
+      /** Penalty */
+      penalty: ("time" | "drive_through" | "stop_go") | null;
+      /** Seconds */
+      seconds: number | null;
+      /**
+       * Reason
+       * @description In French
+       */
+      reason: string | null;
+      /** @description The article of the regulations, or the stewards' decision */
+      link: components["schemas"]["Link"] | null;
+    };
+    /**
      * RaceLaps
      * @description A race lap by lap, for its charts (LAB-189): read from the lake, as the tools read it, never by a model.
      */
@@ -991,6 +1030,11 @@ export interface components {
       drivers: components["schemas"]["DriverLaps"][];
       /** Neutralizations */
       neutralizations: components["schemas"]["Neutralization"][];
+      /**
+       * Events
+       * @description Neutralizations and penalties, in lap order
+       */
+      events: components["schemas"]["RaceEvent"][];
     };
     /** RaceLink */
     RaceLink: {
@@ -1113,6 +1157,39 @@ export interface components {
        * @description A new set, rather than one used in an earlier session
        */
       fresh: boolean | null;
+    };
+    /**
+     * StintPace
+     * @description A stint's degradation, as the `degradation` tool computes it, and the line it fits on the raw lap times.
+     */
+    StintPace: {
+      /** Stint */
+      stint: number;
+      /** Compound */
+      compound: string | null;
+      /** Start Lap */
+      start_lap: number;
+      /** End Lap */
+      end_lap: number;
+      /**
+       * Laps
+       * @description The clean laps the slope is computed on
+       */
+      laps: number[];
+      /**
+       * Degradation S Per Lap
+       * @description Fuel effect removed; None under 5 clean laps
+       */
+      degradation_s_per_lap: number | null;
+      /** Raw Slope S Per Lap */
+      raw_slope_s_per_lap: number | null;
+      /**
+       * Raw Intercept S
+       * @description The raw line's lap time at tyre age 0
+       */
+      raw_intercept_s: number | null;
+      /** R Squared */
+      r_squared: number | null;
     };
     /** Stop */
     Stop: {

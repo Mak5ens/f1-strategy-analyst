@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "cn";
-import { type KeyboardEvent, type PointerEvent, useId, useMemo, useState } from "react";
+import { type KeyboardEvent, type PointerEvent, type ReactNode, useId, useMemo, useState } from "react";
 import type { RaceLaps } from "@/lib/api/client";
 import { formatLapTime, formatSeconds } from "@/lib/format";
 import { getMessages } from "@/lib/i18n";
@@ -13,6 +13,8 @@ import {
   gaps,
   lastLap,
   type Point,
+  pace,
+  paceDomain,
   path,
   positions,
   scale,
@@ -22,7 +24,9 @@ import { teamStyle } from "./driver-cell";
 import { Panel, row, th, thead } from "./panel";
 
 const t = getMessages().race.charts;
+const events = getMessages().race.events;
 const compounds = getMessages().race.strategy.compounds;
+const thousandths = new Intl.NumberFormat("fr-FR", { minimumFractionDigits: 3, maximumFractionDigits: 3 });
 
 // The drawing's own units: the SVG scales to its panel, which scrolls sideways on a phone rather than squeezing.
 const W = 960;
@@ -62,6 +66,9 @@ export function RaceCharts({ race, focus = [] }: { race: RaceLaps; focus?: strin
   const positionSeries = series((driver) => positions(driver, starters));
   const gapSeries = series((driver) => gaps(driver, referenceDriver));
   const gapRange = gapDomain(gapSeries.filter((s) => s.highlighted).map((s) => s.points));
+  const paces = new Map(drivers.map((driver) => [driver.driver.code, pace(driver)]));
+  const paceSeries = series((driver) => paces.get(driver.driver.code)?.dots ?? []);
+  const paceRange = paceDomain(paceSeries.filter((s) => s.highlighted).map((s) => s.points));
 
   const toggle = (code: string) =>
     setHighlight((codes) => (codes.includes(code) ? codes.filter((c) => c !== code) : [...codes, code]));
@@ -117,6 +124,8 @@ export function RaceCharts({ race, focus = [] }: { race: RaceLaps; focus?: strin
 
       <Readout race={race} lap={lap} highlight={highlight} reference={referenceDriver} />
 
+      <Chronology race={race} onLap={setLap} />
+
       <section className="flex flex-col gap-3">
         <div>
           <h3 className="display text-xl">{t.positions}</h3>
@@ -171,6 +180,45 @@ export function RaceCharts({ race, focus = [] }: { race: RaceLaps; focus?: strin
         />
       </section>
 
+      <section className="flex flex-col gap-3">
+        <div>
+          <h3 className="display text-xl">{t.pace}</h3>
+          <p className="max-w-3xl text-muted-foreground text-sm">{t.paceLead}</p>
+        </div>
+        <LapChart
+          label={t.pace}
+          race={race}
+          total={total}
+          series={paceSeries}
+          domain={paceRange}
+          yTicks={ticks(paceRange)}
+          format={formatShortLapTime}
+          line={false}
+          lap={lap}
+          onLap={setLap}
+          overlay={(x, y) =>
+            paceSeries
+              .filter((s) => s.highlighted)
+              .flatMap(({ driver }) =>
+                (paces.get(driver.driver.code)?.lines ?? []).map((stint) => (
+                  <line
+                    key={`${driver.driver.code}-${stint.stint}`}
+                    data-stint={`${driver.driver.code}-${stint.stint}`}
+                    style={teamStyle(driver.driver.colour)}
+                    x1={x(stint.from.lap)}
+                    y1={y(stint.from.value)}
+                    x2={x(stint.to.lap)}
+                    y2={y(stint.to.value)}
+                    stroke="var(--team)"
+                    strokeWidth={2}
+                  />
+                )),
+              )
+          }
+        />
+        <DegradationTable race={race} highlight={highlight} />
+      </section>
+
       <p className="text-muted-foreground text-xs">{t.hint}</p>
       <LapTable race={race} highlight={highlight} reference={referenceDriver} />
     </div>
@@ -187,6 +235,8 @@ function LapChart({
   yTicks,
   format,
   labels = false,
+  line = true,
+  overlay,
   lap,
   onLap,
 }: {
@@ -198,6 +248,9 @@ function LapChart({
   yTicks: number[];
   format: (value: number) => string;
   labels?: boolean;
+  /** false: the points as dots, the highlighted drivers' only. */
+  line?: boolean;
+  overlay?: (x: (lap: number) => number, y: (value: number) => number) => ReactNode;
   lap: number | null;
   onLap: (lap: number | null) => void;
 }) {
@@ -277,16 +330,31 @@ function LapChart({
           <g clipPath={`url(#${clip})`}>
             {series.map(({ driver, points, highlighted, dashed: dash }) => (
               <g key={driver.driver.code} style={teamStyle(driver.driver.colour)} data-driver={driver.driver.code}>
-                <path
-                  d={path(points, x, y)}
-                  fill="none"
-                  stroke={highlighted ? "var(--team)" : "var(--muted-foreground)"}
-                  strokeOpacity={highlighted ? 1 : 0.18}
-                  strokeWidth={highlighted ? 2.25 : 1.25}
-                  strokeDasharray={dash && highlighted ? "6 4" : undefined}
-                  strokeLinejoin="round"
-                />
+                {line ? (
+                  <path
+                    d={path(points, x, y)}
+                    fill="none"
+                    stroke={highlighted ? "var(--team)" : "var(--muted-foreground)"}
+                    strokeOpacity={highlighted ? 1 : 0.18}
+                    strokeWidth={highlighted ? 2.25 : 1.25}
+                    strokeDasharray={dash && highlighted ? "6 4" : undefined}
+                    strokeLinejoin="round"
+                  />
+                ) : (
+                  highlighted &&
+                  points.map((point) => (
+                    <circle
+                      key={point.lap}
+                      cx={x(point.lap)}
+                      cy={y(point.value)}
+                      r={2.5}
+                      fill="var(--team)"
+                      fillOpacity={0.55}
+                    />
+                  ))
+                )}
                 {highlighted &&
+                  line &&
                   driver.laps
                     .filter((l) => l.pit === "in")
                     .map((l) => {
@@ -308,6 +376,7 @@ function LapChart({
                     })}
               </g>
             ))}
+            {overlay?.(x, y)}
           </g>
           {labels &&
             series
@@ -388,7 +457,7 @@ function Readout({
     .filter((row) => row.at)
     .toSorted((a, b) => (a.at?.position ?? 99) - (b.at?.position ?? 99));
   return (
-    <div aria-live="polite" className="min-h-16 rounded-xl border bg-surface px-4 py-3 text-sm">
+    <div role="status" className="min-h-16 rounded-xl border bg-surface px-4 py-3 text-sm">
       {lap === null || !rows.length ? (
         <p className="text-muted-foreground">{t.hint}</p>
       ) : (
@@ -466,5 +535,119 @@ function LapTable({ race, highlight, reference }: { race: RaceLaps; highlight: s
         </table>
       </Panel>
     </details>
+  );
+}
+
+/** "1:21" or "1:21.5": the ticks of a lap time axis. */
+function formatShortLapTime(seconds: number): string {
+  const minutes = Math.floor(seconds / 60);
+  const rest = Math.round((seconds - minutes * 60) * 10) / 10;
+  const text = Number.isInteger(rest) ? String(rest) : rest.toFixed(1);
+  return `${minutes}:${text.padStart(Number.isInteger(rest) ? 2 : 4, "0")}`;
+}
+
+/** The race's neutralizations and penalties in lap order, each with the FIA text that says what it means. */
+function Chronology({ race, onLap }: { race: RaceLaps; onLap: (lap: number | null) => void }) {
+  if (!race.events.length) return null;
+  return (
+    <section className="flex flex-col gap-3">
+      <h3 className="display text-xl">{t.chronology}</h3>
+      <ol className="flex flex-col divide-y rounded-xl border bg-surface">
+        {race.events.map((event) => (
+          <li
+            key={`${event.kind}-${event.start_lap}-${event.driver?.code ?? ""}`}
+            className="flex flex-wrap items-baseline gap-x-4 gap-y-1 px-4 py-3 text-sm"
+            onPointerEnter={() => onLap(event.start_lap)}
+            onPointerLeave={() => onLap(null)}
+          >
+            <span className="figures w-24 shrink-0 font-semibold">
+              {event.start_lap === event.end_lap
+                ? `${t.lap} ${event.start_lap}`
+                : `${t.laps} ${event.start_lap}–${event.end_lap}`}
+            </span>
+            <span className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2">
+              {event.kind === "penalty" ? (
+                <>
+                  <span className="flex items-center gap-2 font-semibold" style={teamStyle(event.driver?.colour)}>
+                    <span className="h-4 w-1 rounded-full bg-[var(--team)]" aria-hidden />
+                    {event.driver?.name}
+                  </span>
+                  <span>
+                    {events.penalty(event.seconds, event.penalty ?? "time")}
+                    {event.reason ? ` ${event.reason}` : ""}
+                  </span>
+                </>
+              ) : (
+                <span className="flex items-center gap-2 font-semibold">
+                  <span
+                    className={cn("size-3 rounded-sm", event.kind === "red_flag" ? "bg-primary" : "bg-warning")}
+                    aria-hidden
+                  />
+                  {events.kinds[event.kind]}
+                </span>
+              )}
+            </span>
+            {event.link ? (
+              <a
+                href={event.link.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary text-xs hover:underline"
+              >
+                {event.link.label} ↗
+              </a>
+            ) : (
+              <span className="text-muted-foreground text-xs">{t.noText}</span>
+            )}
+          </li>
+        ))}
+      </ol>
+    </section>
+  );
+}
+
+/** Each stint's degradation for the highlighted drivers, as the `degradation` tool gives it; stints with a clean lap. */
+function DegradationTable({ race, highlight }: { race: RaceLaps; highlight: string[] }) {
+  const rows = race.drivers
+    .filter((driver) => highlight.includes(driver.driver.code))
+    // A stint without a clean lap (tyres changed under a safety car) says nothing of the tyres.
+    .flatMap((driver) =>
+      driver.pace.filter((stint) => stint.laps.length).map((stint) => ({ driver: driver.driver, stint })),
+    );
+  if (!rows.length) return null;
+  return (
+    <Panel min="34rem">
+      <table className="w-full text-sm">
+        <thead className={thead}>
+          <tr className="border-b">
+            <th className={cn(th, "text-left")}>{t.driver}</th>
+            <th className={cn(th, "text-left")}>{t.stint}</th>
+            <th className={cn(th, "text-right")}>{t.cleanLaps}</th>
+            <th className={cn(th, "text-right")}>{t.degradation}</th>
+          </tr>
+        </thead>
+        <tbody className="figures">
+          {rows.map(({ driver, stint }) => (
+            <tr key={`${driver.code}-${stint.stint}`} className={row}>
+              <td className="py-2 pr-4">
+                <span className="flex items-center gap-2 font-semibold" style={teamStyle(driver.colour)}>
+                  <span className="h-4 w-1 rounded-full bg-[var(--team)]" aria-hidden />
+                  {driver.code}
+                </span>
+              </td>
+              <td className="py-2 pr-4">
+                {compounds[stint.compound ?? ""] ?? t.unknownCompound} · {t.lapsLower(stint.start_lap, stint.end_lap)}
+              </td>
+              <td className="py-2 pr-4 text-right">{stint.laps.length}</td>
+              <td className="py-2 pr-4 text-right">
+                {stint.degradation_s_per_lap === null
+                  ? t.tooFew
+                  : `${stint.degradation_s_per_lap > 0 ? "+" : ""}${thousandths.format(stint.degradation_s_per_lap)} ${t.perLap}`}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </Panel>
   );
 }

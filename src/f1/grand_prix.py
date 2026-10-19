@@ -16,7 +16,9 @@ from pydantic import Field
 
 from core.tools import ToolError
 from f1.display import Driver, Response, driver, grand_prix_fr
+from f1.race_rules import RaceRules
 from f1.tools.data import RaceData, SessionRef, integer, number
+from f1.tools.degradation import by_stint, fit
 from f1.tools.neutralizations import Kind, find_periods
 from f1.tools.penalties import penalties, reason_fr
 from f1.tools.pit_loss import stop_loss
@@ -150,10 +152,43 @@ class Lap(Response):
     pit: Literal["in", "out"] | None = Field(None, description="The in-lap or the out-lap of a stop")
 
 
+class StintPace(Response):
+    """A stint's degradation, as the `degradation` tool computes it, and the line it fits on the raw lap times."""
+
+    stint: int
+    compound: str | None = None
+    start_lap: int
+    end_lap: int
+    laps: list[int] = Field(default_factory=list, description="The clean laps the slope is computed on")
+    degradation_s_per_lap: float | None = Field(None, description="Fuel effect removed; None under 5 clean laps")
+    raw_slope_s_per_lap: float | None = None
+    raw_intercept_s: float | None = Field(None, description="The raw line's lap time at tyre age 0")
+    r_squared: float | None = None
+
+
 class DriverLaps(Response):
     driver: Driver
     grid: int | None = Field(None, description="Starting position, the chart's lap 0; 0 for a pit lane start")
     laps: list[Lap] = Field(default_factory=list)
+    pace: list[StintPace] = Field(default_factory=list)
+
+
+class Link(Response):
+    label: str = Field(description="In French")
+    url: str
+
+
+class RaceEvent(Response):
+    """A neutralization or a penalty, with where the FIA's texts say what it means (`f1.race_rules`)."""
+
+    kind: Literal["safety_car", "virtual_safety_car", "red_flag", "penalty"]
+    start_lap: int
+    end_lap: int
+    driver: Driver | None = None
+    penalty: Literal["time", "drive_through", "stop_go"] | None = None
+    seconds: int | None = None
+    reason: str | None = Field(None, description="In French")
+    link: Link | None = Field(None, description="The article of the regulations, or the stewards' decision")
 
 
 class RaceLaps(Response):
@@ -164,6 +199,7 @@ class RaceLaps(Response):
     total_laps: int | None = None
     drivers: list[DriverLaps] = Field(default_factory=list, description="In finishing order")
     neutralizations: list[Neutralization] = Field(default_factory=list)
+    events: list[RaceEvent] = Field(default_factory=list, description="Neutralizations and penalties, in lap order")
 
 
 class GrandPrix:
@@ -172,8 +208,9 @@ class GrandPrix:
     A race with results does not change: its page is computed once (about a second from S3) and kept.
     """
 
-    def __init__(self, connection: duckdb.DuckDBPyConnection) -> None:
+    def __init__(self, connection: duckdb.DuckDBPyConnection, rules: RaceRules | None = None) -> None:
         self._db = connection
+        self._rules = rules
         self._data = RaceData(connection)
         self._raced: dict[tuple[int, int], Race] = {}
         self._lapped: dict[tuple[int, int], RaceLaps] = {}
@@ -263,9 +300,40 @@ class GrandPrix:
             total_laps=race.total_laps,
             drivers=_driver_laps(race, laps),
             neutralizations=race.neutralizations,
+            events=self._events(race),
         )
         self._lapped[season, round_number] = lapped
         return lapped
+
+    def _events(self, race: Race) -> list[RaceEvent]:
+        season, round_number = race.summary.season, race.summary.round
+        rules = self._rules
+        events = [
+            RaceEvent(
+                kind=period.kind,
+                start_lap=period.start_lap,
+                end_lap=period.end_lap,
+                link=Link(**found) if rules and (found := rules.article(season, period.kind)) else None,
+            )
+            for period in race.neutralizations
+        ]
+        events += [
+            RaceEvent(
+                kind="penalty",
+                start_lap=penalty.lap,
+                end_lap=penalty.lap,
+                driver=penalty.driver,
+                penalty=penalty.kind,
+                seconds=penalty.seconds,
+                reason=penalty.reason,
+                link=Link(**found)
+                if rules
+                and (found := rules.decision(season, round_number, penalty.driver.name, penalty.kind, penalty.seconds))
+                else None,
+            )
+            for penalty in race.penalties
+        ]
+        return sorted(events, key=lambda event: event.start_lap)
 
     def _race(self, summary: RaceSummary) -> Race:
         season, round_number = summary.season, summary.round
@@ -544,6 +612,10 @@ def _driver_laps(race: Race, laps: list[dict[str, Any]]) -> list[DriverLaps]:
     rows = []
     for classified in race.classification:
         mine = of.get(classified.driver.code, [])
+        fits = [
+            fit(stint, stint_laps)
+            for stint, stint_laps in by_stint({int(lap["lap_number"]): lap for lap in mine}).items()
+        ]
         rows.append(
             DriverLaps(
                 driver=classified.driver,
@@ -565,6 +637,20 @@ def _driver_laps(race: Race, laps: list[dict[str, Any]]) -> list[DriverLaps]:
                         else None,
                     )
                     for lap in mine
+                ],
+                pace=[
+                    StintPace(
+                        stint=one.summary.stint,
+                        compound=one.summary.compound,
+                        start_lap=one.summary.start_lap,
+                        end_lap=one.summary.end_lap,
+                        laps=one.laps,
+                        degradation_s_per_lap=one.summary.degradation_s_per_lap,
+                        raw_slope_s_per_lap=one.summary.raw_slope_s_per_lap,
+                        raw_intercept_s=one.raw_intercept_s,
+                        r_squared=one.summary.r_squared,
+                    )
+                    for one in fits
                 ],
             )
         )

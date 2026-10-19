@@ -231,9 +231,12 @@ def get_grand_prix() -> GrandPrix:
     global _grand_prix
     with _lock:
         if _grand_prix is None:
+            from core.retrieval.qdrant import qdrant_client
             from f1.data import connect
+            from f1.race_rules import RaceRules
 
-            _grand_prix = GrandPrix(connect())
+            # The FIA index gives the events their links (LAB-189); without it, they have none.
+            _grand_prix = GrandPrix(connect(), RaceRules(qdrant_client()))
     return _grand_prix
 
 
