@@ -154,6 +154,13 @@ export const fr = {
       unknownCompound: "Pneus inconnus",
       chronology: "Chronologie",
       noText: "texte FIA introuvable",
+      pointChart: {
+        gaps: "Écart à chaque passage sur la ligne, par rapport à",
+        pace: "Tours propres et droite de dégradation",
+        positions: "Positions tour par tour",
+      } as Record<"gaps" | "pace" | "positions", string>,
+      openRace: "Voir toute la course",
+      showChart: "Voir sur le graphique",
     },
     strategy: {
       lead: "Les relais de chaque pilote, tour par tour. Les bandes jaunes marquent la voiture de sécurité ou le VSC, les rouges un drapeau rouge.",

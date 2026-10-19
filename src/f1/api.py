@@ -26,8 +26,9 @@ from pydantic import BaseModel, Field, model_validator
 
 from core.agent import Agent, Analysis, Clarification, Decision, Point, Run
 from core.agent.chat import Chat, Exchange, Reply
-from core.agent.state import AgentState, RejectReason
+from core.agent.state import AgentState, RejectReason, Result
 from core.agent.store import RequestStore
+from f1.charts import FactChart, chart_for
 from f1.display import Driver, Response, grand_prix_fr, team_colour
 from f1.grand_prix import GrandPrix, Race, RaceLaps, RaceSummary
 from f1.questions import FreeAnswer, FreeQuestions, FreeQuestionStore
@@ -88,6 +89,11 @@ class Fact(Response):
     label: str
     ok: bool
     error: str | None = Field(None, description="Why it gave no number")
+    chart: FactChart | None = Field(None, description="The race chart that shows it (LAB-189)")
+
+
+def _fact(result: Result) -> Fact:
+    return Fact(id=result.id, label=result.label, ok=result.ok, error=result.error, chart=chart_for(result))
 
 
 class Source(Response):
@@ -452,11 +458,7 @@ def question_reply(row: Mapping[str, Any], state: AgentState) -> QuestionReply:
         question=reply.question,
         status=reply.status,
         points=[ShownPoint.model_validate(point.model_dump()) for point in reply.points],
-        facts=[
-            Fact(id=r.id, label=r.label, ok=r.ok, error=r.error)
-            for id_ in dict.fromkeys(cited)
-            if (r := results.get(id_))
-        ],
+        facts=[_fact(r) for id_ in dict.fromkeys(cited) if (r := results.get(id_))],
         sources=[
             Source(id=p.id, label=p.label, text=p.text) for id_ in dict.fromkeys(quoted) if (p := passages.get(id_))
         ],
@@ -533,7 +535,7 @@ def debrief(run: Run) -> Debrief:
         clarification=state.clarification if waiting == "clarification" else None,
         plan=state.plan,
         points=[ShownPoint.model_validate(point.model_dump()) for point in state.points],
-        facts=[Fact(id=r.id, label=r.label, ok=r.ok, error=r.error) for r in state.results],
+        facts=[_fact(r) for r in state.results],
         sources=[Source(id=src.id, label=src.label, text=src.text) for rule in state.rules for src in rule.sources],
         decisions=state.decisions,
         deliverable=state.deliverable,

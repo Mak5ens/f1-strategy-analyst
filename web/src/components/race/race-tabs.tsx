@@ -6,9 +6,9 @@ import type { ReactNode } from "react";
 export type RaceTab = { id: string; label: string; content: ReactNode };
 
 /** The sections of a race's page, one at a time, the current one underlined in red as the header's. */
-export function RaceTabs({ tabs }: { tabs: RaceTab[] }) {
+export function RaceTabs({ tabs, initial }: { tabs: RaceTab[]; initial?: string }) {
   return (
-    <Tabs.Root defaultValue={tabs[0]?.id}>
+    <Tabs.Root defaultValue={tabs.some((tab) => tab.id === initial) ? initial : tabs[0]?.id}>
       <Tabs.List className="-mx-4 mb-8 flex overflow-x-auto border-b px-4 sm:mx-0 sm:px-0">
         {tabs.map((tab) => (
           <Tabs.Trigger

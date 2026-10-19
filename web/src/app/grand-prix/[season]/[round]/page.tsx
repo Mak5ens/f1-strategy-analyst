@@ -19,6 +19,8 @@ import { getMessages } from "@/lib/i18n";
 import { raceSuggestions } from "@/lib/suggestions";
 
 type Params = Promise<{ season: string; round: string }>;
+// ?onglet=course&pilotes=LEC,PIA: the tab to open and the drivers to highlight, as a debrief's chart links (LAB-189).
+type Search = Promise<{ onglet?: string; pilotes?: string }>;
 
 const t = getMessages().race;
 
@@ -30,9 +32,10 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
 }
 
 /** A Grand Prix: what happened, read from the data without a model, then the debriefs of the race. */
-export default async function GrandPrixPage({ params }: { params: Params }) {
+export default async function GrandPrixPage({ params, searchParams }: { params: Params; searchParams: Search }) {
   await connection();
   const { season, round } = await params;
+  const { onglet, pilotes } = await searchParams;
   const [race, debriefs, laps] = await Promise.all([
     fetchRace(Number(season), Number(round)),
     fetchDebriefs({ season: Number(season), round: Number(round) }),
@@ -62,6 +65,7 @@ export default async function GrandPrixPage({ params }: { params: Params }) {
       <div className="mx-auto max-w-6xl px-4 pt-10">
         {raced ? (
           <RaceTabs
+            initial={onglet === "course" ? "race" : onglet}
             tabs={[
               {
                 id: "result",
@@ -79,7 +83,7 @@ export default async function GrandPrixPage({ params }: { params: Params }) {
                 label: t.tabs.race,
                 content:
                   laps && laps !== "missing" ? (
-                    <RaceCharts race={laps} />
+                    <RaceCharts race={laps} focus={pilotes?.split(",") ?? []} />
                   ) : (
                     <p className="rounded-xl border bg-surface p-6 text-muted-foreground">{t.charts.unavailable}</p>
                   ),
