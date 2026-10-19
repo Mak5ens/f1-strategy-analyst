@@ -148,3 +148,19 @@ def test_the_validation_extends_a_stint_s_line_and_reads_its_error_back(tmp_path
     assert (found := expected_error(7, 2025, tmp_path)) and found["median_s"] == 3.1
     assert (longer := expected_error(14, 2025, tmp_path)) and longer["laps"] == [6, 10]  # the longest measured
     assert compound_error(12, 2025, tmp_path) is None  # a report without the compound's measure
+
+
+def test_a_line_bends_past_its_last_tyre_age_by_half_the_curvature_of_its_laps() -> None:
+    from f1.tools.degradation import CURVATURE_SHARE, fit, wear
+
+    def worn(row: dict[str, Any], curvature: float) -> dict[str, Any]:
+        age = row["lap_number"]  # fuel removed: 90 + 0.05 age + curvature age²
+        return {**row, "lap_time_s": round(90 + 0.05 * age + curvature * age**2 - FUEL * (age - 1), 4)}
+
+    steady = [row for row in lap_rows() if row["driver"] == "BBB" and row["lap_number"] <= 16]
+    line = fit(1, [worn(row, 0.01) for row in steady])  # 15 clean laps, tyre ages 2 to 16
+    assert line.curvature_s == pytest.approx(0.01, abs=1e-4) and line.ages == (2, 16)
+    intercept, slope = line.intercept_s or 0, line.summary.degradation_s_per_lap or 0
+    assert line.at(16) == pytest.approx(intercept + slope * 16)  # not bent yet
+    assert line.at(20) - wear(intercept, slope, 0, 16, 20) == pytest.approx(CURVATURE_SHARE * 0.01 * 16, abs=1e-3)
+    assert fit(1, [worn(row, -0.01) for row in steady]).curvature_s == 0  # only wear that speeds up bends a line

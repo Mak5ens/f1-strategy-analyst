@@ -20,6 +20,12 @@ DEFAULT_FUEL_EFFECT_S_PER_LAP = 0.06
 # the track status missed): it says nothing about the tyres.
 OUTLIER_RATIO = 1.03
 MIN_LAPS = 5
+# Past the tyre ages a stint was fitted on, tyres wear faster than its line says (LAB-216): a line extended runs the
+# laps too fast. The line then bends by half the convex curvature its laps show (a quadratic fitted on them, from
+# MIN_CURVE_LAPS clean laps); a free quadratic, or the whole curvature, projects worse. The share was chosen on the
+# 2024 stints and measured on 2025 (`f1.evals.simulation`, docs/tools.md).
+CURVATURE_SHARE = 0.5
+MIN_CURVE_LAPS = 8
 
 
 class DegradationInput(SessionRef):
@@ -67,6 +73,18 @@ class StintFit:
     # strategy simulation extends to other laps (`f1.tools.simulation`).
     intercept_s: float | None = None
     ages: tuple[int, int] | None = None  # the tyre ages the line was fitted on, first and last
+    curvature_s: float = 0.0  # the quadratic term of its laps, when convex: how the line bends past `ages`
+
+    def at(self, age: float) -> float:
+        """The fuel-corrected lap time at a tyre age (add `- fuel effect * (lap - 1)` for the lap's time)."""
+        assert self.intercept_s is not None and self.summary.degradation_s_per_lap is not None
+        last = self.ages[1] if self.ages else age
+        return wear(self.intercept_s, self.summary.degradation_s_per_lap, self.curvature_s, last, age)
+
+
+def wear(intercept: float, slope: float, curvature: float, last_age: float, age: float) -> float:
+    """A stint's line at a tyre age, bent past the last age it was fitted on (`CURVATURE_SHARE`)."""
+    return intercept + slope * age + CURVATURE_SHARE * curvature * max(0.0, age - last_age) ** 2
 
 
 def by_stint(laps: dict[int, dict[str, Any]]) -> dict[int, list[dict[str, Any]]]:
@@ -133,6 +151,7 @@ def fit(stint: int, laps: list[dict[str, Any]], fuel_effect: float = DEFAULT_FUE
     corrected = raw + fuel_effect * (lap_number - 1)
     slope, intercept = np.polyfit(age, corrected, 1)
     raw_slope, raw_intercept = np.polyfit(age, raw, 1)
+    curvature = float(np.polyfit(age, corrected, 2)[0]) if len(clean) >= MIN_CURVE_LAPS else 0.0
     residuals = corrected - (slope * age + intercept)
     total = float(np.sum((corrected - corrected.mean()) ** 2))
     summary.degradation_s_per_lap = round(float(slope), 4)
@@ -144,6 +163,7 @@ def fit(stint: int, laps: list[dict[str, Any]], fuel_effect: float = DEFAULT_FUE
         round(float(raw_intercept), 3),
         round(float(intercept), 4),
         (int(age.min()), int(age.max())),
+        round(max(0.0, curvature), 5),
     )
 
 

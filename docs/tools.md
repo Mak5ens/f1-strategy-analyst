@@ -112,20 +112,20 @@ Limits: the data says how many places or seconds, not why (the reading says so).
 
 - **By difference**: it projects the difference between the strategy asked and the one raced, lap by lap, and adds it to the times the driver set. What both share (the driver's level, the fuel, the laps under a safety car, the race's traffic) cancels out.
 - **A lap under a neutralization**: no difference, since the safety car set the lap.
-- **Any other lap**: the difference of the two stints' fuel-corrected lines at that lap, from `degradation.fit`: lap time = intercept + degradation × tyre age − 0.06 × (lap − 1).
+- **Any other lap**: the difference of the two stints' fuel-corrected lines at that lap, from `degradation.fit`: lap time = intercept + degradation × tyre age − 0.06 × (lap − 1). Past the last tyre age a line was fitted on, it bends (LAB-216): + 0.5 × c × (age − last age)², where c is the quadratic term of a quadratic fitted on the same clean laps, when it is positive (wear that speeds up) and the stint has at least 8 clean laps; 0 otherwise. A line shifted to another compound stays straight.
 - **A stint on another compound** (LAB-214): the driver's own line for that stint, shifted by what the compound changes to a line in this race (`degradation.compound_shift`): for each other driver who ran both compounds, their line on the one asked less their line on the one raced (intercept and slope, the median of their stints on each); the shift is the median of those differences over at least 2 drivers, so that each driver's level cancels out. The set keeps the tyre age the stint was raced on.
 - **The stops' cost moves with them**: the median of the driver's green-flag stops (`pit_stop_loss`), or the median of the race's stops under a neutralization when the new in- or out-lap is neutralized. With none measured, it refuses.
 - **Refused**: a stint under 5 clean laps (no line), a number of stops other than the one raced, in-laps out of order; a compound that is not dry, fewer than 2 other drivers who ran both compounds, or a dry race on a single dry compound (the sporting regulations ask for two).
 
-**Validation** (`just simulation-validate 2025`, `f1.evals.simulation`, report in `evals/reports/simulation-2025.json`): on 748 race stints of 2025 with at least 15 clean laps, the line fitted on the first 60 % of the clean laps projects the following ones. The table gives the error on the time of the laps extended.
+**Validation** (`just simulation-validate 2025`, `f1.evals.simulation`, report in `evals/reports/simulation-2025.json`): on 748 race stints of 2025 with at least 15 clean laps, the line fitted on the first 60 % of the clean laps projects the following ones. The table gives the error on the time of the laps extended, with the bent line and, before LAB-216, the straight one.
 
-| Laps extended | Median error | 90 % under | Bias |
-| --: | --: | --: | --: |
-| 1 to 5 | 0.8 s | 3.1 s | −0.2 s |
-| 6 to 10 | 3.1 s | 8.3 s | −0.9 s |
-| 11 to 20 | 5.7 s | 15.4 s | −0.9 s |
+| Laps extended | Median error | 90 % under | Bias | Straight line (median, 90 %, bias) |
+| --: | --: | --: | --: | --: |
+| 1 to 5 | 0.8 s | 2.9 s | −0.1 s | 0.8 s, 3.1 s, −0.2 s |
+| 6 to 10 | 2.8 s | 7.7 s | −0.4 s | 3.1 s, 8.3 s, −0.9 s |
+| 11 to 20 | 5.1 s | 14.8 s | +0.2 s | 5.7 s, 15.4 s, −0.9 s |
 
-The bias is negative: tyres wear faster late in a stint than a line says, so a longer stint is projected too fast. The page shows the error of the longest extension next to each projection. It says the model cannot conclude when the difference is smaller than the median error.
+The straight line's bias was negative: tyres wear faster late in a stint than a line says, so a longer stint was projected too fast. The bend corrects most of it. Its share of the curvature was chosen on the 2024 stints, then measured on 2025: on 2024, a share of 0, 0.25, 0.5, 0.75 and 1 gives a 90th percentile over 11 to 20 laps of 17.9, 17.4, 17.2, 17.5 and 17.4 s, and a bias of −1.3, −0.8, −0.4, +0.3 and +0.8 s; 0.5 has the lowest 90th percentile over 11 to 20 laps, within 0.01 s of the lowest over 6 to 10, and a small bias. A free quadratic, extended, projects much worse than the line (median 11.9 s over 11 to 20 laps in 2025): fitted on a stint's first laps, its curvature is mostly noise, which the half share and the convex-only rule tame. The page shows the error of the longest extension next to each projection. It says the model cannot conclude when the difference is smaller than the median error.
 
 **Validation of another compound**: the same report, for each driver of 2025 who ran two compounds in a race. Their line on one, shifted by the other drivers' difference (the driver left out), projects the stint on the other, whose times are known: the error on the time of its first k clean laps (stints of at least 8). Next to it, the same projection without a shift (the line of the compound raced kept as is), and with the intercept alone shifted.
 
@@ -135,7 +135,7 @@ The bias is negative: tyres wear faster late in a stint than a line says, so a l
 | 11 to 20 | 6.5 s | 21.0 s | −0.2 s | 6.7 s, 22.8 s | 8.0 s, 28.5 s |
 | 21 to 40 | 12.0 s | 44.5 s | −1.6 s | 13.4 s, 55.9 s | 17.7 s, 68.2 s |
 
-The shift helps, most on long stints (the 90th percentile from 56 s to 44 s over 21 to 40 laps), but the error stays about 0.3 s a lap: a line fitted on another stint carries that stint's track, traffic and fuel, which the shift does not remove. Shifting only the level is worse than no shift: the compounds differ by their wear more than by their pace. The page shows this error for the longest stint on another compound, and the projection does not conclude under it.
+The bent line is not used there: bending the source compound's line made the projection worse (90th percentile over 21 to 40 laps from 44.5 s to 50.2 s), its curvature being another stint's. The shift helps, most on long stints (the 90th percentile from 56 s to 44 s over 21 to 40 laps), but the error stays about 0.3 s a lap: a line fitted on another stint carries that stint's track, traffic and fuel, which the shift does not remove. Shifting only the level is worse than no shift: the compounds differ by their wear more than by their pace. The page shows this error for the longest stint on another compound, and the projection does not conclude under it.
 
 ## A season told by its numbers (LAB-215)
 
