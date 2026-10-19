@@ -25,7 +25,17 @@ module.exports.numeric = (output, context) => {
   return numbers(output).some((x) => Math.abs(x - Math.abs(value)) <= tolerance + 1e-9);
 };
 
-// Every expected item: a lap time or a number by its value, a name by its text (case and accents ignored).
+// A tyre compound as the data names it, and as a French answer says it (LAB-154: "tendres" for SOFT).
+const COMPOUNDS = {
+  SOFT: /\b(soft|tendres?)\b/,
+  MEDIUM: /\b(medium|mediums|moyens?)\b/,
+  HARD: /\b(hard|durs?)\b/,
+  INTERMEDIATE: /\b(intermediate|intermediaires?|inters?)\b/,
+  WET: /\b(wet|pluie|pluies)\b/,
+};
+
+// Every expected item: a lap time or a number by its value, a compound by its English or French name, a name by
+// its text (case and accents ignored).
 module.exports.contains_all = (output, context) => {
   if (abstained(output)) return false;
   const plain = (t) => String(t).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
@@ -35,6 +45,7 @@ module.exports.contains_all = (output, context) => {
       const [x] = numbers(item);
       return said.some((y) => Math.abs(x - y) < 0.0015);
     }
+    if (COMPOUNDS[item]) return COMPOUNDS[item].test(plain(output));
     return plain(output).includes(plain(item));
   });
 };

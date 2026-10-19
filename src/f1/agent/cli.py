@@ -18,7 +18,14 @@ from typing import Any
 
 from core.agent import Agent, Run, Waiting
 
-REASONS = {"1": "wrong_number", "2": "wrong_source", "3": "off_topic", "4": "wording", "5": "other"}
+REASONS = {
+    "1": "wrong_number",
+    "2": "wrong_meaning",
+    "3": "wrong_source",
+    "4": "off_topic",
+    "5": "wording",
+    "6": "other",
+}
 
 
 def ask_clarification(waiting: Waiting) -> Any:
@@ -56,7 +63,9 @@ def ask_review(waiting: Waiting) -> list[dict[str, Any]]:
         if action == "correct":
             decision["text"] = input("Texte corrigé : ").strip()
         if action != "approve":
-            typed = input("Motif (1 chiffre faux, 2 source fausse, 3 hors sujet, 4 formulation, 5 autre) : ").strip()
+            typed = input(
+                "Motif (1 chiffre faux, 2 sens faux, 3 source fausse, 4 hors sujet, 5 formulation, 6 autre) : "
+            ).strip()
             decision["reason"] = REASONS.get(typed, "other")
         decisions.append(decision)
     return decisions

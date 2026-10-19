@@ -99,7 +99,8 @@ class Point(BaseModel):
     problems: list[str] = Field(default_factory=list)
 
 
-RejectReason = Literal["wrong_number", "wrong_source", "off_topic", "wording", "other"]
+# wrong_meaning: the numbers are right, what the point says of them is not (LAB-154: an interpretation error).
+RejectReason = Literal["wrong_number", "wrong_meaning", "wrong_source", "off_topic", "wording", "other"]
 
 
 class Decision(BaseModel):

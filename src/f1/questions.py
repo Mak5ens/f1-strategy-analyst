@@ -134,7 +134,7 @@ class FreeQuestions:
     def _rules_answer(self, question: str, race: RaceLink | None) -> FreeAnswer:
         from f1.rag.ask import ABSTENTIONS
 
-        answer = self._rules().answer(question)
+        answer = self.rules(question)
         found = FreeAnswer(
             question=question, route="rules", status="answered", notes=list(answer.scope.notes), race=race
         )
@@ -148,16 +148,30 @@ class FreeQuestions:
         )
 
     def _data_answer(self, question: str, race: RaceLink, routing: Routing) -> FreeAnswer:
+        reply = self.data(question, race, routing)
+        if isinstance(reply, str):  # the race has no entry list in the lake
+            return FreeAnswer(question=question, route="data", status="refused", reason=reply, race=race)
+        return _data(question, race, reply)
+
+    # The two paths' steps, also run by the evaluation (`f1.evals.agent`), which reads what they found.
+
+    def rules(self, question: str) -> Answer:
+        return self._rules().answer(question)
+
+    def data(self, question: str, race: RaceLink, routing: Routing) -> Reply | str:
+        """The reply of the questions of LAB-205 on the race; why not, when the race cannot be followed."""
         from f1.agent.theme import F1Theme
 
         chat = self._chat()
         theme = chat.theme
         assert isinstance(theme, F1Theme)
         subject = theme.free_subject(question, race.season, race.round, routing.named)
-        if isinstance(subject, Clarification):  # the race has no entry list in the lake
-            return FreeAnswer(question=question, route="data", status="refused", reason=subject.question, race=race)
-        reply = chat.ask(question, state=AgentState(request=question, subject=subject))
-        return _data(question, race, reply)
+        if isinstance(subject, Clarification):
+            return subject.question
+        return chat.ask(question, state=AgentState(request=question, subject=subject))
+
+    def resolve(self, routing: Routing) -> RaceLink | list[Choice]:
+        return self._resolve(routing)
 
     def _race(self, season: int, round_number: int) -> RaceLink | list[Choice]:
         races = {race.round: race for race in self.grand_prix.calendar(season)}

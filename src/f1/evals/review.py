@@ -1,5 +1,5 @@
 """Candidate cases from the reviews (LAB-152): a point the analyst rejected or corrected for a wrong number or a wrong
-source is a case the agent failed, worth keeping.
+source is a case the agent failed (a wrong meaning too, since LAB-154), worth keeping.
 
 `just eval-dataset review-candidates` writes them to `evals/datasets/candidates/review.jsonl`, outside the folders the
 dataset is built from: a person completes each one (the expected answer, the tolerance, the sources), marks it
@@ -15,7 +15,11 @@ from f1.display import grand_prix_fr
 
 OUTPUT = Path("evals/datasets/candidates/review.jsonl")
 # What the analyst's reason says the agent got wrong, and the family of case that measures it.
-FAMILY_OF_REASON: dict[str, Family] = {"wrong_number": "strategy", "wrong_source": "regulation"}
+FAMILY_OF_REASON: dict[str, Family] = {
+    "wrong_number": "strategy",
+    "wrong_meaning": "strategy",
+    "wrong_source": "regulation",
+}
 
 
 def candidates(decisions: Iterable[Mapping[str, Any]]) -> list[Case]:

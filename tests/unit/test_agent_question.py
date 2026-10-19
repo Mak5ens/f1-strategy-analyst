@@ -164,3 +164,33 @@ def test_numbers_in_words_are_put_in_digits_before_the_checks() -> None:
         "Antonelli perd 3 places, puis 1 place ; 20 tours plus tard, 2 dixièmes."
     )
     assert in_digits("Il finit deuxième, un arrêt plus tard.") == "Il finit deuxième, un arrêt plus tard."
+
+
+def test_what_a_question_asks_is_read_by_code_whatever_the_model_picks(
+    theme: F1Theme, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    subject = theme.free_subject("Quels pneus a utilisés Leclerc ?", 2025, 2, ["Charles Leclerc"])
+    assert not isinstance(subject, Clarification)
+    plan = theme.candidates(subject)
+    picked = type("Picked", (), {"analyses": ["tyres:LEC"], "rule_question": None})()
+    monkeypatch.setattr("f1.agent.theme.complete_json", lambda *args, **kwargs: picked)
+
+    assert theme.pick("Quels pneus a utilisés Leclerc ?", subject, plan, [], session_id=None).analyses == [
+        "strategies",
+        "tyres:LEC",
+    ]
+    assert theme.pick("Qui a signé la pole ?", subject, plan, [], session_id=None).analyses[0] == "qualifying"
+
+
+def test_a_question_on_two_drivers_stops_gets_their_cycle_and_the_neutralizations(
+    theme: F1Theme, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    question = "Pourquoi Verstappen a-t-il perdu sa place face à Leclerc lors de leurs arrêts aux stands ?"
+    subject = theme.free_subject(question, 2025, 2, ["Max Verstappen", "Charles Leclerc"])
+    assert not isinstance(subject, Clarification)
+    picked = type("Picked", (), {"analyses": ["gap:VER:LEC"], "rule_question": None})()
+    monkeypatch.setattr("f1.agent.theme.complete_json", lambda *args, **kwargs: picked)
+
+    analyses = theme.pick(question, subject, theme.candidates(subject), [], session_id=None).analyses
+
+    assert analyses[:2] == ["cycle:VER:LEC", "neutralizations"]

@@ -244,6 +244,7 @@ export const fr = {
       chooseReason: "Choisir un motif",
       reasons: {
         wrong_number: "Chiffre faux",
+        wrong_meaning: "Sens faux (interprétation)",
         wrong_source: "Source fausse",
         off_topic: "Hors sujet",
         wording: "Formulation",

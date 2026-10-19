@@ -134,6 +134,45 @@ What the numbers say:
 
 Platform-side latency and throughput of the same aliases are in llmops-platform (ADR-027, `benchmarks/inference/`); this table is what the app gets from them. To revisit when a local model calls tools: the agent of LAB-151 will ask for the same structured choice.
 
+## The agent against the baseline (LAB-154)
+
+`just eval --system agent` runs the agent as the app answers a question (`f1.evals.agent.AgentSystem`): the home page's router (LAB-206), then the production retrieval pipeline (LAB-186) for the rules, or the questions of LAB-205 on the race's data (a closed catalog of analyses, every number and the meaning checked). The app asks the analyst when it cannot decide; an evaluation has nobody to ask, so it takes the path an analyst most often would (data when the question names a race, a driver or a team) and records it (`Record.meta`). `just eval systems --runs <baseline> <agent>` puts the runs side by side, `just eval failures --runs <run>` counts the failed cases by cause.
+
+Measured on the test set, 2026-10-18 (`evals/reports/systems-test-2026-10-18.md`; runs `agent-test-2026-10-18-final` and `baseline-test-2026-10-18-rescored`, the baseline's answers of LAB-150 scored again with the same assertions):
+
+| Family | Metric | Baseline | Agent |
+| -- | -- | --: | --: |
+| data | accuracy | 0.80 | **0.95** |
+| data | answered | 0.82 | 0.97 |
+| computation | accuracy | 0.81 | **0.90** |
+| strategy | grade/5 | 2.79 | 2.77 |
+| strategy | answered | 0.84 | 0.87 |
+| regulation | recall@5 | 0.78 | 0.76 |
+| regulation | faithfulness | 0.92 | **0.97** |
+| regulation | context recall | 0.62 | **0.89** |
+| regulation | answered | 0.83 | **0.96** |
+| out_of_corpus | abstention | 0.88 | 0.81 |
+| safety | safe | 0.60 | **0.80** |
+| all | latency p50 / p95 | 3.0 s / 63 s | 6.1 s / 64 s |
+| all | cost of answering | $1.91 / 1,000 questions | $1.32 / 1,000 questions |
+
+What it says:
+
+- **The agent answers more, and more often right, for less**: data and computation, where every number comes from a tool and is checked, and the rules, where the pipeline's rewriting and reranking find what the reference says (context recall 0.62 to 0.89) and its checks keep the answer to it (faithfulness 0.97). It also costs less per question, as the key's spend shows.
+- **Strategy is level** (2.77 against 2.79, within the judge's noise): the agent reads the pit cycle and the neutralizations, but `chat-pro` still explains a swap no better. 29 of its 37 strategy cases graded under 4 are answers judged wrong or incomplete, not checks that withheld them (`just eval failures`).
+- **Out of corpus is a little worse** (0.81 against 0.88: one case of 16). Asked what the International Sporting Code says of appeals, the agent answered from the sporting regulations, which mention the appeal and the Code's article 15; the two systems fail the same two other cases (power units, rear wing width: technical rules, out of the corpus).
+- **The rules are slow**: 48 s at the median for a regulation question (rewriting, three searches, reranking, a generation, a check of each claim), against 2 s for the baseline's single search.
+
+The first run (`agent-test-2026-10-18`) scored data at 0.48 and strategy at 2.55. The failures had three causes, each fixed by code rather than by a prompt:
+
+- **Missing analyses.** The pole was asked of the race's classification, so qualifying is now in the catalog with its reading.
+- **Lap times the model converted itself.** It wrote 1:32.000 for 95.069 s; the readings now give them as timing writes them, 1:35.069.
+- **Picks the model missed.** It took the tyre wear for "quels pneus", and the gap rather than the pit cycle and the neutralizations for a swap at the stops; code now reads these needs in the question (`_wanted`).
+
+The answers on tyres were right but in French ("tendres, durs"), which the assertion did not accept: it now reads a compound's French names, for both systems.
+
+**Acceptance in review**: `just eval acceptance` reads the review's journal (LAB-152), the latest decision of each point, the end-to-end test's requests left out: the share of points accepted as written, by point status (checked by code or not) and part, and the corrections and rejections by kind (number, interpretation, rules, style). `wrong_meaning` ("Sens faux") was added to the rejection reasons for it. `--prepared` keeps the debriefs of `just debriefs-prepare` (LAB-204), `--since` a review session.
+
 ## Routing (LAB-206)
 
 `just eval routing --split dev --check` sends each case through the home page's router (`f1.router`): code, no call, a second. Regulation and retrieval cases must go to the rules, data, computation and strategy cases to the data of their race; out of corpus and safety cases have no path of their own (whatever it is, they must abstain or refuse, which `just eval` measures). A case left to the analyst counts as missed; `--check` fails under 95 %. The unit tests run it on both sets with a fixed list of names. Measured on 2026-10-18: 150/150 on the development set, 236/237 on the test set ("Quelle est la distance minimale d'une course en 2024, sauf à Monaco ?" names Monaco with no word of a path, and is asked).

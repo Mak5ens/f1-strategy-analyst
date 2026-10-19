@@ -166,8 +166,17 @@ def _fr(value: float, decimals: int) -> str:
     return f"{value:.{decimals}f}".replace(".", ",")
 
 
+def lap_time(seconds: float) -> str:
+    """A lap time as timing writes it: 95.069 -> "1:35.069". A model asked to convert wrote 1:32.000 (LAB-154)."""
+    minutes, rest = divmod(round(seconds, 3), 60)
+    return f"{int(minutes)}:{rest:06.3f}"
+
+
 def _classification(output: Mapping[str, Any], names: Names) -> list[str]:
-    """Each driver from the grid to the finish: the only places gained or lost a debrief may tell."""
+    """Each driver from the grid to the finish: the only places gained or lost a debrief may tell; the fastest lap.
+    A qualifying session: each driver's place and best time."""
+    if output.get("session") in {"Q", "SQ"}:
+        return _qualifying(output, names)
     sentences = []
     for row in output.get("classification") or []:
         name = row.get("name") or names.get(row["driver"], row["driver"])
@@ -178,6 +187,24 @@ def _classification(output: Mapping[str, Any], names: Names) -> list[str]:
             continue
         moved = "" if not grid else _places(grid - finish)
         sentences.append(f"{name} : parti {start}, arrivé {_ordinal(finish)}{moved}.")
+    if fastest := output.get("fastest_lap"):
+        name = fastest.get("name") or names.get(fastest["driver"], fastest["driver"])
+        sentences.append(f"Meilleur tour en course : {name}, en {lap_time(fastest['lap_time_s'])} au tour "
+                         f"{fastest['lap']}.")  # fmt: skip
+    return sentences
+
+
+def _qualifying(output: Mapping[str, Any], names: Names) -> list[str]:
+    """The order of a qualifying, the pole first, each driver's best time in the last part reached."""
+    sentences = []
+    for row in output.get("classification") or []:
+        name = row.get("name") or names.get(row["driver"], row["driver"])
+        parts = [(part, row.get(f"q{number}_s")) for number, part in ((3, "Q3"), (2, "Q2"), (1, "Q1"))]
+        best = next(((part, time) for part, time in parts if time), None)
+        rank = _rank(row)
+        place = "pole position" if rank == 1 else f"{_ordinal(rank)} des qualifications" if rank else "non classé"
+        time = f", {lap_time(best[1])} en {best[0]}" if best else ", sans temps"
+        sentences.append(f"{name} : {place}{time}.")
     return sentences
 
 

@@ -12,6 +12,10 @@
     just eval thresholds --from evals/reports/<run>.json   # initial thresholds from a reference run
     just eval models                   # chat-small, chat-medium and chat-pro side by side (LAB-150, about 3 hours)
     just eval routing --split dev --check   # the home page's router on each family (LAB-206): code, no call
+    just eval --system agent --sample 8     # the agent as the app answers (LAB-154): router, pipeline, chat
+    just eval systems --runs <baseline run> <agent run>   # the two side by side (LAB-154)
+    just eval failures --runs <agent run>   # its failed cases by family and cause
+    just eval acceptance --since 2026-10-18 # points of the reviewed debriefs accepted as written, kinds of error
 
 The system runs once per case; promptfoo, Ragas and the judge then score what it recorded (`core.evals.harness`).
 Work files go to `.cache/evals/<run>/`, the report to `evals/reports/<run>.json`, and its summary, for a pull
@@ -113,7 +117,13 @@ class BaselineSystem:
         )
 
 
-SYSTEMS = {"baseline": BaselineSystem}
+def _agent(*, model: str | None = None) -> Any:
+    from f1.evals.agent import AgentSystem
+
+    return AgentSystem(model=model)
+
+
+SYSTEMS = {"baseline": BaselineSystem, "agent": _agent}
 
 
 def judge_records(cases: Sequence[Case], records: Sequence[Record]) -> dict[str, dict[str, Any]]:
@@ -523,6 +533,33 @@ def compare_models(args: argparse.Namespace) -> int:
     return 0
 
 
+def compare_systems(args: argparse.Namespace) -> int:
+    """The agent and the baseline side by side from their runs on the same split (LAB-154): `--runs <baseline run>
+    <agent run>`; the table goes to `evals/reports/systems-<split>-<date>.md`."""
+    if not args.runs or len(args.runs) < 2:
+        log.error("systems: give two runs or more with --runs, e.g. the baseline's then the agent's")
+        return 1
+    reports = [json.loads((REPORTS / f"{run}.json").read_text()) for run in args.runs]
+    table = side_by_side(reports, GATED)
+    date = f"{datetime.now(UTC):%Y-%m-%d}"
+    path = REPORTS / f"systems-{args.split}-{date}.md"
+    runs = ", ".join(f"`{run}`" for run in args.runs)
+    path.write_text(f"# Systems on the {args.split} set, {date}\n\nRuns: {runs}.\n\n{table}")
+    print(table)
+    print(path)
+    return 0
+
+
+def failures(args: argparse.Namespace) -> int:
+    """The failed cases of a run (`--runs <run>`) by family and cause: withheld by a check, wrong, no race found."""
+    from f1.evals.agent import failure_causes
+
+    run = (args.runs or [""])[0]
+    report = json.loads((REPORTS / f"{run}.json").read_text())
+    print(failure_causes(read_records(WORK / run / "records.jsonl"), report["cases"]))
+    return 0
+
+
 def routing(args: argparse.Namespace) -> int:
     """The path the home page's router takes on each case of the split; --check fails under the 95 % target."""
     from f1.data import connect
@@ -535,13 +572,35 @@ def routing(args: argparse.Namespace) -> int:
     return 1 if args.check and report.rate < TARGET else 0
 
 
+def accepted(args: argparse.Namespace) -> int:
+    """The share of the debriefs' points the analyst accepted as written, and the kinds of error (LAB-154)."""
+    from core.agent.store import RequestStore
+    from f1.evals.acceptance import acceptance
+
+    since = datetime.fromisoformat(args.since).replace(tzinfo=UTC) if args.since else None
+    report = acceptance(RequestStore().decisions(limit=100_000), prepared=args.prepared, since=since)
+    print(report.markdown())
+    return 0
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="f1-eval", description=__doc__.splitlines()[0] if __doc__ else None)
     parser.add_argument(
         "command",
         nargs="?",
         default="run",
-        choices=["run", "models", "judge-sheet", "judge-markdown", "agreement", "thresholds", "routing"],
+        choices=[
+            "run",
+            "models",
+            "judge-sheet",
+            "judge-markdown",
+            "agreement",
+            "thresholds",
+            "routing",
+            "acceptance",
+            "systems",
+            "failures",
+        ],
     )
     parser.add_argument("--from", dest="from_report", help="thresholds: the reference run's report")
     parser.add_argument("--system", default="baseline", choices=sorted(SYSTEMS))
@@ -563,6 +622,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         "--check", action="store_true", help=f"exit 1 when a family falls under its reference run or {THRESHOLDS}"
     )
     parser.add_argument("--budget", type=float, help="dollars the key may spend: the cases left are not run")
+    parser.add_argument("--prepared", action="store_true", help="acceptance: the prepared debriefs only (LAB-204)")
+    parser.add_argument("--since", help="acceptance: the decisions after this date (2026-10-18)")
     args = parser.parse_args(argv)
     args.workers = args.workers or (1 if args.command == "models" else 4)
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
@@ -576,6 +637,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         "agreement": judge_agreement,
         "thresholds": thresholds,
         "routing": routing,
+        "acceptance": accepted,
+        "systems": compare_systems,
+        "failures": failures,
     }
     return commands[args.command](args)
 
