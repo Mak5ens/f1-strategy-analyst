@@ -96,3 +96,43 @@ export function dashed(race: RaceLaps): Set<string> {
   }
   return second;
 }
+
+export type StintLine = { stint: number; compound: string | null; from: Point; to: Point; degradation: number | null };
+
+/**
+ * A driver's pace: the clean laps the `degradation` tool fits, and each stint's fitted line on the raw lap times,
+ * from its first clean lap to its last, at the tyre age of each (`raw_slope_s_per_lap`, `raw_intercept_s`).
+ */
+export function pace(driver: DriverLaps): { dots: Point[]; lines: StintLine[] } {
+  const laps = new Map(driver.laps.map((lap) => [lap.lap, lap]));
+  const dots: Point[] = [];
+  const lines: StintLine[] = [];
+  for (const stint of driver.pace) {
+    const used = stint.laps.flatMap((n) => {
+      const lap = laps.get(n);
+      return lap?.lap_time_s ? [{ lap: n, value: lap.lap_time_s, age: lap.tyre_age ?? n }] : [];
+    });
+    dots.push(...used.map(({ lap, value }) => ({ lap, value })));
+    const first = used[0];
+    const last = used.at(-1);
+    const { raw_slope_s_per_lap: slope, raw_intercept_s: intercept } = stint;
+    if (first && last && slope !== null && intercept !== null && last.lap > first.lap) {
+      const at = (point: { lap: number; age: number }) => ({ lap: point.lap, value: intercept + slope * point.age });
+      lines.push({
+        stint: stint.stint,
+        compound: stint.compound,
+        from: at(first),
+        to: at(last),
+        degradation: stint.degradation_s_per_lap,
+      });
+    }
+  }
+  return { dots: dots.toSorted((a, b) => a.lap - b.lap), lines };
+}
+
+/** The lap time axis: the highlighted drivers' clean laps, a few tenths of room around them. */
+export function paceDomain(series: Point[][]): [number, number] {
+  const values = series.flat().map((point) => point.value);
+  if (!values.length) return [0, 1];
+  return [Math.min(...values) - 0.3, Math.max(...values) + 0.3];
+}

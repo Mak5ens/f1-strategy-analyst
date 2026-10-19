@@ -243,6 +243,39 @@ def test_the_laps_of_a_race_give_the_gaps_the_gaps_tool_computes(grand_prix: Gra
         assert round(mine - theirs, 3) == row.gap_s
 
 
+def test_the_laps_carry_each_stint_s_degradation_as_the_tool_computes_it(grand_prix: GrandPrix, lake: Lake) -> None:
+    from f1.tools.data import RaceData
+    from f1.tools.degradation import DegradationInput, stint_degradation
+
+    laps = grand_prix.laps(2025, 2)
+    assert laps is not None
+    for row in laps.drivers[:2]:
+        tool = stint_degradation(RaceData(connect(lake)), DegradationInput(**RACE, driver=row.driver.code))
+        assert [
+            (p.stint, p.start_lap, p.end_lap, p.degradation_s_per_lap, p.raw_slope_s_per_lap) for p in row.pace
+        ] == [(s.stint, s.start_lap, s.end_lap, s.degradation_s_per_lap, s.raw_slope_s_per_lap) for s in tool.stints]
+        assert all(len(p.laps) == s.laps_used for p, s in zip(row.pace, tool.stints, strict=True))
+
+
+class FakeRules:
+    def article(self, season: int, kind: str) -> dict[str, str] | None:
+        return {"label": f"Article {kind} {season}", "url": "https://fia.example"} if kind == "safety_car" else None
+
+    def decision(self, season: int, round_number: int, driver: str, kind: str, seconds: int | None) -> None:
+        return None
+
+
+def test_the_events_of_a_race_in_lap_order_with_their_links(lake: Lake) -> None:
+    laps = GrandPrix(connect(lake), FakeRules()).laps(2025, 2)  # type: ignore[arg-type]
+    assert laps is not None
+
+    assert [event.kind for event in laps.events] == [period.kind for period in laps.neutralizations]
+    assert [event.start_lap for event in laps.events] == sorted(event.start_lap for event in laps.events)
+    links = {event.kind: event.link for event in laps.events}
+    assert links["safety_car"] and links["safety_car"].label == "Article safety_car 2025"
+    assert links["red_flag"] is None  # not found: no link
+
+
 @pytest.fixture
 def client(grand_prix: GrandPrix) -> Iterator[TestClient]:
     requests = FakeRequests()

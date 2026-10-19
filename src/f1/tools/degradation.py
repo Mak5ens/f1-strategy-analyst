@@ -2,6 +2,7 @@
 
 import statistics
 from collections import Counter
+from dataclasses import dataclass, field
 from typing import Any
 
 import numpy as np
@@ -53,12 +54,27 @@ class DegradationOutput(BaseModel):
     stints: list[StintDegradation]
 
 
-def stint_degradation(data: RaceData, request: DegradationInput) -> DegradationOutput:
-    laps = data.driver_laps(request, request.driver)
+@dataclass
+class StintFit:
+    """A stint's degradation as the tool gives it, and what a chart draws of it: the clean laps the slope is computed
+    on, and the line fitted on their raw lap times (`raw_slope_s_per_lap`, and its value at tyre age 0)."""
+
+    summary: StintDegradation
+    laps: list[int] = field(default_factory=list)
+    raw_intercept_s: float | None = None
+
+
+def by_stint(laps: dict[int, dict[str, Any]]) -> dict[int, list[dict[str, Any]]]:
+    """A driver's laps grouped by stint, in lap order."""
     stints: dict[int, list[dict[str, Any]]] = {}
     for _, lap in sorted(laps.items()):
         if (stint := integer(lap["stint"])) is not None:
             stints.setdefault(stint, []).append(lap)
+    return stints
+
+
+def stint_degradation(data: RaceData, request: DegradationInput) -> DegradationOutput:
+    stints = by_stint(data.driver_laps(request, request.driver))
     if request.stint is not None:
         if request.stint not in stints:
             raise ToolError(f"{request.driver} has no stint {request.stint}; stints: {sorted(stints)}.")
@@ -70,11 +86,11 @@ def stint_degradation(data: RaceData, request: DegradationInput) -> DegradationO
         session=request.session,
         driver=request.driver,
         fuel_effect_s_per_lap=request.fuel_effect_s_per_lap,
-        stints=[_stint(stint, stint_laps, request.fuel_effect_s_per_lap) for stint, stint_laps in stints.items()],
+        stints=[fit(stint, stint_laps, request.fuel_effect_s_per_lap).summary for stint, stint_laps in stints.items()],
     )
 
 
-def _stint(stint: int, laps: list[dict[str, Any]], fuel_effect: float) -> StintDegradation:
+def fit(stint: int, laps: list[dict[str, Any]], fuel_effect: float = DEFAULT_FUEL_EFFECT_S_PER_LAP) -> StintFit:
     excluded: Counter[str] = Counter()
     clean = []
     for lap in laps:
@@ -103,7 +119,7 @@ def _stint(stint: int, laps: list[dict[str, Any]], fuel_effect: float) -> StintD
     )
     if len(clean) < MIN_LAPS:
         summary.note = f"Only {len(clean)} clean laps: at least {MIN_LAPS} are needed for a slope."
-        return summary
+        return StintFit(summary, [int(lap["lap_number"]) for lap in clean])
 
     age = np.array([number(lap["tyre_life"]) or float(lap["lap_number"]) for lap in clean])
     lap_number = np.array([float(lap["lap_number"]) for lap in clean])
@@ -111,13 +127,13 @@ def _stint(stint: int, laps: list[dict[str, Any]], fuel_effect: float) -> StintD
     # Each lap the car is lighter: add back what the fuel burnt since lap 1 gave, to compare at equal weight.
     corrected = raw + fuel_effect * (lap_number - 1)
     slope, intercept = np.polyfit(age, corrected, 1)
-    raw_slope = np.polyfit(age, raw, 1)[0]
+    raw_slope, raw_intercept = np.polyfit(age, raw, 1)
     residuals = corrected - (slope * age + intercept)
     total = float(np.sum((corrected - corrected.mean()) ** 2))
     summary.degradation_s_per_lap = round(float(slope), 4)
     summary.raw_slope_s_per_lap = round(float(raw_slope), 4)
     summary.r_squared = round(1 - float(np.sum(residuals**2)) / total, 3) if total > 0 else None
-    return summary
+    return StintFit(summary, [int(lap["lap_number"]) for lap in clean], round(float(raw_intercept), 3))
 
 
 def _exclusion_reason(lap: dict[str, Any]) -> str:
