@@ -1569,13 +1569,21 @@
             },
             "type": "array",
             "title": "Laps"
+          },
+          "pace": {
+            "items": {
+              "$ref": "#/components/schemas/StintPace"
+            },
+            "type": "array",
+            "title": "Pace"
           }
         },
         "type": "object",
         "required": [
           "driver",
           "grid",
-          "laps"
+          "laps",
+          "pace"
         ],
         "title": "DriverLaps"
       },
@@ -2053,6 +2061,25 @@
         ],
         "title": "Lap"
       },
+      "Link": {
+        "properties": {
+          "label": {
+            "type": "string",
+            "title": "Label",
+            "description": "In French"
+          },
+          "url": {
+            "type": "string",
+            "title": "Url"
+          }
+        },
+        "type": "object",
+        "required": [
+          "label",
+          "url"
+        ],
+        "title": "Link"
+      },
       "Neutralization": {
         "properties": {
           "kind": {
@@ -2482,6 +2509,101 @@
         "title": "Race",
         "description": "A Grand Prix as its page shows it. A section without data is empty, never filled with a guess."
       },
+      "RaceEvent": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "safety_car",
+              "virtual_safety_car",
+              "red_flag",
+              "penalty"
+            ],
+            "title": "Kind"
+          },
+          "start_lap": {
+            "type": "integer",
+            "title": "Start Lap"
+          },
+          "end_lap": {
+            "type": "integer",
+            "title": "End Lap"
+          },
+          "driver": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Driver"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "penalty": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "time",
+                  "drive_through",
+                  "stop_go"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Penalty"
+          },
+          "seconds": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seconds"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason",
+            "description": "In French"
+          },
+          "link": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Link"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The article of the regulations, or the stewards' decision"
+          }
+        },
+        "type": "object",
+        "required": [
+          "kind",
+          "start_lap",
+          "end_lap",
+          "driver",
+          "penalty",
+          "seconds",
+          "reason",
+          "link"
+        ],
+        "title": "RaceEvent",
+        "description": "A neutralization or a penalty, with where the FIA's texts say what it means (`f1.race_rules`)."
+      },
       "RaceLaps": {
         "properties": {
           "season": {
@@ -2517,6 +2639,14 @@
             },
             "type": "array",
             "title": "Neutralizations"
+          },
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/RaceEvent"
+            },
+            "type": "array",
+            "title": "Events",
+            "description": "Neutralizations and penalties, in lap order"
           }
         },
         "type": "object",
@@ -2525,7 +2655,8 @@
           "round",
           "total_laps",
           "drivers",
-          "neutralizations"
+          "neutralizations",
+          "events"
         ],
         "title": "RaceLaps",
         "description": "A race lap by lap, for its charts (LAB-189): read from the lake, as the tools read it, never by a model."
@@ -2827,6 +2958,101 @@
           "fresh"
         ],
         "title": "Stint"
+      },
+      "StintPace": {
+        "properties": {
+          "stint": {
+            "type": "integer",
+            "title": "Stint"
+          },
+          "compound": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Compound"
+          },
+          "start_lap": {
+            "type": "integer",
+            "title": "Start Lap"
+          },
+          "end_lap": {
+            "type": "integer",
+            "title": "End Lap"
+          },
+          "laps": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Laps",
+            "description": "The clean laps the slope is computed on"
+          },
+          "degradation_s_per_lap": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Degradation S Per Lap",
+            "description": "Fuel effect removed; None under 5 clean laps"
+          },
+          "raw_slope_s_per_lap": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Raw Slope S Per Lap"
+          },
+          "raw_intercept_s": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Raw Intercept S",
+            "description": "The raw line's lap time at tyre age 0"
+          },
+          "r_squared": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "R Squared"
+          }
+        },
+        "type": "object",
+        "required": [
+          "stint",
+          "compound",
+          "start_lap",
+          "end_lap",
+          "laps",
+          "degradation_s_per_lap",
+          "raw_slope_s_per_lap",
+          "raw_intercept_s",
+          "r_squared"
+        ],
+        "title": "StintPace",
+        "description": "A stint's degradation, as the `degradation` tool computes it, and the line it fits on the raw lap times."
       },
       "Stop": {
         "properties": {
