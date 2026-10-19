@@ -61,7 +61,7 @@ export default async function Journal({
                     {t.journal.actions[entry.action]}
                     {entry.reason && ` · ${t.debrief.review.reasons[entry.reason]}`}
                   </span>
-                  <Link href={`/debriefs/${entry.debrief}`} className="font-semibold hover:text-primary">
+                  <Link href={`/debriefs/${entry.debrief}`} className="font-semibold hover:text-primary-text">
                     {subjectTitle(entry.subject)} · {subjectFor(entry.subject)} · {entry.point}
                   </Link>
                   <span className="ml-auto text-muted-foreground">

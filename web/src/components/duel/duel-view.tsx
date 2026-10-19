@@ -154,7 +154,7 @@ export function DuelTable({ duel }: { duel: Duel }) {
               <td className="py-3 pr-4">
                 <Link
                   href={`/grand-prix/${duel.season}/${round.round}?onglet=course&pilotes=${pilots}`}
-                  className="font-semibold hover:text-primary"
+                  className="font-semibold hover:text-primary-text"
                 >
                   {round.grand_prix}
                 </Link>

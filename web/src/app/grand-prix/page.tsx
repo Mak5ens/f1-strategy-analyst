@@ -20,7 +20,7 @@ export default async function Calendar({ searchParams }: { searchParams: Promise
     <main>
       <section className="border-b bg-band">
         <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 pt-12 pb-8 sm:pt-16">
-          <p className="flex items-center gap-2 font-semibold text-primary text-sm uppercase tracking-wider">
+          <p className="flex items-center gap-2 font-semibold text-primary-text text-sm uppercase tracking-wider">
             <span className="slash" aria-hidden />
             {t.eyebrow}
           </p>

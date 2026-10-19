@@ -19,6 +19,52 @@ export const fr = {
     duel: "Duel",
     season: "Saison",
   },
+  design: {
+    title: "Système de design",
+    lead: "La page de référence interne : les principes, les tokens et les composants de base du site. Elle n'est pas dans la navigation.",
+    principles: "Principes",
+    principlesList: [
+      [
+        "Les données d'abord",
+        "Un chiffre, une courbe ou un tableau occupe toujours la place principale ; la décoration (rayures, grand numéro en filigrane, dégradés) reste en retrait, sous 5 % d'opacité.",
+      ],
+      [
+        "Une seule couleur d'accent",
+        "Le rouge signale l'action et l'état actif. Les autres couleurs sont des données : une écurie, un composé, un drapeau, le meilleur tour.",
+      ],
+      [
+        "Vitesse et précision",
+        "Titres larges et inclinés par la barre oblique, chiffres tabulaires alignés, mouvements courts et nets, jamais plus de 0,7 s.",
+      ],
+      [
+        "Lisible par tous",
+        "Chaque texte atteint le contraste AA sur sa surface (mesuré par les tests), chaque graphique a son équivalent au clavier et en tableau, le mouvement s'arrête si le système le demande.",
+      ],
+      [
+        "Aucun élément de marque",
+        "Pas de logo, de police ni d'image officielle de la F1, de la FIA ou d'une écurie : les couleurs d'écurie sont des données, rien de plus.",
+      ],
+    ] as [string, string][],
+    surfaces: "Surfaces",
+    text: "Texte",
+    data: "Couleurs de données",
+    dataLead:
+      "Les composés comme à la télévision, le meilleur tour en violet, les neutralisations en bandes. La couleur d'une écurie vient de l'API (`colour`) et passe par la variable --team.",
+    typography: "Typographie",
+    display: "Titre d'affichage",
+    body: "Le texte courant, en Inter : une phrase posée, lisible sur fond sombre, qui accompagne les chiffres sans leur voler la place.",
+    figures: "Chiffres tabulaires",
+    components: "Composants",
+    primary: "Action principale",
+    secondary: "Action secondaire",
+    link: "Lien d'action →",
+    pills: ["Tous", "En revue", "Publiés"],
+    badges: { live: "Lire", review: "En relecture", error: "Erreur" },
+    motion: "Mouvement",
+    motionLead:
+      "Une section arrive en glissant de quelques pixels, une courbe se trace du premier au dernier tour. Avec « réduire les animations », tout s'affiche d'un coup.",
+    replay: "Rejouer",
+  },
   season: {
     eyebrow: "Saison",
     title: (season: number) => `Saison ${season}`,

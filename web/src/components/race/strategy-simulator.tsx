@@ -103,7 +103,7 @@ export function StrategySimulator({ race }: { race: RaceLaps }) {
           </select>
         </label>
         {(stops !== null || compounds?.some(Boolean)) && (
-          <button type="button" onClick={reset} className="py-2 font-semibold text-primary text-sm">
+          <button type="button" onClick={reset} className="py-2 font-semibold text-primary-text text-sm">
             {t.reset}
           </button>
         )}

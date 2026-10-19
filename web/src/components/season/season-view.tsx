@@ -367,14 +367,14 @@ function RoundChart({
         <button
           type="button"
           onClick={() => setHighlight(start)}
-          className="rounded-full px-2.5 py-1 font-semibold text-primary text-xs hover:underline"
+          className="rounded-full px-2.5 py-1 font-semibold text-primary-text text-xs hover:underline"
         >
           {t.top}
         </button>
         <button
           type="button"
           onClick={() => setHighlight(lines.map((line) => line.code))}
-          className="rounded-full px-2.5 py-1 font-semibold text-primary text-xs hover:underline"
+          className="rounded-full px-2.5 py-1 font-semibold text-primary-text text-xs hover:underline"
         >
           {t.all}
         </button>
@@ -445,6 +445,8 @@ function RoundChart({
                   strokeOpacity={highlighted ? 1 : 0.18}
                   strokeWidth={highlighted ? 2.25 : 1.25}
                   strokeLinejoin="round"
+                  pathLength={highlighted ? 1 : undefined}
+                  className={highlighted ? "draw" : undefined}
                 />
               </g>
             ))}

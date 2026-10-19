@@ -28,11 +28,11 @@ export function FreeAnswer({ answer }: { answer: Answer }) {
       >
         <p className="flex items-center gap-2 font-semibold text-muted-foreground text-xs uppercase tracking-wide">
           {answer.status === "asked" ? (
-            <CircleHelp className="size-4 text-primary" />
+            <CircleHelp className="size-4 text-primary-text" />
           ) : rules ? (
-            <BookOpen className="size-4 text-primary" />
+            <BookOpen className="size-4 text-primary-text" />
           ) : (
-            <Calculator className="size-4 text-primary" />
+            <Calculator className="size-4 text-primary-text" />
           )}
           {answer.status === "asked" ? t.asked : rules ? t.routed : t.computed}
         </p>
@@ -96,7 +96,7 @@ export function FreeAnswer({ answer }: { answer: Answer }) {
             <span className="text-muted-foreground text-xs uppercase tracking-wide">{t.sources}</span>
             {answer.sources.map((source) => (
               <details key={source.id} className="rounded-lg bg-band px-3 py-2">
-                <summary className="cursor-pointer font-medium text-xs marker:text-primary">
+                <summary className="cursor-pointer font-medium text-xs marker:text-primary-text">
                   {source.id} · {source.label}
                 </summary>
                 {source.text && (
@@ -109,7 +109,7 @@ export function FreeAnswer({ answer }: { answer: Answer }) {
                     href={source.url}
                     target="_blank"
                     rel="noreferrer"
-                    className="mt-2 inline-block font-semibold text-primary text-xs hover:underline"
+                    className="mt-2 inline-block font-semibold text-primary-text text-xs hover:underline"
                   >
                     {t.openSource} ↗
                   </a>
@@ -122,7 +122,7 @@ export function FreeAnswer({ answer }: { answer: Answer }) {
         {answer.race && (
           <Link
             href={`/grand-prix/${answer.race.season}/${answer.race.round}`}
-            className="self-start font-semibold text-sm hover:text-primary"
+            className="self-start font-semibold text-sm hover:text-primary-text"
           >
             {t.seeRace(`${answer.race.grand_prix} ${answer.race.season}`)} →
           </Link>

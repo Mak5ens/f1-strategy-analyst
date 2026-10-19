@@ -48,7 +48,7 @@ export default async function GrandPrixPage({ params, searchParams }: { params: 
       <main className="mx-auto flex max-w-3xl flex-col items-start gap-4 px-4 py-24">
         <h1 className="display text-3xl sm:text-5xl">{t.missing.title}</h1>
         <p className="text-lg text-muted-foreground">{race === null ? t.unreachable : t.missing.lead(round, season)}</p>
-        <Link href="/grand-prix" className="font-semibold text-primary">
+        <Link href="/grand-prix" className="font-semibold text-primary-text">
           {t.missing.back} →
         </Link>
       </main>

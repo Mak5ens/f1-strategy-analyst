@@ -22,7 +22,7 @@ export function RaceCard({ race }: { race: RaceSummary }) {
     >
       <span
         aria-hidden
-        className="display figures pointer-events-none absolute -right-2 -bottom-6 text-[7rem] text-white/[0.04] italic"
+        className="display figures pointer-events-none absolute -right-2 -bottom-6 text-[7rem] text-watermark italic"
       >
         {String(race.round).padStart(2, "0")}
       </span>
