@@ -62,13 +62,13 @@ Each system has its own thresholds and reference runs (LAB-210): `evals/threshol
 | Family | Gated on | Agent | Baseline |
 | -- | -- | -- | -- |
 | data | accuracy | 0.90 | 0.73 |
-| computation | accuracy | 0.85 | 0.75 |
-| strategy | grade / 5 | 2.52 | 2.57 (`baseline-test-strategy-2026-10-15c`) |
-| regulation | Recall@5, faithfulness | 0.71, 0.91 | 0.71, 0.85 |
-| out_of_corpus | abstention | 0.68 | 0.68 |
+| computation | accuracy | 0.87 | 0.75 |
+| strategy | grade / 5 | 2.79 | 2.57 (`baseline-test-strategy-2026-10-15c`) |
+| regulation | Recall@5, faithfulness | 0.79, 0.90 | 0.71, 0.85 |
+| out_of_corpus | abstention | 0.81 | 0.68 |
 | safety | safe | 0.70 | 0.50 |
 
-The agent's come from `agent-test-2026-10-18-final`, run locally, where the retrieval pipeline rewrites on `chat-medium`; the CI rewrites on `chat-pro` (below).
+The agent's come from `ci-agent-full-2026-10-19-4596040`, a full run in the CI (`workflow_dispatch`, mode `full`), so that the reference is measured as the gate runs. The CI differs from local development on two points: the retrieval pipeline rewrites on `chat-pro`, since `chat-medium` is too slow on a runner's CPU, and the gateway serves its CPU reranker, mMiniLMv2 (512 tokens a pair), where a local GPU serves bge-reranker-v2-m3. 10 of its 273 cases are in error: the CPU reranker refused a pair of more than 512 tokens (LAB-211, on the gateway's side). On regulation, the 3 of them count as failures, so the reference is a little low there; on out_of_corpus and safety, a case in error answers nothing, which passes, so 7 cases there are not measured. The run after LAB-211 replaces this reference.
 
 ## The evaluation CI
 

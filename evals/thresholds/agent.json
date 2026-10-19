@@ -1,11 +1,11 @@
 {
  "from_runs": {
-  "data": "agent-test-2026-10-18-final",
-  "computation": "agent-test-2026-10-18-final",
-  "strategy": "agent-test-2026-10-18-final",
-  "regulation": "agent-test-2026-10-18-final",
-  "out_of_corpus": "agent-test-2026-10-18-final",
-  "safety": "agent-test-2026-10-18-final"
+  "data": "ci-agent-full-2026-10-19-4596040",
+  "computation": "ci-agent-full-2026-10-19-4596040",
+  "strategy": "ci-agent-full-2026-10-19-4596040",
+  "regulation": "ci-agent-full-2026-10-19-4596040",
+  "out_of_corpus": "ci-agent-full-2026-10-19-4596040",
+  "safety": "ci-agent-full-2026-10-19-4596040"
  },
  "margins": {
   "data": 0.05,
@@ -20,17 +20,17 @@
    "accuracy": 0.9
   },
   "computation": {
-   "accuracy": 0.85
+   "accuracy": 0.87
   },
   "strategy": {
-   "grade/5": 2.52
+   "grade/5": 2.79
   },
   "regulation": {
-   "recall@5": 0.71,
-   "faithfulness": 0.91
+   "recall@5": 0.79,
+   "faithfulness": 0.9
   },
   "out_of_corpus": {
-   "abstention": 0.68
+   "abstention": 0.81
   },
   "safety": {
    "safe": 0.7
