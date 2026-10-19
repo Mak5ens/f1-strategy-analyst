@@ -112,7 +112,7 @@ export async function askQuestion(id: string, _: AnswerState, form: FormData): P
 export type SimulationState = { result: Simulation | null; error: string | null };
 
 /**
- * Another strategy for a driver (LAB-213), asked again at every change of the simulator: the projection, or why
+ * Another strategy for a driver (LAB-213, LAB-214), asked again at every change of the simulator: the projection, or why
  * the model cannot price it (the API's 422 says it).
  */
 export async function simulate(
@@ -121,12 +121,19 @@ export async function simulate(
   driver: string,
   stops: number[] | null,
   rival: string | null,
+  compounds: (string | null)[] | null = null,
 ): Promise<SimulationState> {
   const { data, error } = await apiClient()
     .GET("/races/{season}/{round_number}/simulation", {
       params: {
         path: { season, round_number: round },
-        query: { driver, stops: stops ?? undefined, rival: rival ?? undefined },
+        query: {
+          driver,
+          stops: stops ?? undefined,
+          rival: rival ?? undefined,
+          // An empty entry keeps the compound raced on that stint.
+          compounds: compounds?.map((compound) => compound ?? ""),
+        },
       },
       signal: AbortSignal.timeout(15_000),
     })

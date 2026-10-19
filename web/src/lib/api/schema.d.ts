@@ -134,8 +134,9 @@ export interface paths {
     };
     /**
      * Get Simulation
-     * @description What another strategy would have given a driver (LAB-213): the same stops on other laps, projected by code
-     *     from the race's measures, with the error measured on real stints extended as much. A model, not a measure.
+     * @description What another strategy would have given a driver (LAB-213, LAB-214): the same stops on other laps, a stint on
+     *     another compound, projected by code from the race's measures, with the error measured on real stints projected
+     *     as much. A model, not a measure.
      */
     get: operations["get_simulation_races__season___round_number__simulation_get"];
     put?: never;
@@ -1381,8 +1382,13 @@ export interface components {
     };
     /** SimulatedStint */
     SimulatedStint: {
-      /** Compound */
+      /**
+       * Compound
+       * @description The compound asked: the one raced unless another was chosen
+       */
       compound: string | null;
+      /** Raced Compound */
+      raced_compound: string | null;
       /**
        * Raced From
        * @description First lap raced on it
@@ -1452,6 +1458,8 @@ export interface components {
       extended_laps: number;
       /** @description The error measured on real stints extended as much; None with no extension or no report */
       expected_error?: components["schemas"]["ExpectedError"] | null;
+      /** @description The error measured on real stints projected from another compound; None if none changes */
+      compound_error?: components["schemas"]["ExpectedError"] | null;
       /** Notes */
       notes?: string[];
     };
@@ -1819,6 +1827,8 @@ export interface operations {
         stops?: number[] | null;
         /** @description The driver gaps are measured to; the leader by default */
         rival?: string | null;
+        /** @description The compound of each stint, in order; empty keeps the one raced */
+        compounds?: string[] | null;
       };
       header?: never;
       path: {

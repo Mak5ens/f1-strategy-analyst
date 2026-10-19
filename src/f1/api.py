@@ -344,13 +344,22 @@ def get_simulation(
     driver: Annotated[str, Query(description="The driver whose strategy changes, e.g. LEC")],
     stops: Annotated[list[int] | None, Query(description="The in-laps asked, in order; as raced if none")] = None,
     rival: Annotated[str | None, Query(description="The driver gaps are measured to; the leader by default")] = None,
+    compounds: Annotated[
+        list[str] | None, Query(description="The compound of each stint, in order; empty keeps the one raced")
+    ] = None,
 ) -> SimulationOutput:
-    """What another strategy would have given a driver (LAB-213): the same stops on other laps, projected by code
-    from the race's measures, with the error measured on real stints extended as much. A model, not a measure."""
+    """What another strategy would have given a driver (LAB-213, LAB-214): the same stops on other laps, a stint on
+    another compound, projected by code from the race's measures, with the error measured on real stints projected
+    as much. A model, not a measure."""
     try:
         return grand_prix.simulate(
             SimulationInput(
-                season=season, round=round_number, driver=driver.upper(), stops=stops, rival=rival and rival.upper()
+                season=season,
+                round=round_number,
+                driver=driver.upper(),
+                stops=stops,
+                rival=rival and rival.upper(),
+                compounds=None if compounds is None else [one.upper() or None for one in compounds],
             )
         )
     except ToolError as error:

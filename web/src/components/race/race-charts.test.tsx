@@ -134,4 +134,19 @@ describe("RaceCharts", () => {
     expect(ver.getAttribute("aria-pressed")).toBe("true");
     expect(container.querySelector('[data-driver="VER"] path')?.getAttribute("stroke-opacity")).toBe("1");
   });
+
+  it("opens the duel of the two drivers highlighted over the season", () => {
+    render(<RaceCharts race={race} focus={["LEC"]} />);
+    expect(screen.queryByRole("link", { name: /^Duel/ })).toBeNull(); // one driver
+    fireEvent.click(screen.getByRole("button", { name: "VER" }));
+    const duel = screen.getByRole("link", { name: "Duel LEC – VER sur la saison 2025 →" });
+    expect(duel.getAttribute("href")).toBe("/duel?saison=2025&a=LEC&b=VER");
+  });
+
+  it("names each highlighted driver at the end of their line, in every chart", () => {
+    const { container } = render(<RaceCharts race={race} />);
+    const labels = (code: string) => [...container.querySelectorAll(`[data-label="${code}"]`)];
+    expect(labels("VER")).toHaveLength(3); // positions, gaps, pace
+    expect(labels("LEC")).toHaveLength(2); // no pace: no stint line
+  });
 });

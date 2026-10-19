@@ -1,6 +1,6 @@
 {
  "season": 2025,
- "date": "2026-10-19T18:23:21+00:00",
+ "date": "2026-10-19T22:07:42+00:00",
  "stints": 748,
  "fitted_share": 0.6,
  "min_clean_laps": 15,
@@ -34,6 +34,39 @@
    "median_s": 5.726,
    "p90_s": 15.385,
    "bias_s": -0.863
+  }
+ ],
+ "min_compound_clean_laps": 8,
+ "compound_buckets": [
+  {
+   "laps": [
+    1,
+    10
+   ],
+   "samples": 9303,
+   "median_s": 2.533,
+   "p90_s": 9.596,
+   "bias_s": -0.244
+  },
+  {
+   "laps": [
+    11,
+    20
+   ],
+   "samples": 6982,
+   "median_s": 6.495,
+   "p90_s": 21.034,
+   "bias_s": -0.165
+  },
+  {
+   "laps": [
+    21,
+    40
+   ],
+   "samples": 3727,
+   "median_s": 11.978,
+   "p90_s": 44.476,
+   "bias_s": -1.613
   }
  ]
 }

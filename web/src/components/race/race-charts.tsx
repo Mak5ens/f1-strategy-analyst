@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "cn";
+import Link from "next/link";
 import { type KeyboardEvent, type PointerEvent, type ReactNode, useId, useMemo, useState } from "react";
 import type { RaceLaps } from "@/lib/api/client";
 import { formatLapTime, formatSeconds } from "@/lib/format";
@@ -18,6 +19,7 @@ import {
   path,
   positions,
   scale,
+  spread,
   ticks,
 } from "@/lib/race-chart";
 import { teamStyle } from "./driver-cell";
@@ -38,7 +40,8 @@ export type Series = { driver: DriverLaps; points: Point[]; highlighted: boolean
 /**
  * The race lap by lap (LAB-189): positions from the grid, and the gaps at the line to the leader or to a chosen
  * driver. The highlighted drivers are drawn in their team's colour, the others faded; hovering or the arrow keys
- * read one lap in both charts at once, and a table gives the same numbers.
+ * read one lap in both charts at once, and a table gives the same numbers. Two drivers highlighted open their duel
+ * over the season (LAB-214).
  */
 export function RaceCharts({ race, focus = [] }: { race: RaceLaps; focus?: string[] }) {
   const initial = useMemo(() => defaultHighlight(race, focus), [race, focus]);
@@ -120,6 +123,14 @@ export function RaceCharts({ race, focus = [] }: { race: RaceLaps; focus?: strin
             {t.all}
           </button>
         </div>
+        {highlight.length === 2 && (
+          <Link
+            href={`/duel?saison=${race.season}&a=${highlight[0]}&b=${highlight[1]}`}
+            className="self-start font-semibold text-primary text-sm hover:underline"
+          >
+            {t.duel(highlight[0] ?? "", highlight[1] ?? "", race.season)}
+          </Link>
+        )}
       </fieldset>
 
       <Readout race={race} lap={lap} highlight={highlight} reference={referenceDriver} />
@@ -175,6 +186,7 @@ export function RaceCharts({ race, focus = [] }: { race: RaceLaps; focus?: strin
           domain={gapRange}
           yTicks={ticks(gapRange)}
           format={(value) => (value === 0 ? "0" : `${value > 0 ? "+" : ""}${value} ${t.seconds}`)}
+          labels
           lap={lap}
           onLap={setLap}
         />
@@ -194,6 +206,9 @@ export function RaceCharts({ race, focus = [] }: { race: RaceLaps; focus?: strin
           yTicks={ticks(paceRange)}
           format={formatShortLapTime}
           line={false}
+          labels
+          // Each label at the end of the driver's last stint line, not on a scattered dot.
+          labelAt={({ driver }) => paces.get(driver.driver.code)?.lines.findLast((stint) => stint.to.lap <= total)?.to}
           lap={lap}
           onLap={setLap}
           overlay={(x, y) =>
@@ -225,6 +240,48 @@ export function RaceCharts({ race, focus = [] }: { race: RaceLaps; focus?: strin
   );
 }
 
+/** Each highlighted driver's code at the end of their line, in the window, moved apart when two lines end close. */
+function EndLabels({
+  series,
+  total,
+  x,
+  y,
+  at,
+}: {
+  series: Series[];
+  total: number;
+  at?: (series: Series) => Point | undefined;
+  x: (lap: number) => number;
+  y: (value: number) => number;
+}) {
+  const ends = series.flatMap((one) => {
+    const { driver, points, highlighted } = one;
+    const last = () => points.findLast((point) => point.lap <= total); // the window's last lap
+    const end = highlighted ? (at ? at(one) : last()) : undefined;
+    return end ? [{ driver: driver.driver, x: x(end.lap) + 6, y: y(end.value) }] : [];
+  });
+  const heights = spread(
+    ends.map((end) => end.y),
+    12,
+    [M.top, H - M.bottom],
+  );
+  return ends.map((end, index) => (
+    <text
+      key={end.driver.code}
+      data-label={end.driver.code}
+      x={end.x}
+      y={heights[index]}
+      dy="0.32em"
+      fontSize={11}
+      fontWeight={700}
+      style={teamStyle(end.driver.colour)}
+      fill="var(--team)"
+    >
+      {end.driver.code}
+    </text>
+  ));
+}
+
 /**
  * One chart: laps across, the value down (position 1 or no gap at the top), the hovered lap marked. `from` and
  * `total` set the laps it spans: the whole race, or a zoom on a period.
@@ -239,6 +296,7 @@ export function LapChart({
   yTicks,
   format,
   labels = false,
+  labelAt,
   line = true,
   overlay,
   lap,
@@ -253,6 +311,8 @@ export function LapChart({
   yTicks: number[];
   format: (value: number) => string;
   labels?: boolean;
+  /** Where a driver's label goes: the last point of their series in the window by default. */
+  labelAt?: (series: Series) => Point | undefined;
   /** false: the points as dots, the highlighted drivers' only. */
   line?: boolean;
   overlay?: (x: (lap: number) => number, y: (value: number) => number) => ReactNode;
@@ -386,28 +446,7 @@ export function LapChart({
             ))}
             {overlay?.(x, y)}
           </g>
-          {labels &&
-            series
-              .filter((s) => s.highlighted && s.points.length)
-              .map(({ driver, points }) => {
-                const end = points.findLast((point) => point.lap <= total); // the window's last lap
-                return (
-                  end && (
-                    <text
-                      key={driver.driver.code}
-                      x={x(end.lap) + 6}
-                      y={y(end.value)}
-                      dy="0.32em"
-                      fontSize={11}
-                      fontWeight={700}
-                      style={teamStyle(driver.driver.colour)}
-                      fill="var(--team)"
-                    >
-                      {driver.driver.code}
-                    </text>
-                  )
-                );
-              })}
+          {labels && <EndLabels series={series} total={total} x={x} y={y} at={labelAt} />}
           {lap !== null && (
             <g aria-hidden>
               <line
