@@ -1,5 +1,6 @@
 """Read access to the race data lake for the tools, with errors that say what is missing."""
 
+from collections.abc import Sequence
 from typing import Annotated, Any, Literal
 
 import duckdb
@@ -133,6 +134,25 @@ class RaceData:
             table="laps",
         )
         return rows[0] if rows else None
+
+    def season_results(self, season: int, sessions: Sequence[str]) -> list[dict[str, Any]]:
+        """The results of every round of a season for these sessions, in one query."""
+        marks = ", ".join("?" for _ in sessions)
+        return self._query(
+            f"SELECT * FROM results WHERE season = ? AND session IN ({marks}) ORDER BY round, session, position",
+            [season, *sessions],
+            table="results",
+        )
+
+    def season_laps(self, season: int, drivers: Sequence[str], session: str = "R") -> list[dict[str, Any]]:
+        """Every lap of these drivers in a session of every round of a season, in one query."""
+        marks = ", ".join("?" for _ in drivers)
+        return self._query(
+            f"SELECT * FROM laps WHERE season = ? AND session = ? AND driver IN ({marks}) "
+            "ORDER BY round, driver, lap_number",
+            [season, session, *drivers],
+            table="laps",
+        )
 
     def _query(self, query: str, parameters: list[Any], *, table: str) -> list[dict[str, Any]]:
         try:

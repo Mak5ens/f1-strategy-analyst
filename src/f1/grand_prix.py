@@ -16,6 +16,7 @@ from pydantic import Field
 
 from core.tools import ToolError
 from f1.display import Driver, Response, driver, grand_prix_fr
+from f1.duels import Duel, duel, season_drivers
 from f1.race_rules import RaceRules
 from f1.tools.data import RaceData, SessionRef, integer, number
 from f1.tools.degradation import by_stint, fit
@@ -284,6 +285,14 @@ class GrandPrix:
         if summary.winner:
             self._raced[season, round_number] = race
         return race
+
+    def duel(self, season: int, first: str, second: str) -> Duel | None:
+        """Two drivers face to face over a season (LAB-212); None when either did not race in it."""
+        return duel(self._data, season, first, second)
+
+    def drivers(self, season: int) -> list[Driver]:
+        """The drivers of a season, most points first."""
+        return season_drivers(self._data, season) if season in self.seasons() else []
 
     def laps(self, season: int, round_number: int) -> RaceLaps | None:
         """Every lap of every driver of a race; None when it has no results yet. Kept, as a race's page is."""

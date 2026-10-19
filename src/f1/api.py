@@ -30,6 +30,7 @@ from core.agent.state import AgentState, RejectReason, Result
 from core.agent.store import RequestStore
 from f1.charts import FactChart, chart_for
 from f1.display import Driver, Response, grand_prix_fr, team_colour
+from f1.duels import Duel
 from f1.grand_prix import GrandPrix, Race, RaceLaps, RaceSummary
 from f1.questions import FreeAnswer, FreeQuestions, FreeQuestionStore
 from f1.router import Route, Router
@@ -331,6 +332,26 @@ def get_race(season: int, round_number: int, grand_prix: GrandPrixDep) -> Race:
     if race is None:
         raise HTTPException(404, f"no data for round {round_number} of {season}")
     return race
+
+
+@app.get("/seasons/{season}/drivers")
+def get_season_drivers(season: int, grand_prix: GrandPrixDep) -> list[Driver]:
+    """The drivers who raced in a season, most points first, with the team of their last race."""
+    return grand_prix.drivers(season)
+
+
+@app.get("/duels")
+def get_duel(
+    grand_prix: GrandPrixDep,
+    season: Annotated[int, Query(description="The season")],
+    drivers: Annotated[list[str], Query(min_length=2, max_length=2, description="Two driver codes, e.g. LEC and HAM")],
+) -> Duel:
+    """Two drivers face to face over a season (LAB-212): qualifying, race and pace gaps round by round, measured in
+    the lake by code (`f1.duels`). No model is called."""
+    found = grand_prix.duel(season, drivers[0].upper(), drivers[1].upper())
+    if found is None:
+        raise HTTPException(404, f"no duel of {' and '.join(drivers)} in {season}: a driver did not race that season")
+    return found
 
 
 @app.get("/races/{season}/{round_number}/laps")

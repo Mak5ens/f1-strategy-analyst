@@ -21,6 +21,7 @@ Node.js 24 and corepack are needed on the host for `web-dev`, `web-test` and `we
 | `/debriefs/<id>` | A request where it stands: the agent's question, the plan to tick (by driver), the review point by point (approve, correct, reject, a reason for the last two), the agent at work or stopped, or the debrief published with its figures, sources and the drivers' tyre strategy |
 | `/debriefs` | The published debriefs, `?saison=2025&manche=16` |
 | `/journal` | Every review decision with the agent's text, `?action=reject`, `?debrief=<id>` |
+| `/duel` | Two drivers face to face over a season (`?saison=2025&a=LEC&b=HAM`; the leader and a teammate by default, LAB-212): who was ahead how often in qualifying and in the race, the points, the median gaps, the qualifying and pace gaps round by round, a table linking each race's « Course » tab with both drivers highlighted. The definitions are in `docs/tools.md` |
 | `/grand-prix` | The calendar of a season (`?saison=2024`), a card per round with its winner (LAB-202) |
 | `/grand-prix/<season>/<round>` | A Grand Prix: result, grid, the race lap by lap (positions and gaps, LAB-189), tyre strategies and stops, standings after the round, safety cars and penalties, then its debriefs (LAB-202) |
 
