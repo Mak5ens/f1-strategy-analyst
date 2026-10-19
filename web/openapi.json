@@ -1659,6 +1659,17 @@
             ],
             "title": "Error",
             "description": "Why it gave no number"
+          },
+          "chart": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FactChart"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The race chart that shows it (LAB-189)"
           }
         },
         "type": "object",
@@ -1666,10 +1677,76 @@
           "id",
           "label",
           "ok",
-          "error"
+          "error",
+          "chart"
         ],
         "title": "Fact",
         "description": "An analysis the agent ran: the points cite it for their numbers."
+      },
+      "FactChart": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "positions",
+              "gaps",
+              "pace"
+            ],
+            "title": "Kind"
+          },
+          "drivers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Drivers",
+            "description": "Codes of the drivers the analysis is about, highlighted"
+          },
+          "reference": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reference",
+            "description": "The driver the gaps are measured to"
+          },
+          "from_lap": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "From Lap",
+            "description": "First lap of the zoom; the whole race when None"
+          },
+          "to_lap": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "To Lap"
+          }
+        },
+        "type": "object",
+        "required": [
+          "kind",
+          "drivers",
+          "reference",
+          "from_lap",
+          "to_lap"
+        ],
+        "title": "FactChart"
       },
       "FreeAnswer": {
         "properties": {

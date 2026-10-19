@@ -17,6 +17,7 @@ export type JournalEntry = components["schemas"]["JournalEntry"];
 export type QuestionReply = components["schemas"]["QuestionReply"];
 export type Race = components["schemas"]["Race"];
 export type RaceLaps = components["schemas"]["RaceLaps"];
+export type FactChart = components["schemas"]["FactChart"];
 export type RaceSummary = components["schemas"]["RaceSummary"];
 export type FreeAnswer = components["schemas"]["FreeAnswer"];
 export type Choice = components["schemas"]["Choice"];

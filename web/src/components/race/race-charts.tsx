@@ -33,7 +33,7 @@ const W = 960;
 const H = 340;
 const M = { top: 12, right: 52, bottom: 28, left: 48 };
 
-type Series = { driver: DriverLaps; points: Point[]; highlighted: boolean; dashed: boolean };
+export type Series = { driver: DriverLaps; points: Point[]; highlighted: boolean; dashed: boolean };
 
 /**
  * The race lap by lap (LAB-189): positions from the grid, and the gaps at the line to the leader or to a chosen
@@ -225,10 +225,14 @@ export function RaceCharts({ race, focus = [] }: { race: RaceLaps; focus?: strin
   );
 }
 
-/** One chart: laps across, the value down (position 1 or no gap at the top), the hovered lap marked. */
-function LapChart({
+/**
+ * One chart: laps across, the value down (position 1 or no gap at the top), the hovered lap marked. `from` and
+ * `total` set the laps it spans: the whole race, or a zoom on a period.
+ */
+export function LapChart({
   label,
   race,
+  from = 1,
   total,
   series,
   domain,
@@ -242,6 +246,7 @@ function LapChart({
 }: {
   label: string;
   race: RaceLaps;
+  from?: number;
   total: number;
   series: Series[];
   domain: [number, number];
@@ -255,21 +260,22 @@ function LapChart({
   onLap: (lap: number | null) => void;
 }) {
   const clip = useId();
-  const x = scale([0, total], [M.left, W - M.right]);
+  const x = scale([from - 1, total], [M.left, W - M.right]);
   const y = scale(domain, [M.top, H - M.bottom]);
-  const lapTicks = ticks([0, total], 10).filter((tick) => tick > 0);
+  const lapTicks = ticks([from - 1, total], 10).filter((tick) => tick >= from && Number.isInteger(tick));
+  const within = (value: number) => Math.min(total, Math.max(from, value));
 
   const lapAt = (event: PointerEvent<SVGSVGElement>) => {
     const box = event.currentTarget.getBoundingClientRect();
     const at = ((event.clientX - box.left) / box.width) * W;
-    const value = Math.round(((at - M.left) / (W - M.left - M.right)) * total);
-    onLap(Math.min(total, Math.max(1, value)));
+    const value = from - 1 + Math.round(((at - M.left) / (W - M.left - M.right)) * (total - from + 1));
+    onLap(within(value));
   };
   const keys = (event: KeyboardEvent<HTMLDivElement>) => {
     const moves: Record<string, number> = { ArrowRight: 1, ArrowLeft: -1, PageUp: 10, PageDown: -10 };
     const move = moves[event.key];
-    if (move !== undefined) onLap(Math.min(total, Math.max(1, (lap ?? 0) + move)));
-    else if (event.key === "Home") onLap(1);
+    if (move !== undefined) onLap(within((lap ?? from - 1) + move));
+    else if (event.key === "Home") onLap(from);
     else if (event.key === "End") onLap(total);
     else if (event.key === "Escape") onLap(null);
     else return;
@@ -282,10 +288,10 @@ function LapChart({
       <div
         role="slider"
         aria-label={label}
-        aria-valuemin={1}
+        aria-valuemin={from}
         aria-valuemax={total}
-        aria-valuenow={lap ?? 1}
-        aria-valuetext={`${t.lap} ${lap ?? 1}`}
+        aria-valuenow={lap ?? from}
+        aria-valuetext={`${t.lap} ${lap ?? from}`}
         tabIndex={0}
         onKeyDown={keys}
         className="rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -303,17 +309,19 @@ function LapChart({
               <rect x={M.left} y={M.top - 4} width={W - M.left - M.right} height={H - M.top - M.bottom + 8} />
             </clipPath>
           </defs>
-          {race.neutralizations.map((period) => (
-            <rect
-              key={`${period.kind}-${period.start_lap}`}
-              data-neutralization={period.kind}
-              x={x(period.start_lap - 1)}
-              width={x(period.end_lap) - x(period.start_lap - 1)}
-              y={M.top}
-              height={H - M.top - M.bottom}
-              className={period.kind === "red_flag" ? "fill-red-flag" : "fill-neutralized"}
-            />
-          ))}
+          <g clipPath={`url(#${clip})`}>
+            {race.neutralizations.map((period) => (
+              <rect
+                key={`${period.kind}-${period.start_lap}`}
+                data-neutralization={period.kind}
+                x={x(period.start_lap - 1)}
+                width={x(period.end_lap) - x(period.start_lap - 1)}
+                y={M.top}
+                height={H - M.top - M.bottom}
+                className={period.kind === "red_flag" ? "fill-red-flag" : "fill-neutralized"}
+              />
+            ))}
+          </g>
           {yTicks.map((tick) => (
             <g key={tick} className="text-muted-foreground">
               <line x1={M.left} x2={W - M.right} y1={y(tick)} y2={y(tick)} stroke="currentColor" strokeOpacity={0.12} />
@@ -382,7 +390,7 @@ function LapChart({
             series
               .filter((s) => s.highlighted && s.points.length)
               .map(({ driver, points }) => {
-                const end = points.at(-1);
+                const end = points.findLast((point) => point.lap <= total); // the window's last lap
                 return (
                   end && (
                     <text
@@ -539,7 +547,7 @@ function LapTable({ race, highlight, reference }: { race: RaceLaps; highlight: s
 }
 
 /** "1:21" or "1:21.5": the ticks of a lap time axis. */
-function formatShortLapTime(seconds: number): string {
+export function formatShortLapTime(seconds: number): string {
   const minutes = Math.floor(seconds / 60);
   const rest = Math.round((seconds - minutes * 60) * 10) / 10;
   const text = Number.isInteger(rest) ? String(rest) : rest.toFixed(1);

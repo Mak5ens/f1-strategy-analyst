@@ -644,6 +644,33 @@ export interface components {
        * @description Why it gave no number
        */
       error: string | null;
+      /** @description The race chart that shows it (LAB-189) */
+      chart: components["schemas"]["FactChart"] | null;
+    };
+    /** FactChart */
+    FactChart: {
+      /**
+       * Kind
+       * @enum {string}
+       */
+      kind: "positions" | "gaps" | "pace";
+      /**
+       * Drivers
+       * @description Codes of the drivers the analysis is about, highlighted
+       */
+      drivers: string[];
+      /**
+       * Reference
+       * @description The driver the gaps are measured to
+       */
+      reference: string | null;
+      /**
+       * From Lap
+       * @description First lap of the zoom; the whole race when None
+       */
+      from_lap: number | null;
+      /** To Lap */
+      to_lap: number | null;
     };
     /**
      * FreeAnswer

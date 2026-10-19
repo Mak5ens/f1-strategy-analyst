@@ -9,7 +9,7 @@ import { PublishedDebrief } from "@/components/debrief/published-debrief";
 import { ReviewStep } from "@/components/debrief/review-step";
 import { teamStyle } from "@/components/race/driver-cell";
 import { debriefTitle, subjectFor, subjectTitle } from "@/components/subject-line";
-import { type Debrief, fetchDebrief, fetchQuestions, fetchRace } from "@/lib/api/client";
+import { type Debrief, fetchDebrief, fetchQuestions, fetchRace, fetchRaceLaps } from "@/lib/api/client";
 import { getMessages } from "@/lib/i18n";
 
 type Params = Promise<{ id: string }>;
@@ -35,10 +35,14 @@ export default async function DebriefPage({ params }: { params: Params }) {
   }
   const { subject } = debrief;
   const published = debrief.status === "published";
-  const [race, replies] = await Promise.all([
-    published && subject.season && subject.round ? fetchRace(subject.season, subject.round) : null,
+  const raced = subject.season && subject.round ? ([subject.season, subject.round] as const) : null;
+  const [race, replies, lapsFound] = await Promise.all([
+    published && raced ? fetchRace(...raced) : null,
     published ? fetchQuestions(debrief.id) : null,
+    // The charts of the points' numbers (LAB-189): in the review, to check them, and once published.
+    (published || debrief.waiting === "review") && raced ? fetchRaceLaps(...raced) : null,
   ]);
+  const laps = lapsFound && lapsFound !== "missing" ? lapsFound : null;
   return (
     <main>
       <DebriefHeader debrief={debrief} />
@@ -66,13 +70,18 @@ export default async function DebriefPage({ params }: { params: Params }) {
             evidence={Object.fromEntries(
               debrief.points.map((point) => [
                 point.id,
-                <PointEvidence key={point.id} point={point} evidence={debrief} />,
+                <PointEvidence key={point.id} point={point} evidence={debrief} laps={laps} />,
               ]),
             )}
           />
         )}
         {debrief.status === "published" && (
-          <PublishedDebrief debrief={debrief} race={race && race !== "missing" ? race : null} replies={replies ?? []} />
+          <PublishedDebrief
+            debrief={debrief}
+            race={race && race !== "missing" ? race : null}
+            laps={laps}
+            replies={replies ?? []}
+          />
         )}
       </div>
     </main>

@@ -2,7 +2,7 @@ import { cn } from "cn";
 import { FiguresText } from "@/components/figures-text";
 import { StrategyChart } from "@/components/race/strategy-chart";
 import { SectionTitle } from "@/components/section-title";
-import type { Debrief, QuestionReply, Race } from "@/lib/api/client";
+import type { Debrief, QuestionReply, Race, RaceLaps } from "@/lib/api/client";
 import { getMessages } from "@/lib/i18n";
 import { PointEvidence } from "./point-evidence";
 import { momentNumbers, PointHeader, partStyle } from "./point-header";
@@ -24,10 +24,12 @@ function followed(debrief: Debrief, race: Race): Set<string> {
 export function PublishedDebrief({
   debrief,
   race,
+  laps = null,
   replies,
 }: {
   debrief: Debrief;
   race: Race | null;
+  laps?: RaceLaps | null;
   replies: QuestionReply[];
 }) {
   const codes = race ? followed(debrief, race) : new Set<string>();
@@ -56,13 +58,13 @@ export function PublishedDebrief({
               >
                 <FiguresText text={point.text} />
               </p>
-              <PointEvidence point={point} evidence={debrief} />
+              <PointEvidence point={point} evidence={debrief} laps={laps} />
             </DebriefPart>
           ))}
         </ol>
         <p className="mt-4 text-muted-foreground text-sm">{t.method}</p>
       </section>
-      <QuestionThread debrief={debrief} replies={replies} />
+      <QuestionThread debrief={debrief} replies={replies} laps={laps} />
       {race && strategies.length > 0 && (
         <section>
           <SectionTitle>{t.strategy}</SectionTitle>

@@ -1,7 +1,7 @@
 import { cn } from "cn";
 import { FiguresText } from "@/components/figures-text";
 import { SectionTitle } from "@/components/section-title";
-import type { Debrief, QuestionReply } from "@/lib/api/client";
+import type { Debrief, QuestionReply, RaceLaps } from "@/lib/api/client";
 import { getMessages } from "@/lib/i18n";
 import { PointEvidence } from "./point-evidence";
 import { QuestionAsk } from "./question-ask";
@@ -18,7 +18,15 @@ export function questionSuggestions(debrief: Debrief, count = 3): string[] {
 }
 
 /** The questions asked under a published debrief, each with its answer, or why it is not shown; then a new one. */
-export function QuestionThread({ debrief, replies }: { debrief: Debrief; replies: QuestionReply[] }) {
+export function QuestionThread({
+  debrief,
+  replies,
+  laps = null,
+}: {
+  debrief: Debrief;
+  replies: QuestionReply[];
+  laps?: RaceLaps | null;
+}) {
   return (
     <section id="questions" className="scroll-mt-24">
       <SectionTitle>{t.title}</SectionTitle>
@@ -42,7 +50,7 @@ export function QuestionThread({ debrief, replies }: { debrief: Debrief; replies
                       <p className="text-foreground/85 leading-relaxed">
                         <FiguresText text={point.text} />
                       </p>
-                      <PointEvidence point={point} evidence={reply} />
+                      <PointEvidence point={point} evidence={reply} laps={laps} />
                     </li>
                   ))}
                 </ul>

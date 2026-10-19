@@ -212,7 +212,13 @@ def test_questions_on_a_published_debrief_show_only_backed_answers(client: TestC
     assert answered.status_code == 201
     reply = answered.json()
     assert reply["status"] == "answered" and reply["facts"] == [
-        {"id": "loss:LEC", "label": "Arrêts de Leclerc", "ok": True, "error": None}
+        {
+            "id": "loss:LEC",
+            "label": "Arrêts de Leclerc",
+            "ok": True,
+            "error": None,
+            "chart": {"kind": "positions", "drivers": ["LEC"], "reference": None, "from_lap": None, "to_lap": None},
+        }
     ]
     assert (withheld["status"], withheld["points"]) == ("withheld", []) and "30" in withheld["reason"]
     assert refused["status"] == "refused"
