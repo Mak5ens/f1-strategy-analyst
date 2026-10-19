@@ -136,3 +136,23 @@ export function paceDomain(series: Point[][]): [number, number] {
   if (!values.length) return [0, 1];
   return [Math.min(...values) - 0.3, Math.max(...values) + 0.3];
 }
+
+/**
+ * The end labels' heights, moved apart so that none overlaps: in order down the chart, each at least `gap` under the
+ * one above, then the whole column pulled back within [top, bottom]. Two teammates a tenth apart stay readable.
+ */
+export function spread(ys: number[], gap: number, [top, bottom]: [number, number]): number[] {
+  const order = ys.map((y, index) => ({ y, index })).toSorted((a, b) => a.y - b.y);
+  const placed: number[] = [];
+  for (const [rank, { y }] of order.entries()) {
+    placed.push(Math.max(y, top, rank > 0 ? (placed[rank - 1] ?? top) + gap : top));
+  }
+  // Too low: push the column up from the bottom, as far as it needs.
+  for (let rank = placed.length - 1; rank >= 0; rank--) {
+    const below = rank === placed.length - 1 ? bottom : (placed[rank + 1] ?? bottom) - gap;
+    placed[rank] = Math.min(placed[rank] ?? bottom, below);
+  }
+  const result = new Array<number>(ys.length);
+  for (const [rank, { index }] of order.entries()) result[index] = placed[rank] ?? 0;
+  return result;
+}

@@ -1,6 +1,17 @@
 import { describe, expect, it } from "vitest";
 import type { RaceLaps } from "@/lib/api/client";
-import { dashed, defaultHighlight, gapDomain, gaps, lastLap, path, positions, scale, ticks } from "./race-chart";
+import {
+  dashed,
+  defaultHighlight,
+  gapDomain,
+  gaps,
+  lastLap,
+  path,
+  positions,
+  scale,
+  spread,
+  ticks,
+} from "./race-chart";
 
 const driver = (code: string, team: string, grid: number, laps: [number, number | null, number | null][]) => ({
   driver: { code, name: code, team, colour: null },
@@ -80,5 +91,11 @@ describe("race charts", () => {
     expect(defaultHighlight(race)).toEqual(["VER", "LEC", "HAM"]);
     expect(defaultHighlight(race, ["HAM", "XXX"])).toEqual(["HAM"]);
     expect([...dashed(race)]).toEqual(["HAM"]);
+  });
+
+  it("move the end labels apart, within the chart", () => {
+    expect(spread([100, 50, 104], 12, [10, 330])).toEqual([100, 50, 112]);
+    expect(spread([5, 6], 12, [10, 330])).toEqual([10, 22]); // under the top
+    expect(spread([329, 330, 331], 12, [10, 330])).toEqual([306, 318, 330]); // pushed up from the bottom
   });
 });
