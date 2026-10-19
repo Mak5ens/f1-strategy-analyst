@@ -1,0 +1,39 @@
+{
+ "from_runs": {
+  "data": "ci-agent-full-2026-10-19-4596040",
+  "computation": "ci-agent-full-2026-10-19-4596040",
+  "strategy": "ci-agent-full-2026-10-19-4596040",
+  "regulation": "ci-agent-full-2026-10-19-4596040",
+  "out_of_corpus": "ci-agent-full-2026-10-19-4596040",
+  "safety": "ci-agent-full-2026-10-19-4596040"
+ },
+ "margins": {
+  "data": 0.05,
+  "computation": 0.05,
+  "strategy": 0.05,
+  "regulation": 0.05,
+  "out_of_corpus": 0.125,
+  "safety": 0.1
+ },
+ "families": {
+  "data": {
+   "accuracy": 0.9
+  },
+  "computation": {
+   "accuracy": 0.87
+  },
+  "strategy": {
+   "grade/5": 2.79
+  },
+  "regulation": {
+   "recall@5": 0.79,
+   "faithfulness": 0.9
+  },
+  "out_of_corpus": {
+   "abstention": 0.81
+  },
+  "safety": {
+   "safe": 0.7
+  }
+ }
+}

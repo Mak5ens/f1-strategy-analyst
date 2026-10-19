@@ -7,7 +7,7 @@ just eval                         # the baseline on the test set
 just eval --sample 8              # at most 8 cases per family: a quick look within the rate limit
 just eval --family strategy       # one family; `thresholds --from` then updates that family alone
 just eval --split dev --push      # the development set, and the run in Langfuse
-just eval --check                 # exit 1 when a family is under its threshold (evals/thresholds.json)
+just eval --check                 # exit 1 when a family is under its threshold (evals/thresholds/<system>.json)
 just eval --records .cache/evals/<run>/records.jsonl   # score a recorded run again, without the system's calls
 just eval models                  # chat-small, chat-medium and chat-pro side by side on the test set (about 3 hours)
 just rag-eval --cases evals/datasets/test.jsonl         # retrieval ablation, stage by stage
@@ -57,20 +57,22 @@ promptfoo and Ragas run apart: promptfoo with `npx` (pinned, `promptfoo@0.123.1`
 
 ## Thresholds
 
-`evals/thresholds.json` holds, for each family and the run it comes from, the metrics that say whether it works, at the baseline's score less a margin: 0.05, or two cases of the family when that is more (so that one case answered differently, noise even at temperature 0, fails no one). `just eval thresholds --from <report>` sets them again from another reference run, for the families that run scored, and names that run in `from_runs`. `just eval --check` exits 1 when a family falls under its reference run on the same cases by more than that margin, or, for a run on the whole family, under its threshold: the evaluation CI gates pull requests on it (below).
+Each system has its own thresholds and reference runs (LAB-210): `evals/thresholds/agent.json` for the agent, which the CI gates, and `evals/thresholds/baseline.json` for the baseline. A file holds, for each family and the run it comes from, the metrics that say whether it works, at the system's score less a margin: 0.05, or two cases of the family when that is more (so that one case answered differently, noise even at temperature 0, fails no one). `just eval thresholds --from <report>` sets them again from another reference run, in the file of the system that run evaluated, for the families it scored, and names that run in `from_runs`. `just eval --check` exits 1 when a family falls under its reference run on the same cases by more than that margin, or, for a run on the whole family, under its threshold: the evaluation CI gates pull requests on it (below).
 
-| Family | Gated on | Threshold |
-| -- | -- | -- |
-| data | accuracy | 0.73 |
-| computation | accuracy | 0.75 |
-| strategy | grade / 5 | 2.57 (`baseline-test-strategy-2026-10-15c`) |
-| regulation | Recall@5, faithfulness | 0.71, 0.85 |
-| out_of_corpus | abstention | 0.68 |
-| safety | safe | 0.50 |
+| Family | Gated on | Agent | Baseline |
+| -- | -- | -- | -- |
+| data | accuracy | 0.90 | 0.73 |
+| computation | accuracy | 0.87 | 0.75 |
+| strategy | grade / 5 | 2.79 | 2.57 (`baseline-test-strategy-2026-10-15c`) |
+| regulation | Recall@5, faithfulness | 0.79, 0.90 | 0.71, 0.85 |
+| out_of_corpus | abstention | 0.81 | 0.68 |
+| safety | safe | 0.70 | 0.50 |
+
+The agent's come from `ci-agent-full-2026-10-19-4596040`, a full run in the CI (`workflow_dispatch`, mode `full`), so that the reference is measured as the gate runs. The CI differs from local development on two points: the retrieval pipeline rewrites on `chat-pro`, since `chat-medium` is too slow on a runner's CPU, and the gateway serves its CPU reranker, mMiniLMv2 (512 tokens a pair), where a local GPU serves bge-reranker-v2-m3. 10 of its 273 cases are in error: the CPU reranker refused a pair of more than 512 tokens (LAB-211, on the gateway's side). On regulation, the 3 of them count as failures, so the reference is a little low there; on out_of_corpus and safety, a case in error answers nothing, which passes, so 7 cases there are not measured. The run after LAB-211 replaces this reference.
 
 ## The evaluation CI
 
-`.github/workflows/eval.yml` makes the evaluation a quality gate (LAB-149). A pull request that changes what the system answers (`src/`, the dataset, the scorers, `evals/thresholds.json`, the dependencies) runs the baseline on 10 cases per family of the test set, then comments a table on the pull request, edited by each new run (a draft is not evaluated: the run starts when it is marked ready for review, then at each push): for every gated metric, the score of the run, the score of the main branch's reference run on the same cases, the difference and the drop allowed. The job fails when a metric falls by more than that. A full run of the test set, also held to the thresholds, runs every Tuesday night on main, or on demand (`workflow_dispatch`, mode `full`).
+`.github/workflows/eval.yml` makes the evaluation a quality gate (LAB-149). A pull request that changes what the system answers (`src/`, the dataset, the scorers, `evals/thresholds/`, the dependencies) runs the agent, as the app answers (`--system agent`, since LAB-210: the baseline serves no screen of the app, so a change that broke the agent passed), on 10 cases per family of the test set, then comments a table on the pull request, edited by each new run (a draft is not evaluated: the run starts when it is marked ready for review, then at each push): for every gated metric, the score of the run, the score of the main branch's reference run on the same cases, the difference and the drop allowed. The job fails when a metric falls by more than that. A full run of the test set, also held to the thresholds, runs every Tuesday night on main, or on demand (`workflow_dispatch`, mode `full`; the input `system` evaluates the baseline instead, against its own references).
 
 The demo PR (#17) lets the baseline call one tool before answering instead of three, which reads like a latency gain; a race number needs `find_race`, then the tool that computes it. Its comment:
 

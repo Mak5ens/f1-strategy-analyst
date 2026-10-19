@@ -5,11 +5,11 @@
     just eval --family strategy        # one family only (its thresholds are updated alone)
     just eval --split dev --push       # the development set, and the run in Langfuse
     just eval --check                  # fail when a family falls under the main branch's reference runs
-    just eval --sample 10 --check --budget 0.25   # the CI's quick gate (.github/workflows/eval.yml)
+    just eval --system agent --sample 10 --check --budget 0.25   # the CI's quick gate (.github/workflows/eval.yml)
     just eval --run-name <run> --resume   # go on with an interrupted run: only the missing or failed cases
     just eval judge-sheet              # 30 strategy answers graded by the judge, for a person to grade too
     just eval agreement                # how the judge agrees with the person's grades (latest round)
-    just eval thresholds --from evals/reports/<run>.json   # initial thresholds from a reference run
+    just eval thresholds --from evals/reports/<run>.json   # thresholds of the run's system from a reference run
     just eval models                   # chat-small, chat-medium and chat-pro side by side (LAB-150, about 3 hours)
     just eval routing --split dev --check   # the home page's router on each family (LAB-206): code, no call
     just eval --system agent --sample 8     # the agent as the app answers (LAB-154): router, pipeline, chat
@@ -67,7 +67,14 @@ log = logging.getLogger("f1.eval")
 
 WORK = Path(".cache/evals")
 REPORTS = Path("evals/reports")
-THRESHOLDS = Path("evals/thresholds.json")
+# Each system's thresholds and reference runs: the CI gates the agent (LAB-210), the baseline stays measurable.
+THRESHOLDS = Path("evals/thresholds")
+
+
+def thresholds_path(system: str) -> Path:
+    return THRESHOLDS / f"{system}.json"
+
+
 # One directory a calibration round, by date: `calibration.jsonl` is what the person grades (no judge grade in sight),
 # `judge-grades.json` the judge's grades, `agreement.json` how close they are.
 JUDGE = Path("evals/judge")
@@ -188,11 +195,13 @@ def latency(cases: Sequence[Case], records: Sequence[Record]) -> dict[str, dict[
     return result
 
 
-def references(families: Sequence[str]) -> dict[str, tuple[str, CaseScores]]:
-    """Each family's reference run on the main branch (`from_runs` of evals/thresholds.json) and its case scores."""
-    if not THRESHOLDS.exists():
+def references(system: str, families: Sequence[str]) -> dict[str, tuple[str, CaseScores]]:
+    """Each family's reference run of the system on the main branch (`from_runs` of evals/thresholds/<system>.json)
+    and its case scores."""
+    path = thresholds_path(system)
+    if not path.exists():
         return {}
-    runs: dict[str, str] = json.loads(THRESHOLDS.read_text()).get("from_runs", {})
+    runs: dict[str, str] = json.loads(path.read_text()).get("from_runs", {})
     found = {}
     for family in families:
         path = REPORTS / f"{runs.get(family)}.json"
@@ -256,10 +265,11 @@ def evaluate(args: argparse.Namespace) -> int:
     print(table(lines))
 
     scores = case_scores(cases, records, promptfoo=promptfoo, ragas=ragas, judge=judge)
-    comparisons = compare(cases, scores, references([line.family for line in lines]), GATED)
+    comparisons = compare(cases, scores, references(args.system, [line.family for line in lines]), GATED)
     # A threshold holds for a whole family: a sample is only compared with the reference on the same cases.
     whole = not args.sample and not args.records
-    under = check_thresholds(lines, json.loads(THRESHOLDS.read_text())["families"]) if whole else []
+    limits = thresholds_path(args.system)
+    under = check_thresholds(lines, json.loads(limits.read_text())["families"]) if whole and limits.exists() else []
     spent_after = None if spent_before is None else settled_spend()
     cost = None if spent_after is None or spent_before is None else round(spent_after - spent_before, 4)
     minutes = round((time.monotonic() - started) / 60, 1)
@@ -273,7 +283,7 @@ def evaluate(args: argparse.Namespace) -> int:
         details=[
             f"{len(cases)} cases, {errors} in error · {minutes} min"
             + (f" · ${cost:.2f} spent by the gateway key" if cost is not None else ""),
-            f"Run `{run}`: the reference runs are named in `evals/thresholds.json` (`from_runs`).",
+            f"Run `{run}`: the reference runs are named in `{thresholds_path(args.system)}` (`from_runs`).",
         ],
         marker="<!-- f1-eval -->",
     )
@@ -474,8 +484,11 @@ def thresholds(args: argparse.Namespace) -> int:
     """Thresholds from a reference run: its score on each gated metric, less the margin, rounded down. A family the
     run did not score keeps its threshold, and the run it came from."""
     report = json.loads(Path(args.from_report).read_text())
-    current = json.loads(THRESHOLDS.read_text()) if THRESHOLDS.exists() else {}
-    sources: dict[str, str] = current.get("from_runs") or {family: current["from"] for family in current["families"]}
+    path = thresholds_path(report.get("system", args.system))
+    current = json.loads(path.read_text()) if path.exists() else {}
+    sources: dict[str, str] = current.get("from_runs") or {
+        family: current["from"] for family in current.get("families", {})
+    }
     margins: dict[str, float] = dict(current.get("margins", {}))
     limits: dict[str, dict[str, float]] = dict(current.get("families", {}))
     for family, metrics in GATED.items():
@@ -491,7 +504,8 @@ def thresholds(args: argparse.Namespace) -> int:
                 scale = 5.0 if metric == "grade/5" else 1.0
                 value = max(0.0, scores[metric] - margin * scale)
                 limits.setdefault(family, {})[metric] = math.floor(value * 100) / 100
-    THRESHOLDS.write_text(json.dumps({"from_runs": sources, "margins": margins, "families": limits}, indent=1) + "\n")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps({"from_runs": sources, "margins": margins, "families": limits}, indent=1) + "\n")
     print(json.dumps(limits, indent=1))
     return 0
 
@@ -619,7 +633,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--no-judge", action="store_true")
     parser.add_argument("--push", action="store_true", help="link the run to the Langfuse dataset, with its scores")
     parser.add_argument(
-        "--check", action="store_true", help=f"exit 1 when a family falls under its reference run or {THRESHOLDS}"
+        "--check",
+        action="store_true",
+        help=f"exit 1 when a family falls under its reference run or {THRESHOLDS}/<system>.json",
     )
     parser.add_argument("--budget", type=float, help="dollars the key may spend: the cases left are not run")
     parser.add_argument("--prepared", action="store_true", help="acceptance: the prepared debriefs only (LAB-204)")
