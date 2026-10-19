@@ -41,6 +41,16 @@ describe("StrategyChart", () => {
     expect(container.querySelector(".bg-neutralized")?.getAttribute("style")).toContain("left: 18%");
   });
 
+  it("says each compound by its letter and its name, not by its colour alone", () => {
+    const short = structuredClone(race);
+    const [strategy] = short.strategies;
+    strategy?.stints.splice(1, 0, { stint: 3, compound: "SOFT", start_lap: 26, end_lap: 27, laps: 2, fresh: true });
+    render(<StrategyChart race={short} />);
+    const soft = screen.getByRole("img", { name: "Tendre · Tour 26–27" });
+    expect(soft.textContent).toBe("S");
+    expect(screen.getByRole("img", { name: "Medium · Tour 1–25" }).textContent).toBe("M");
+  });
+
   it("lists the stops with what they cost, in French", () => {
     render(<StrategyChart race={race} />);
     expect(screen.getByText("21,0 s")).toBeDefined();

@@ -83,11 +83,15 @@ export function StrategyChart({ race }: { race: Race }) {
                 ))}
                 {strategy.stints.map((stint) => {
                   const style = compounds[stint.compound ?? ""] ?? unknown;
+                  const name = `${t.compounds[stint.compound ?? ""] ?? t.unknown} · ${t.lap} ${stint.start_lap}–${stint.end_lap}${stint.fresh === false ? ` · ${t.used}` : ""}`;
                   return (
+                    // The compound is said by its letter and its name, never by its colour alone (colour blindness).
                     <span
                       key={stint.stint}
+                      role="img"
+                      aria-label={name}
                       className={cn(
-                        "figures absolute inset-y-1 flex items-center overflow-hidden rounded-[4px] px-1.5 font-bold text-[0.65rem]",
+                        "figures absolute inset-y-1 flex items-center justify-center overflow-hidden rounded-[4px] font-bold text-[0.65rem] sm:justify-start sm:px-1.5",
                         style.bar,
                         stint.fresh === false &&
                           "bg-[repeating-linear-gradient(135deg,transparent_0_4px,rgb(0_0_0/0.18)_4px_8px)]",
@@ -96,9 +100,9 @@ export function StrategyChart({ race }: { race: Race }) {
                         left: `calc(${percent(stint.start_lap - 1, total)} + 1px)`,
                         width: `calc(${percent(stint.laps, total)} - 2px)`,
                       }}
-                      title={`${t.compounds[stint.compound ?? ""] ?? t.unknown} · ${t.lap} ${stint.start_lap}–${stint.end_lap}${stint.fresh === false ? ` · ${t.used}` : ""}`}
+                      title={name}
                     >
-                      {stint.laps >= 3 && style.letter}
+                      {stint.laps >= 2 && style.letter}
                     </span>
                   );
                 })}
