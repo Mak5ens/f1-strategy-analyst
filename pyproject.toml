@@ -44,6 +44,7 @@ f1-baseline = "f1.baseline.ask:main"
 f1-eval = "f1.evals.run:main"
 f1-debrief = "f1.agent.cli:main"
 f1-debriefs-prepare = "f1.prepare:main"
+f1-simulation-validate = "f1.evals.simulation:main"
 
 [dependency-groups]
 dev = [

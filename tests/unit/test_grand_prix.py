@@ -325,6 +325,8 @@ def test_the_api_serves_the_calendar_and_the_race_pages(client: TestClient) -> N
     assert client.get("/duels", params={"season": 2025, "drivers": ["VER"]}).status_code == 422
     assert client.get("/duels", params={"season": 2025, "drivers": ["VER", "XXX"]}).status_code == 404
     assert [driver["code"] for driver in client.get("/seasons/2025/drivers").json()][:2] == ["LEC", "VER"]
+    refused = client.get("/races/2025/2/simulation", params={"driver": "ver"})
+    assert refused.status_code == 422 and "tours propres" in refused.json()["detail"]  # 1 clean lap on mediums
 
 
 def test_the_debriefs_of_a_race(client: TestClient) -> None:

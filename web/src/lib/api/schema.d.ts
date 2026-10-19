@@ -125,6 +125,27 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/races/{season}/{round_number}/simulation": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Simulation
+     * @description What another strategy would have given a driver (LAB-213): the same stops on other laps, projected by code
+     *     from the race's measures, with the error measured on real stints extended as much. A model, not a measure.
+     */
+    get: operations["get_simulation_races__season___round_number__simulation_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/seasons/{season}/drivers": {
     parameters: {
       query?: never;
@@ -785,6 +806,35 @@ export interface components {
       pace_gap_s: number | null;
     };
     /**
+     * ExpectedError
+     * @description The error measured on real stints' lines extended by as many laps (`f1.evals.simulation`).
+     */
+    ExpectedError: {
+      /**
+       * Laps From
+       * @description The range of laps extended this error was measured on
+       */
+      laps_from: number;
+      /** Laps To */
+      laps_to: number;
+      /** Samples */
+      samples: number;
+      /**
+       * Median S
+       * @description Median absolute error on the time of those laps
+       */
+      median_s: number;
+      /** P90 S */
+      p90_s: number;
+      /**
+       * Bias S
+       * @description Median signed error: negative, the line projects them too fast
+       */
+      bias_s: number;
+      /** Season */
+      season: number;
+    };
+    /**
      * Fact
      * @description An analysis the agent ran: the points cite it for their numbers.
      */
@@ -1308,6 +1358,103 @@ export interface components {
       /** Problems */
       problems: string[];
     };
+    /** SimulatedLap */
+    SimulatedLap: {
+      /** Lap */
+      lap: number;
+      /**
+       * Difference S
+       * @description Time the strategy asked gains (negative) or loses on this lap
+       */
+      difference_s: number;
+      /**
+       * Raced Gap S
+       * @description Gap to the rival (or the leader) at the line, as raced
+       */
+      raced_gap_s: number | null;
+      /** Projected Gap S */
+      projected_gap_s: number | null;
+      /** Raced Position */
+      raced_position: number | null;
+      /** Projected Position */
+      projected_position: number | null;
+    };
+    /** SimulatedStint */
+    SimulatedStint: {
+      /** Compound */
+      compound: string | null;
+      /**
+       * Raced From
+       * @description First lap raced on it
+       */
+      raced_from: number;
+      /** Raced To */
+      raced_to: number;
+      /**
+       * Asked From
+       * @description First lap on it in the strategy asked
+       */
+      asked_from: number;
+      /** Asked To */
+      asked_to: number;
+      /** Degradation S Per Lap */
+      degradation_s_per_lap: number | null;
+      /**
+       * Extrapolated Laps
+       * @description Laps asked at tyre ages beyond those the line was fitted on
+       */
+      extrapolated_laps: number;
+    };
+    /** SimulationOutput */
+    SimulationOutput: {
+      /** Season */
+      season: number;
+      /** Round */
+      round: number;
+      /** Session */
+      session: string;
+      /** Driver */
+      driver: string;
+      /** Rival */
+      rival: string | null;
+      /** Raced Stops */
+      raced_stops: number[];
+      /** Stops */
+      stops: number[];
+      /** Stints */
+      stints: components["schemas"]["SimulatedStint"][];
+      /**
+       * Green Stop Loss S
+       * @description What a green-flag stop costs the driver: the median measured
+       */
+      green_stop_loss_s: number;
+      /**
+       * Neutralized Stop Loss S
+       * @description What a stop under a neutralization cost in this race
+       */
+      neutralized_stop_loss_s: number | null;
+      /**
+       * Time Difference S
+       * @description Race time of the strategy asked less the one raced: negative, gains
+       */
+      time_difference_s: number;
+      /** Laps */
+      laps: components["schemas"]["SimulatedLap"][];
+      /**
+       * Model Error S
+       * @description Root mean square error of the stints' lines on the clean laps fitted
+       */
+      model_error_s: number;
+      /**
+       * Extended Laps
+       * @description The most laps a stint runs beyond its length as raced
+       */
+      extended_laps: number;
+      /** @description The error measured on real stints extended as much; None with no extension or no report */
+      expected_error?: components["schemas"]["ExpectedError"] | null;
+      /** Notes */
+      notes?: string[];
+    };
     /**
      * Source
      * @description A passage of the FIA documents the points may cite.
@@ -1650,6 +1797,45 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["Race"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_simulation_races__season___round_number__simulation_get: {
+    parameters: {
+      query: {
+        /** @description The driver whose strategy changes, e.g. LEC */
+        driver: string;
+        /** @description The in-laps asked, in order; as raced if none */
+        stops?: number[] | null;
+        /** @description The driver gaps are measured to; the leader by default */
+        rival?: string | null;
+      };
+      header?: never;
+      path: {
+        season: number;
+        round_number: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["SimulationOutput"];
         };
       };
       /** @description Validation Error */

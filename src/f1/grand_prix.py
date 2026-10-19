@@ -23,6 +23,7 @@ from f1.tools.degradation import by_stint, fit
 from f1.tools.neutralizations import Kind, find_periods
 from f1.tools.penalties import penalties, reason_fr
 from f1.tools.pit_loss import stop_loss
+from f1.tools.simulation import SimulationInput, SimulationOutput, simulate_strategy
 
 
 class RaceSummary(Response):
@@ -285,6 +286,10 @@ class GrandPrix:
         if summary.winner:
             self._raced[season, round_number] = race
         return race
+
+    def simulate(self, request: SimulationInput) -> SimulationOutput:
+        """Another strategy for a driver, projected by code (LAB-213); a `ToolError` says why it cannot be."""
+        return simulate_strategy(self._data, request)
 
     def duel(self, season: int, first: str, second: str) -> Duel | None:
         """Two drivers face to face over a season (LAB-212); None when either did not race in it."""

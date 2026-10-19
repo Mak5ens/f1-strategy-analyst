@@ -106,6 +106,26 @@ Checked on the reference races: Hungary 2024 gives Norris losing the lead at the
 
 Limits: the data says how many places or seconds, not why (the reading says so). A position handed back by team order (Hungary 2024, lap 68) is a pass like any other. Penalties are not moments yet: whether one changed the result needs the classification before it, which the data does not hold.
 
+## Strategy simulation (LAB-213)
+
+`f1.tools.simulation.simulate_strategy`, behind the GP page's « Simulateur » tab (`GET /races/{season}/{round}/simulation?driver=&stops=&rival=`): the same stops on other laps, each stint keeping its tyres. Not a tool of the agent, so its refusals are in French.
+
+- **By difference**: it projects the difference between the strategy asked and the one raced, lap by lap, and adds it to the times the driver set. What both share (the driver's level, the fuel, the laps under a safety car, the race's traffic) cancels out.
+- **A lap under a neutralization**: no difference, since the safety car set the lap.
+- **Any other lap**: the difference of the two stints' fuel-corrected lines at that lap, from `degradation.fit`: lap time = intercept + degradation × tyre age − 0.06 × (lap − 1).
+- **The stops' cost moves with them**: the median of the driver's green-flag stops (`pit_stop_loss`), or the median of the race's stops under a neutralization when the new in- or out-lap is neutralized. With none measured, it refuses.
+- **Refused**: a stint under 5 clean laps (no line), a number of stops other than the one raced, in-laps out of order.
+
+**Validation** (`just simulation-validate 2025`, `f1.evals.simulation`, report in `evals/reports/simulation-2025.json`): on 748 race stints of 2025 with at least 15 clean laps, the line fitted on the first 60 % of the clean laps projects the following ones. The table gives the error on the time of the laps extended.
+
+| Laps extended | Median error | 90 % under | Bias |
+| --: | --: | --: | --: |
+| 1 to 5 | 0.8 s | 3.1 s | −0.2 s |
+| 6 to 10 | 3.1 s | 8.3 s | −0.9 s |
+| 11 to 20 | 5.7 s | 15.4 s | −0.9 s |
+
+The bias is negative: tyres wear faster late in a stint than a line says, so a longer stint is projected too fast. The page shows the error of the longest extension next to each projection. It says the model cannot conclude when the difference is smaller than the median error.
+
 ## Duel of two drivers (LAB-212)
 
 Not a tool of the agent: `f1.duels.duel` computes the duel page's numbers (`GET /duels`), from two queries on the season (results, then the two drivers' race laps). Every gap is the first driver's time less the second's: negative, the first was faster.

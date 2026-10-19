@@ -23,6 +23,9 @@ test("the calendar leads to a race's page, its tabs and its standings after the 
 
   await page.getByRole("tab", { name: "Stratégie" }).click();
   await expect(page.getByRole("heading", { name: "Arrêts" })).toBeVisible();
+  // The simulator projects, or says why it cannot (the synthetic race's stints are too short for a line).
+  await page.getByRole("tab", { name: "Simulateur" }).click();
+  await expect(page.getByText(/Temps de course|ne peut pas être projetée/).first()).toBeVisible();
   await page.getByRole("tab", { name: "Classements" }).click();
   await expect(page.getByText("Après la manche 2").first()).toBeVisible();
 });

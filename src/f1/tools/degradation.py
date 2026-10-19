@@ -62,6 +62,10 @@ class StintFit:
     summary: StintDegradation
     laps: list[int] = field(default_factory=list)
     raw_intercept_s: float | None = None
+    # The fuel-corrected line, lap time = intercept_s + degradation * tyre age - fuel effect * (lap - 1): what a
+    # strategy simulation extends to other laps (`f1.tools.simulation`).
+    intercept_s: float | None = None
+    ages: tuple[int, int] | None = None  # the tyre ages the line was fitted on, first and last
 
 
 def by_stint(laps: dict[int, dict[str, Any]]) -> dict[int, list[dict[str, Any]]]:
@@ -133,7 +137,13 @@ def fit(stint: int, laps: list[dict[str, Any]], fuel_effect: float = DEFAULT_FUE
     summary.degradation_s_per_lap = round(float(slope), 4)
     summary.raw_slope_s_per_lap = round(float(raw_slope), 4)
     summary.r_squared = round(1 - float(np.sum(residuals**2)) / total, 3) if total > 0 else None
-    return StintFit(summary, [int(lap["lap_number"]) for lap in clean], round(float(raw_intercept), 3))
+    return StintFit(
+        summary,
+        [int(lap["lap_number"]) for lap in clean],
+        round(float(raw_intercept), 3),
+        round(float(intercept), 4),
+        (int(age.min()), int(age.max())),
+    )
 
 
 def _exclusion_reason(lap: dict[str, Any]) -> str:

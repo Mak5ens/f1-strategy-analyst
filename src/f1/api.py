@@ -28,12 +28,14 @@ from core.agent import Agent, Analysis, Clarification, Decision, Point, Run
 from core.agent.chat import Chat, Exchange, Reply
 from core.agent.state import AgentState, RejectReason, Result
 from core.agent.store import RequestStore
+from core.tools import ToolError
 from f1.charts import FactChart, chart_for
 from f1.display import Driver, Response, grand_prix_fr, team_colour
 from f1.duels import Duel
 from f1.grand_prix import GrandPrix, Race, RaceLaps, RaceSummary
 from f1.questions import FreeAnswer, FreeQuestions, FreeQuestionStore
 from f1.router import Route, Router
+from f1.tools.simulation import SimulationInput, SimulationOutput
 
 # The version of the API contract, not the app's: release-please bumps the app's on every release, and the OpenAPI
 # document, and the front's generated client, would change with it.
@@ -332,6 +334,27 @@ def get_race(season: int, round_number: int, grand_prix: GrandPrixDep) -> Race:
     if race is None:
         raise HTTPException(404, f"no data for round {round_number} of {season}")
     return race
+
+
+@app.get("/races/{season}/{round_number}/simulation")
+def get_simulation(
+    season: int,
+    round_number: int,
+    grand_prix: GrandPrixDep,
+    driver: Annotated[str, Query(description="The driver whose strategy changes, e.g. LEC")],
+    stops: Annotated[list[int] | None, Query(description="The in-laps asked, in order; as raced if none")] = None,
+    rival: Annotated[str | None, Query(description="The driver gaps are measured to; the leader by default")] = None,
+) -> SimulationOutput:
+    """What another strategy would have given a driver (LAB-213): the same stops on other laps, projected by code
+    from the race's measures, with the error measured on real stints extended as much. A model, not a measure."""
+    try:
+        return grand_prix.simulate(
+            SimulationInput(
+                season=season, round=round_number, driver=driver.upper(), stops=stops, rival=rival and rival.upper()
+            )
+        )
+    except ToolError as error:
+        raise HTTPException(422, str(error)) from error
 
 
 @app.get("/seasons/{season}/drivers")

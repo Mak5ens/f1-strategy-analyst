@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { apiClient, type Decision } from "@/lib/api/client";
+import { apiClient, type Decision, type Simulation } from "@/lib/api/client";
 
 export type StartState = { error: boolean };
 
@@ -107,4 +107,31 @@ export async function askQuestion(id: string, _: AnswerState, form: FormData): P
     .catch(() => ({ data: undefined }));
   if (!data) return { error: true };
   redirect(`/debriefs/${id}`);
+}
+
+export type SimulationState = { result: Simulation | null; error: string | null };
+
+/**
+ * Another strategy for a driver (LAB-213), asked again at every change of the simulator: the projection, or why
+ * the model cannot price it (the API's 422 says it).
+ */
+export async function simulate(
+  season: number,
+  round: number,
+  driver: string,
+  stops: number[] | null,
+  rival: string | null,
+): Promise<SimulationState> {
+  const { data, error } = await apiClient()
+    .GET("/races/{season}/{round_number}/simulation", {
+      params: {
+        path: { season, round_number: round },
+        query: { driver, stops: stops ?? undefined, rival: rival ?? undefined },
+      },
+      signal: AbortSignal.timeout(15_000),
+    })
+    .catch(() => ({ data: undefined, error: undefined }));
+  if (data) return { result: data, error: null };
+  const detail = (error as { detail?: unknown } | undefined)?.detail;
+  return { result: null, error: typeof detail === "string" ? detail : "unreachable" };
 }
