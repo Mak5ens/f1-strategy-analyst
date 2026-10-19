@@ -195,6 +195,105 @@ def _strategies(output: Mapping[str, Any], names: Names) -> list[str]:
     return sentences
 
 
+def _moments(output: Mapping[str, Any], names: Names) -> list[str]:
+    """The moments that made the race, by rank (LAB-204): what each one was, with the numbers that measure it."""
+    sentences = []
+    for moment in output.get("moments") or []:
+        name = names.get(moment["driver"], moment["driver"])
+        laps = list(moment.get("laps") or [])
+        text = _MOMENT_TEXT[moment["kind"]](moment, name, laps, names)
+        sentences.append(f"Moment {moment['rank']} : {text}")
+    if not sentences:
+        return ["Aucun moment de la course n'a fait bouger le classement de façon mesurable."]
+    sentences.append("Les moments sont classés par les points au championnat qu'ils ont fait bouger.")
+    return sentences
+
+
+def _start(moment: Mapping[str, Any], name: str, laps: list[int], names: Names) -> str:
+    verb = "gagne" if moment["places"] > 0 else "perd"
+    count = abs(moment["places"])
+    return (
+        f"{name} {verb} {count} place{'s' if count > 1 else ''} au départ, de {_ordinal(moment['from_position'])} à "
+        f"{_ordinal(moment['to_position'])} à la fin du tour 1."
+    )
+
+
+def _overtakes(moment: Mapping[str, Any], name: str, laps: list[int], names: Names) -> str:
+    made = [f"{names.get(code, code)} (tour {lap})" for code, lap in zip(moment["passed"], laps, strict=True)]
+    count = moment["places"]
+    what = f"{count} dépassements en piste" if count > 1 else "un dépassement en piste"
+    return f"{name} réussit {what} : {', '.join(made)}."
+
+
+def _cycle(moment: Mapping[str, Any], name: str, laps: list[int], names: Names) -> str:
+    rival = names.get(moment["rival"], moment["rival"])
+    move = "undercut" if moment["outcome"] == "undercut_worked" else "overcut"
+    when = f"aux tours {laps[0]} et {laps[-1]}" if len(laps) > 1 else f"au tour {laps[0]}"
+    return (
+        f"{name} passe {rival} au cycle d'arrêts par un {move} (arrêts {when}) : il gagne "
+        f"{_fr(moment['seconds'], 1)} s sur {rival}."
+    )
+
+
+def _neutralized_stop(moment: Mapping[str, Any], name: str, laps: list[int], names: Names) -> str:
+    under = NEUTRALIZATIONS_FR.get(moment.get("neutralization") or "", "neutralisation")
+    places = ""
+    if moment.get("from_position") and moment.get("to_position"):
+        places = f" ; {_ordinal(moment['from_position'])} avant l'arrêt, {_ordinal(moment['to_position'])} après"
+    return (
+        f"{name} s'arrête au tour {laps[0]} sous {under} : l'arrêt lui coûte {_fr(moment['seconds'], 1)} s de moins "
+        f"qu'un arrêt habituel de la course{places}."
+    )
+
+
+def _slow_stop(moment: Mapping[str, Any], name: str, laps: list[int], names: Names) -> str:
+    places = ""
+    if moment.get("from_position") and moment.get("to_position"):
+        places = f" ; {_ordinal(moment['from_position'])} avant l'arrêt, {_ordinal(moment['to_position'])} après"
+    return (
+        f"L'arrêt {_of(name)} au tour {laps[0]} lui coûte {_fr(moment['seconds'], 1)} s de plus que ceux des autres "
+        f"pilotes arrêtés dans les mêmes tours{places}. Les données ne disent pas pourquoi (arrêt lent, sortie de "
+        "piste...)."
+    )
+
+
+def _strategy(moment: Mapping[str, Any], name: str, laps: list[int], names: Names) -> str:
+    stops, usual, changes = moment["stops"], moment["usual_stops"], list(moment.get("red_flag_changes") or [])
+    made = "ne fait aucun arrêt" if stops == 0 else f"fait {stops} arrêt{'s' if stops > 1 else ''}"
+    free = f", et change de pneus sous drapeau rouge au tour {changes[0]}" if changes else ""
+    return (
+        f"{name} {made} quand la plupart des pilotes en font {usual}{free} : parti "
+        f"{_ordinal(moment['from_position'])}, arrivé {_ordinal(moment['to_position'])}{_places(moment['places'])}."
+    )
+
+
+def _setback(moment: Mapping[str, Any], name: str, laps: list[int], names: Names) -> str:
+    count = abs(moment["places"])
+    return (
+        f"{name} perd {count} places au tour {laps[0]}, sans s'arrêter ni voiture de sécurité : de "
+        f"{_ordinal(moment['from_position'])} à {_ordinal(moment['to_position'])}. Les données ne disent pas pourquoi "
+        "(sortie de piste, problème...)."
+    )
+
+
+def _retirement(moment: Mapping[str, Any], name: str, laps: list[int], names: Names) -> str:
+    where = f", alors {_ordinal(moment['from_position'])}" if moment.get("from_position") else ""
+    why = f" ({moment['status']})" if moment.get("status") else ""
+    return f"{name} abandonne au tour {laps[0]}{where}{why}."
+
+
+_MOMENT_TEXT: dict[str, Callable[[Mapping[str, Any], str, list[int], Names], str]] = {
+    "start": _start,
+    "overtakes": _overtakes,
+    "pit_cycle": _cycle,
+    "neutralized_stop": _neutralized_stop,
+    "slow_stop": _slow_stop,
+    "strategy": _strategy,
+    "setback": _setback,
+    "retirement": _retirement,
+}
+
+
 _READERS: dict[str, Callable[[Mapping[str, Any], Names], list[str]]] = {
     "pit_cycle": _pit_cycle,
     "pit_stop_loss": _pit_stop_loss,
@@ -203,6 +302,7 @@ _READERS: dict[str, Callable[[Mapping[str, Any], Names], list[str]]] = {
     "gap_between_drivers": _gap,
     "session_result": _classification,
     "race_strategies": _strategies,
+    "key_moments": _moments,
 }
 
 
@@ -249,6 +349,11 @@ def _orders(outputs: Iterable[Mapping[str, Any]]) -> dict[frozenset[str], set[tu
             ahead = output["ahead_after"]
             other = output["rival"] if ahead == output["driver"] else output["driver"]
             orders.setdefault(frozenset((ahead, other)), set()).add((ahead, other))
+        for moment in output.get("moments") or []:  # a pass on a pit cycle: the driver came out ahead
+            if moment.get("kind") == "pit_cycle":
+                orders.setdefault(frozenset((moment["driver"], moment["rival"])), set()).add(
+                    (moment["driver"], moment["rival"])
+                )
         for row in output.get("classification") or []:
             for other in output["classification"]:
                 mine, theirs = _rank(row), _rank(other)

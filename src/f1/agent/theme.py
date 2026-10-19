@@ -27,6 +27,7 @@ from f1.agent.readings import order_problems, reading
 from f1.display import grand_prix_fr
 from f1.router import plain, read_race
 from f1.tools import RaceData, catalog
+from f1.tools.moments import MomentsInput, MomentsOutput, key_moments
 from f1.tools.penalties import PenaltiesInput, PenaltiesOutput, race_penalties
 from f1.tools.strategies import StrategiesInput, StrategiesOutput, race_strategies
 from f1.tools.weather import WeatherInput, WeatherOutput, race_weather
@@ -71,8 +72,30 @@ _NUMBER_WORDS = re.compile(
     r"\b(une?|deux|trois|quatre|cinq|six|sept|huit|neuf|dix|onze|douze|treize|quatorze|quinze|seize|vingt|trente|"
     r"quarante|cinquante|soixante|cent)\s+(tours?|secondes?|dixiemes?|places?|positions?|rangs?)\b"
 )
+# The same, as a text writes them, to be put in digits by code: "une place" is "1 place", checked like any number.
+_IN_WORDS = re.compile(
+    r"\b(une?|deux|trois|quatre|cinq|six|sept|huit|neuf|dix|onze|douze|treize|quatorze|quinze|seize|vingt|trente|"
+    r"quarante|cinquante|soixante|cent)(\s+)(tours?|secondes?|dixièmes?|places?|positions?|rangs?)\b",
+    re.IGNORECASE,
+)
+_WORDS = ["un", "deux", "trois", "quatre", "cinq", "six", "sept", "huit", "neuf", "dix", "onze", "douze", "treize",
+          "quatorze", "quinze", "seize"]  # fmt: skip
+_TENS = {"vingt": 20, "trente": 30, "quarante": 40, "cinquante": 50, "soixante": 60, "cent": 100}
 # An article of the regulations as a text names it: "article 55.14", "B6.2.4".
 _ARTICLE = re.compile(r"\b(?:[Aa]rticles? \d+(?:\.\d+)*[a-z]?|[A-Z]\d+(?:\.\d+)+)")
+
+
+def in_digits(text: str) -> str:
+    """Numbers written in words before what they count, in digits: "perd deux places" -> "perd 2 places". The
+    model wrote them in words draft after draft (21 problems on 11 prepared debriefs, LAB-204); a number in digits
+    is then checked like any other."""
+
+    def digits(found: re.Match[str]) -> str:
+        word = found.group(1).lower()
+        value = 1 if word in {"un", "une"} else _WORDS.index(word) + 1 if word in _WORDS else _TENS[word]
+        return f"{value}{found.group(2)}{found.group(3)}"
+
+    return _IN_WORDS.sub(digits, text)
 
 
 def _laps(text: str) -> list[int]:
@@ -92,6 +115,7 @@ def _when(laps: Sequence[int]) -> str | None:
 
 
 KINDS_FR = {"race": "la course", "driver": "un pilote", "team": "une écurie"}
+MOMENTS_FR = "les moments qui ont fait la course"
 
 PARSE = """Tu lis la demande d'un analyste stratégie en Formule 1. Relève seulement ce qu'elle nomme, tel qu'elle \
 l'écrit : les pilotes (noms ou codes à trois lettres) et les écuries. N'invente rien, ne déduis rien : une demande \
@@ -178,6 +202,18 @@ voisines sur la grille), la durée des relais, le moment des arrêts, la météo
 données de pneus ou ses consignes. Ne devine jamais une intention : écris ce que les données montrent, et dis que la \
 raison ne s'y trouve pas.
 - 2 à 5 points."""
+
+DRAFT_MOMENTS = """Ce débrief raconte les moments qui ont fait la course, trouvés et classés par code (analyse \
+`moments`, sa lecture « Moment 1 : ... ») :
+- un point par moment de la lecture, tous, sans en ajouter : son texte le raconte avec ses chiffres et le relie à la \
+course (le classement, une neutralisation, une pénalité quand une analyse la montre) ; il cite `moments` dans \
+`facts`, et `result` s'il dit une place d'arrivée ;
+- le texte donne le tour du moment comme la lecture : « au tour 68 », jamais « au dernier tour » ;
+- le titre dit le moment SANS AUCUN CHIFFRE, ni place, ni tour, ni seconde : « Norris perd la tête au départ », pas \
+« Norris perd 2 places » ; « Sainz remonte en piste », pas « Sainz gagne 4 places » ;
+- un moment dit ce que dit sa lecture : un undercut par lequel un pilote « passe » l'autre a réussi ;
+- `summary` dit lequel a le plus pesé (le moment 1) et ce que la course a donné pour le podium ;
+- quand la lecture dit que les données ne disent pas pourquoi, ne donne pas de raison."""
 
 
 CHAT_PICK = """Un analyste pose une question sur un débrief stratégique de Formule 1 déjà publié. Le débrief a \
@@ -310,8 +346,16 @@ class F1Theme:
             WeatherOutput,
             lambda request: race_weather(data, request),
         )
+        moments: Tool[MomentsInput, MomentsOutput] = Tool(
+            "key_moments",
+            "The moments that made a race, found and ranked by code: start, passes, pit cycles, stops under a safety "
+            "car or slow ones, unusual strategies, places lost, retirements; each measured.",
+            MomentsInput,
+            MomentsOutput,
+            lambda request: key_moments(data, request),
+        )
         # Beside the baseline's catalog, so its prompt and its evaluation are unchanged.
-        own: list[Tool[Any, Any]] = [penalties, strategies, weather]
+        own: list[Tool[Any, Any]] = [penalties, strategies, weather, moments]
         self.tools: dict[str, Tool[Any, Any]] = {tool.name: tool for tool in [*catalog(data), *own]}
 
     # parse, resolve, clarify
@@ -494,6 +538,8 @@ class F1Theme:
             analysis("neutralizations", "neutralizations", "Voitures de sécurité, VSC, drapeaux rouges"),
             analysis("penalties", "penalties", "Pénalités annoncées par la direction de course"),
         ]
+        if subject.get("moments"):  # the top 5 (LAB-204): the moments carry their numbers, nothing else to run
+            return [*analyses, analysis("moments", "key_moments", "Les moments qui ont fait la course, classés")]
         if subject.get("question"):  # what a question on a choice is answered against: the others' choices
             analyses += [
                 analysis("strategies", "race_strategies", "Pneus de départ, relais et arrêts de chaque pilote"),
@@ -531,6 +577,8 @@ class F1Theme:
         self, request: str, subject: Mapping[str, Any], candidates: Sequence[Analysis], *, session_id: str | None
     ) -> list[str]:
         ids = tuple(analysis.id for analysis in candidates)
+        if subject.get("moments"):  # a closed plan, chosen by code: every analysis of it is needed
+            return list(ids)
         kept = Field(description="Ids kept from the catalog")
         choice = create_model("Choice", analyses=(list[Literal[ids]], kept))  # type: ignore[valid-type]
         catalog_text = "\n".join(f"- {analysis.id}: {analysis.label}" for analysis in candidates)
@@ -667,7 +715,7 @@ class F1Theme:
             max_tokens=1200, name="agent.chat.reply", session_id=session_id,
         )  # fmt: skip
         return [
-            Point(id=f"A{number}", text=point.text, facts=point.facts, sources=point.sources)
+            Point(id=f"A{number}", text=in_digits(point.text), facts=point.facts, sources=point.sources)
             for number, point in enumerate(answer.points, start=1)
         ]
 
@@ -686,7 +734,8 @@ class F1Theme:
         parts = [
             f"<request>\n{request}\n</request>",
             f"<race>\n{subject['event']} {subject['season']}, manche {subject['round']} ; débrief sur "
-            f"{KINDS_FR[subject['kind']]} ; pilotes suivis : {', '.join(_names(subject, subject['focus']))}\n</race>",
+            f"{MOMENTS_FR if subject.get('moments') else KINDS_FR[subject['kind']]} ; pilotes suivis : "
+            f"{', '.join(_names(subject, subject['focus']))}\n</race>",
             "<analyses>",
             *(_analysis_block(result, self.models.result_chars) for result in results),
             "</analyses>",
@@ -698,12 +747,21 @@ class F1Theme:
             parts.append("<previous_draft_problems>")
             parts += [f"- « {_escape(text)} » : {'; '.join(found)}" for text, found in problems.items()]
             parts.append("</previous_draft_problems>\nRécris tous les points en corrigeant ces problèmes.")
-        system = f"{DRAFT}\n\n{DRAFT_QUESTION}" if subject.get("question") else DRAFT
+        system = DRAFT
+        if subject.get("question"):
+            system += f"\n\n{DRAFT_QUESTION}"
+        elif subject.get("moments"):
+            system += f"\n\n{DRAFT_MOMENTS}"
         draft = complete_json(
             self.llm, model=self.models.draft_model, system=system, user="\n".join(parts), schema=Draft,
             max_tokens=self.models.draft_max_tokens, name="agent.draft", session_id=session_id,
         )  # fmt: skip
-        summary = draft.summary
+        summary = draft.summary.model_copy(update={"text": in_digits(draft.summary.text)})
+        draft.points = [point.model_copy(update={"text": in_digits(point.text)}) for point in draft.points]
+        if subject.get("moments"):  # a plan fixed by code: a point citing nothing cites what it can only come from
+            given = [result.id for result in results if result.ok and result.id in {"result", "moments"}]
+            summary = summary.model_copy(update={"facts": summary.facts or given})
+            draft.points = [point.model_copy(update={"facts": point.facts or given}) for point in draft.points]
         # The moments in the order of the race, by the first lap each names; one naming none keeps its place.
         laps = [_laps(point.text) for point in draft.points]
         order = sorted(range(len(laps)), key=lambda i: (laps[i] or [_lap_before(laps, i)])[0])
@@ -714,7 +772,7 @@ class F1Theme:
                 Point(id=f"P{number}", when=when, **point.model_dump())
                 for number, (point, when) in enumerate(moments, start=1)
             ),
-            Point(id="T", kind="takeaway", text=draft.takeaway.text),
+            Point(id="T", kind="takeaway", text=in_digits(draft.takeaway.text)),
         ]
 
     def unavailable(self, result: Result) -> Point:
@@ -771,7 +829,13 @@ class F1Theme:
         ]
 
     def render(self, subject: Mapping[str, Any], points: Sequence[Point], rules: Sequence[Rule]) -> str:
-        title = "Réponse" if subject.get("question") else "Débrief stratégique"
+        title = (
+            "Réponse"
+            if subject.get("question")
+            else "Les moments de la course"
+            if subject.get("moments")
+            else "Débrief stratégique"
+        )
         lines = [f"# {title} : {grand_prix_fr(subject['event'])} {subject['season']}", ""]
         if subject["kind"] != "race":
             lines += [f"Pour {', '.join(subject['teams'] or _names(subject, subject['drivers']))}.", ""]

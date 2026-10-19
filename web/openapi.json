@@ -2790,6 +2790,29 @@
             "title": "Question",
             "description": "A precise question on the race: its request is its title",
             "default": false
+          },
+          "moments": {
+            "type": "boolean",
+            "title": "Moments",
+            "description": "The moments that made the race, found and ranked by code (LAB-204)",
+            "default": false
+          },
+          "prepared": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "team",
+                  "moments",
+                  "driver"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prepared",
+            "description": "Prepared after the race by `just debriefs-prepare`, not asked by an analyst"
           }
         },
         "type": "object",
@@ -2801,7 +2824,9 @@
           "teams",
           "focus",
           "colour",
-          "question"
+          "question",
+          "moments",
+          "prepared"
         ],
         "title": "Subject",
         "description": "What a request is about, as far as the agent resolved it: nothing yet while it asks which race."

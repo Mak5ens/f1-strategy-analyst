@@ -43,6 +43,7 @@ f1-eval-dataset = "f1.evals.build:main"
 f1-baseline = "f1.baseline.ask:main"
 f1-eval = "f1.evals.run:main"
 f1-debrief = "f1.agent.cli:main"
+f1-debriefs-prepare = "f1.prepare:main"
 
 [dependency-groups]
 dev = [

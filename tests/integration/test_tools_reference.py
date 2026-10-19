@@ -18,6 +18,7 @@ from f1.data import connect
 from f1.data.ingest import Ingester, IngestSettings
 from f1.data.sources import FastF1Source, JolpicaClient, OpenF1Client
 from f1.tools import RaceData, catalog
+from f1.tools.moments import MomentsInput, key_moments
 
 pytestmark = pytest.mark.integration
 
@@ -25,7 +26,7 @@ ROUNDS = {2024: [13, 21], 2025: [1, 16]}
 
 
 @pytest.fixture(scope="module")
-def tools(tmp_path_factory: pytest.TempPathFactory) -> dict[str, Any]:
+def data(tmp_path_factory: pytest.TempPathFactory) -> RaceData:
     lake = Lake(LakeSettings(uri=str(tmp_path_factory.mktemp("lake")), _env_file=None))
     settings = IngestSettings()
     with OpenF1Client() as openf1, JolpicaClient() as jolpica:
@@ -33,7 +34,12 @@ def tools(tmp_path_factory: pytest.TempPathFactory) -> dict[str, Any]:
         for season, rounds in ROUNDS.items():
             outcomes = list(ingester.ingest_season(season, rounds=rounds))
             assert [outcome.status for outcome in outcomes] == ["ingested"] * len(rounds), outcomes
-    return {tool.name: tool for tool in catalog(RaceData(connect(lake)))}
+    return RaceData(connect(lake))
+
+
+@pytest.fixture(scope="module")
+def tools(data: RaceData) -> dict[str, Any]:
+    return {tool.name: tool for tool in catalog(data)}
 
 
 def run(tools: dict[str, Any], name: str, **arguments: Any) -> dict[str, Any]:
@@ -88,3 +94,31 @@ def test_monza_2025_low_tyre_wear(tools: dict[str, Any]) -> None:
         assert stint["laps_used"] >= 10
         assert 0 < stint["degradation_s_per_lap"] < 0.15
         assert stint["degradation_s_per_lap"] > stint["raw_slope_s_per_lap"]  # the fuel burnt hid some wear
+
+
+def top(data: RaceData, season: int, round_number: int) -> list[tuple[str, str, int]]:
+    """The race's top 5 moments (LAB-204): kind, driver, first lap."""
+    output = key_moments(data, MomentsInput(season=season, round=round_number))
+    return [(moment.kind, moment.driver, moment.lap) for moment in output.moments]
+
+
+def test_hungary_2024_moments(data: RaceData) -> None:
+    moments = top(data, 2024, 13)
+    assert moments[0] == ("start", "NOR", 1)  # from pole to 3rd at the end of lap 1
+    assert ("overtakes", "PIA", 68) in moments  # the lead handed back
+    assert ("pit_cycle", "NOR", 45) in moments  # the undercut
+
+
+def test_australia_2025_piastri_off_on_his_in_lap(data: RaceData) -> None:
+    output = key_moments(data, MomentsInput(season=2025, round=1))
+    first = output.moments[0]
+    assert (first.kind, first.driver, first.lap, first.from_position, first.to_position) == (
+        "slow_stop", "PIA", 44, 2, 15,
+    )  # fmt: skip
+
+
+def test_sao_paulo_2024_tyres_changed_under_the_red_flag(data: RaceData) -> None:
+    output = key_moments(data, MomentsInput(season=2024, round=21))
+    first = output.moments[0]
+    assert (first.kind, first.driver, first.stops, first.red_flag_changes) == ("strategy", "VER", 0, [32])
+    assert (first.from_position, first.to_position) == (17, 1)

@@ -1103,6 +1103,17 @@ export interface components {
        * @default false
        */
       question: boolean;
+      /**
+       * Moments
+       * @description The moments that made the race, found and ranked by code (LAB-204)
+       * @default false
+       */
+      moments: boolean;
+      /**
+       * Prepared
+       * @description Prepared after the race by `just debriefs-prepare`, not asked by an analyst
+       */
+      prepared: ("team" | "moments" | "driver") | null;
     };
     /** TeamStanding */
     TeamStanding: {
