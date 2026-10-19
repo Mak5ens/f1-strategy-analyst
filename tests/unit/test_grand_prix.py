@@ -340,3 +340,12 @@ def test_the_debriefs_of_a_race(client: TestClient) -> None:
 
     assert [debrief["id"] for debrief in debriefs] == ["a"]
     assert [race["round"] for race in client.get("/races/featured").json()] == [2, 1]
+
+
+def test_a_season_told_by_its_numbers_from_the_lake(grand_prix: GrandPrix) -> None:
+    season = grand_prix.season(2025)
+    assert season is not None and grand_prix.season(2019) is None
+    assert [r.round for r in season.rounds] == [1, 2]
+    assert [d.driver.code for d in season.drivers] == ["LEC", "VER", "HAM", "NOR"]
+    assert season.drivers[1].cumulative[0] == 0 and season.drivers[1].results[0] is None  # VER did not race round 1
+    assert grand_prix.season(2025) is season  # kept until another round is raced

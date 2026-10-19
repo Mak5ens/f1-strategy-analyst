@@ -137,6 +137,17 @@ The bias is negative: tyres wear faster late in a stint than a line says, so a l
 
 The shift helps, most on long stints (the 90th percentile from 56 s to 44 s over 21 to 40 laps), but the error stays about 0.3 s a lap: a line fitted on another stint carries that stint's track, traffic and fuel, which the shift does not remove. Shifting only the level is worse than no shift: the compounds differ by their wear more than by their pace. The page shows this error for the longest stint on another compound, and the projection does not conclude under it.
 
+## A season told by its numbers (LAB-215)
+
+Not a tool of the agent: `f1.season.overview` computes the season page's numbers (`GET /seasons/{season}/overview`), from two queries on the season (results of qualifying, sprints and races, then every driver's race laps). No model is called.
+
+- **Championship**: the points of the races and sprints added round by round from the results, so that they add up to the championship's. The order after each round is by points, then by the count-back of race places (wins, then second places...), as the sporting regulations break a tie. Checked against the official standings of the lake for every round of 2024 and 2025: the same points and places, except that the official standings leave drivers on 0 points unranked early in a season, where the page ranks them.
+- **Form**: the points scored in the last 5 rounds raced.
+- **Qualifying pace**: each team's best lap of the qualifying, any part, less the best lap of all, in % of it. A team out in Q1 never ran on the faster track of Q3: its gap counts that too.
+- **Race pace**: on each lap of the race, each team's median over its cars' clean laps (`is_clean`); its gap that lap to the fastest team, in %; the team's gap for the race is the median of those, less the best team's, so that the fastest is at 0. Under 10 such laps, no gap. Comparing teams on the same lap removes the fuel and the track's evolution; the tyres and the traffic each team met stay in it, and a wet race is measured as it was.
+
+A season is computed in about a second and kept by the API until another round is raced.
+
 ## Duel of two drivers (LAB-212)
 
 Not a tool of the agent: `f1.duels.duel` computes the duel page's numbers (`GET /duels`), from two queries on the season (results, then the two drivers' race laps). Every gap is the first driver's time less the second's: negative, the first was faster.

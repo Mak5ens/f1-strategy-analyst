@@ -19,6 +19,7 @@ export type Race = components["schemas"]["Race"];
 export type RaceLaps = components["schemas"]["RaceLaps"];
 export type FactChart = components["schemas"]["FactChart"];
 export type Duel = components["schemas"]["Duel"];
+export type SeasonOverview = components["schemas"]["SeasonOverview"];
 export type Simulation = components["schemas"]["SimulationOutput"];
 export type RaceSummary = components["schemas"]["RaceSummary"];
 export type FreeAnswer = components["schemas"]["FreeAnswer"];
@@ -81,6 +82,23 @@ export async function fetchSeasonDrivers(season: number, client: Client = apiCli
       params: { path: { season } },
       signal: AbortSignal.timeout(10000),
     });
+    return data ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** A season told by its numbers; "missing" when it has no race, null when the API does not answer. */
+export async function fetchSeasonOverview(
+  season: number,
+  client: Client = apiClient(),
+): Promise<SeasonOverview | "missing" | null> {
+  try {
+    const { data, response } = await client.GET("/seasons/{season}/overview", {
+      params: { path: { season } },
+      signal: AbortSignal.timeout(20000),
+    });
+    if (response.status === 404) return "missing";
     return data ?? null;
   } catch {
     return null;
