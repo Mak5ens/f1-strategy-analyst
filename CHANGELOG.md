@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.7.0](https://github.com/Mak5ens/f1-strategy-analyst/compare/v0.6.0...v0.7.0) (2026-10-19)
+
+
+### Features
+
+* **tools:** a stint's line bends past its last tyre age, by half its convex curvature (LAB-216) ([#46](https://github.com/Mak5ens/f1-strategy-analyst/issues/46)) ([00f94cc](https://github.com/Mak5ens/f1-strategy-analyst/commit/00f94cc042991f8fce684877ff068b7646b19520))
+* **web:** a stint on another compound in the simulator, and the duel from a race (LAB-214) ([#43](https://github.com/Mak5ens/f1-strategy-analyst/issues/43)) ([2a58005](https://github.com/Mak5ens/f1-strategy-analyst/commit/2a580056f7135ed55619b92aca66d99ae0b6bff8))
+* **web:** design system, AA contrast measured, motion and a reference page (LAB-188) ([#47](https://github.com/Mak5ens/f1-strategy-analyst/issues/47)) ([18b3a05](https://github.com/Mak5ens/f1-strategy-analyst/commit/18b3a053e283e79c82a094555dce619e858ece44))
+* **web:** season view, the championship round by round, the form and the teams' pace (LAB-215) ([#45](https://github.com/Mak5ens/f1-strategy-analyst/issues/45)) ([849a2a4](https://github.com/Mak5ens/f1-strategy-analyst/commit/849a2a439924e67d1ea9aebae8cfee671eeed4e4))
+
 ## [0.6.0](https://github.com/Mak5ens/f1-strategy-analyst/compare/v0.5.0...v0.6.0) (2026-10-19)
 
 
