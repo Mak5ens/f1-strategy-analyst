@@ -3,6 +3,7 @@ import { Archivo, Inter } from "next/font/google";
 import type { ReactNode } from "react";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
+import { fetchSession } from "@/lib/api/client";
 import { getMessages, locale } from "@/lib/i18n";
 import "./globals.css";
 
@@ -18,11 +19,11 @@ export const metadata: Metadata = {
   description: messages.metadata.description,
 };
 
-export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
+export default async function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
     <html lang={locale} className={`${archivo.variable} ${inter.variable}`}>
       <body className="flex min-h-dvh flex-col">
-        <SiteHeader />
+        <SiteHeader session={await fetchSession()} />
         <div className="flex-1">{children}</div>
         <SiteFooter />
       </body>

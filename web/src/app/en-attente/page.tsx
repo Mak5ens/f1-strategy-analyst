@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import { connection } from "next/server";
+import { ReservedPage } from "@/components/analyst-only";
 import { DebriefCard } from "@/components/debrief-card";
 import { FilterPills } from "@/components/filter-pills";
 import { PageHeader } from "@/components/page-header";
-import { fetchDebriefs, type Stop } from "@/lib/api/client";
+import { fetchDebriefs, fetchSession, isAnalyst, type Stop } from "@/lib/api/client";
 import { getMessages } from "@/lib/i18n";
 
 const t = getMessages();
@@ -15,6 +16,7 @@ const stops: Stop[] = ["clarification", "plan", "review"];
 /** Every request waiting for the analyst, `?arret=plan` for one stop. */
 export default async function Waiting({ searchParams }: { searchParams: Promise<{ arret?: string }> }) {
   await connection();
+  if (!isAnalyst(await fetchSession())) return <ReservedPage back="/en-attente" />;
   const asked = (await searchParams).arret;
   const stop = stops.find((name) => name === asked);
   const waiting = await fetchDebriefs({ status: "waiting" });

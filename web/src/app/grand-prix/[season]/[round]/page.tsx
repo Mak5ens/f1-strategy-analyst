@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { connection } from "next/server";
+import { AnalystOnly } from "@/components/analyst-only";
 import { DebriefCard } from "@/components/debrief-card";
 import { PublishedTable } from "@/components/published-table";
 import { GridTable } from "@/components/race/grid-table";
@@ -110,7 +111,9 @@ export default async function GrandPrixPage({ params, searchParams }: { params: 
 
       {raced && (
         <section className="mx-auto max-w-6xl px-4 pt-16">
-          <QuestionForm season={race.summary.season} round={race.summary.round} suggestions={raceSuggestions(race)} />
+          <AnalystOnly back={`/grand-prix/${race.summary.season}/${race.summary.round}`}>
+            <QuestionForm season={race.summary.season} round={race.summary.round} suggestions={raceSuggestions(race)} />
+          </AnalystOnly>
         </section>
       )}
 

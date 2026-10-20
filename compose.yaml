@@ -34,7 +34,7 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-f1}
     ports:
       # Not 5432, which a local PostgreSQL install usually holds.
-      - 127.0.0.1:${POSTGRES_PORT:-5433}:5432
+      - 127.0.0.1:${POSTGRES_PORT:-5435}:5432
     volumes:
       # PostgreSQL 18 stores data under /var/lib/postgresql/<major>/, hence the parent directory.
       - postgres-data:/var/lib/postgresql
@@ -80,6 +80,8 @@ services:
       # The gateway and its Langfuse, on the host at llmops-gateway's default ports.
       GATEWAY_URL: http://host.docker.internal:4000
       LANGFUSE_HOST: http://host.docker.internal:3100
+      # LabbTech Auth's API on the host, when .env turns accounts on (LAB-192).
+      AUTH_JWKS_URI: ${AUTH_JWKS_URI:+http://host.docker.internal:3003/.well-known/jwks.json}
     extra_hosts:
       - host.docker.internal:host-gateway
     ports:
@@ -100,6 +102,12 @@ services:
     build: web
     environment:
       API_URL: http://api:8000
+      # Accounts (LAB-192), when .env turns them on: the SSO's API on the host, its pages and this site for the browser.
+      AUTH_API_URL: ${AUTH_API_URL:+http://host.docker.internal:3003}
+      AUTH_APP_URL: ${AUTH_APP_URL:-}
+      APP_URL: http://localhost:${WEB_PORT:-3000}
+    extra_hosts:
+      - host.docker.internal:host-gateway
     ports:
       - 127.0.0.1:${WEB_PORT:-3000}:3000
     depends_on:

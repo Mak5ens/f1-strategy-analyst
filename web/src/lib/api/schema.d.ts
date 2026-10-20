@@ -44,6 +44,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/me": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Me
+     * @description The account of the request, read from its token.
+     */
+    get: operations["me_me_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/seasons": {
     parameters: {
       query?: never;
@@ -240,7 +260,7 @@ export interface paths {
     /**
      * List Debriefs
      * @description The requests, the latest first: those waiting for a person with `status=waiting`, those on a race with
-     *     `season` and `round`.
+     *     `season` and `round`. A reader sees only the published ones.
      */
     get: operations["list_debriefs_debriefs_get"];
     put?: never;
@@ -307,7 +327,10 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    /** Get Debrief */
+    /**
+     * Get Debrief
+     * @description A request where it stands; a reader sees it only once published.
+     */
     get: operations["get_debrief_debriefs__debrief_id__get"];
     put?: never;
     post?: never;
@@ -1430,6 +1453,19 @@ export interface components {
       sprint: boolean;
     };
     /**
+     * Session
+     * @description Who the front shows as signed in, and whether the API checks accounts at all.
+     */
+    Session: {
+      /** @description None for a visitor without an account */
+      viewer: components["schemas"]["Viewer"] | null;
+      /**
+       * Open
+       * @description No SSO configured: every caller is the local analyst, there is no sign-in
+       */
+      open: boolean;
+    };
+    /**
      * ShownPoint
      * @description A point of the debrief, its lists always present.
      */
@@ -1776,6 +1812,29 @@ export interface components {
       /** Context */
       ctx?: Record<string, never>;
     };
+    /**
+     * Viewer
+     * @description The account behind a request.
+     */
+    Viewer: {
+      /**
+       * Id
+       * @description The SSO's account id, the token's `sub`
+       */
+      id: string;
+      /**
+       * Name
+       * @description First and last name, else the email
+       */
+      name: string;
+      /** Email */
+      email?: string | null;
+      /**
+       * Analyst
+       * @default false
+       */
+      analyst: boolean;
+    };
     /** Weather */
     Weather: {
       /**
@@ -1845,6 +1904,26 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["Info"];
+        };
+      };
+    };
+  };
+  me_me_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Session"];
         };
       };
     };

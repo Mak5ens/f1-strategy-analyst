@@ -47,6 +47,23 @@ After a change to a route or a model of `src/f1/api.py`, run `just web-gen-clien
 - `tests/unit/test_api.py` fails: the API no longer matches `web/openapi.json`;
 - the `Web` workflow fails: the schema is not generated from `web/openapi.json`, or a page no longer type-checks against it.
 
+## Accounts
+
+The site uses LabbTech Auth (LAB-192), the SSO of every LabbTech app (`labbtech-universe`: `apps/auth` for the pages, `backends/auth-api` for the tokens), with Google sign-in. It is not an OAuth client flow: the SSO sets two httpOnly cookies on its whole domain (`Domain=.labbtech.fr` in production, the host `localhost` locally, every port included), `auth_token` (an RS256 JWT, 15 minutes) and `refresh_token` (30 days). The site must therefore be served under that domain.
+
+| Who | Reads | Does |
+| -- | -- | -- |
+| A visitor, with or without an account | The races, the season, the duels, the simulator, the published debriefs and their questions | Nothing that calls a model |
+| An analyst (`AUTH_ANALYSTS`) | Also the requests in progress, the free questions and the journal | Asks, starts a debrief, answers its stops, asks on a debrief |
+
+- **The API decides** (`core.auth`): it checks the token's signature against the SSO's public keys (`AUTH_JWKS_URI`, cached), its issuer, audience and expiry, on every call; analyst routes answer 401 without an account, 403 for another one, and a request not yet published does not exist for a reader (404). Analysts are named by account id, not email: the SSO lets an account sign in before confirming its email. Without `AUTH_JWKS_URI` the API is open, every caller the local analyst: the default locally and in CI.
+- **The front forwards and hides**: `apiClient()` sends the cookie's token as a Bearer header; `fetchSession()` (`GET /me`, once per request) tells the header and the pages who is there. `AnalystOnly` replaces a form with a sign-in invitation, `ReservedPage` replaces `/en-attente` and `/journal`; the header hides those sections.
+- **Renewal**: `src/proxy.ts` calls the SSO's `/auth/refresh` before a page renders when the token is missing or has less than a minute left, and passes the new cookies to the browser and to the page's own calls. An SSO that does not answer deletes nothing.
+- **Sign-in and sign-out**: `/connexion?retour=<path>` sends the visitor to the SSO's page, which sends them back to that path of `APP_URL` (a path of this site only). `/deconnexion` (a form's POST) revokes the session on the SSO, for every LabbTech app.
+- **Google**: the SSO sends a visitor back after Google only to an origin of its `CORS_ALLOWED_ORIGINS`: the site's address must be there.
+
+Locally: `just auth-up` in labbtech-universe, then the `AUTH_*` and `APP_URL` lines of `.env.example`.
+
 ## Layout
 
 | Path | Content |

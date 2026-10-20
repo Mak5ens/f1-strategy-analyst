@@ -2,10 +2,11 @@ import { cn } from "cn";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { connection } from "next/server";
+import { ReservedPage } from "@/components/analyst-only";
 import { FilterPills } from "@/components/filter-pills";
 import { PageHeader } from "@/components/page-header";
 import { subjectFor, subjectTitle } from "@/components/subject-line";
-import { type Decision, fetchJournal } from "@/lib/api/client";
+import { type Decision, fetchJournal, fetchSession, isAnalyst } from "@/lib/api/client";
 import { formatAgo } from "@/lib/format";
 import { getMessages } from "@/lib/i18n";
 
@@ -27,6 +28,7 @@ export default async function Journal({
   searchParams: Promise<{ action?: string; debrief?: string }>;
 }) {
   await connection();
+  if (!isAnalyst(await fetchSession())) return <ReservedPage back="/journal" />;
   const query = await searchParams;
   const action = actions.find((name) => name === query.action);
   const entries = await fetchJournal({ debrief: query.debrief, action: action ? [action] : undefined });

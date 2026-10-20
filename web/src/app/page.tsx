@@ -1,4 +1,5 @@
 import { connection } from "next/server";
+import { AnalystOnly } from "@/components/analyst-only";
 import { AskForm } from "@/components/ask/ask-form";
 import { FreeAnswer } from "@/components/ask/free-answer";
 import { RecentQuestions } from "@/components/ask/recent-questions";
@@ -60,7 +61,9 @@ export default async function Home({
           <h1 className="display max-w-4xl text-4xl sm:text-6xl">{t.title}</h1>
           <p className="max-w-2xl text-lg text-muted-foreground">{t.lead}</p>
           <div className="flex max-w-3xl flex-col gap-6">
-            <AskForm />
+            <AnalystOnly back="/">
+              <AskForm />
+            </AnalystOnly>
             {answer && <FreeAnswer answer={answer} />}
           </div>
         </div>

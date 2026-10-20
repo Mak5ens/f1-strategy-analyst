@@ -7,14 +7,17 @@ from typing import Any
 import pytest
 from fastapi.testclient import TestClient
 from test_agent import FakeTheme, agent
+from test_auth import authenticator, token
 from test_chat import FakeChatTheme
 
 from core.agent import Agent, Decision, Point, Run
 from core.agent.chat import Chat, ChatLimits, Reply
+from core.auth import Authenticator, AuthSettings
 from core.tracing import Tracer
 from f1.api import (
     app,
     get_agent,
+    get_authenticator,
     get_chat,
     get_free_questions,
     get_free_store,
@@ -139,8 +142,27 @@ def client() -> Iterator[TestClient]:
     free, store = FakeFreeQuestions(), FakeFreeStore()
     app.dependency_overrides[get_free_questions] = lambda: free
     app.dependency_overrides[get_free_store] = lambda: store
+    # Open, as without an SSO: every caller is the local analyst. `signed` below checks the accounts.
+    open_api = Authenticator(AuthSettings(_env_file=None))
+    app.dependency_overrides[get_authenticator] = lambda: open_api
     yield TestClient(app)
     app.dependency_overrides.clear()
+
+
+@pytest.fixture
+def signed(client: TestClient) -> TestClient:
+    """The same app behind the SSO: a request carries an account's token, or none."""
+    checked = authenticator()
+    app.dependency_overrides[get_authenticator] = lambda: checked
+    return client
+
+
+def as_analyst() -> dict[str, str]:
+    return {"Authorization": f"Bearer {token()}"}
+
+
+def as_reader() -> dict[str, str]:
+    return {"Authorization": f"Bearer {token('a-reader')}"}
 
 
 def test_healthz() -> None:
@@ -195,6 +217,53 @@ def test_each_decision_of_a_review_is_logged_with_the_agents_text(client: TestCl
     assert rejected[1]["text_before"] == first["text"] and rejected[1]["text_after"] == "Texte corrigé."
     assert rejected[0]["decided_by"] == "analyste" and rejected[0]["subject"]["round"] == 16
     assert len(client.get("/decisions", params={"debrief": debrief["id"]}).json()) == len(decisions)
+
+
+@pytest.mark.parametrize(
+    ("method", "path", "body"),
+    [
+        ("post", "/debriefs", {"request": "Débrief de Monza"}),
+        ("post", "/questions", {"question": "Qui a gagné à Monza ?"}),
+        ("get", "/questions", None),
+        ("get", "/decisions", None),
+        ("post", "/debriefs/any/plan", {"analyses": []}),
+        ("post", "/debriefs/any/review", {"decisions": []}),
+        ("post", "/debriefs/any/questions", {"question": "Pourquoi ?"}),
+    ],
+)
+def test_only_an_analyst_asks_or_decides(signed: TestClient, method: str, path: str, body: Any) -> None:
+    def call(headers: dict[str, str]) -> int:
+        return signed.request(method, path, json=body, headers=headers).status_code
+
+    assert call({}) == 401
+    assert call(as_reader()) == 403
+    assert call(as_analyst()) not in (401, 403)
+    signed.cookies.set("auth_token", token("a-reader"))  # the SSO's shared cookie, as a browser sends it
+    assert call({}) == 403
+
+
+def test_a_reader_sees_a_debrief_only_once_published(signed: TestClient) -> None:
+    debrief = signed.post("/debriefs", json={"request": "Débrief de Monza"}, headers=as_analyst()).json()
+    path = f"/debriefs/{debrief['id']}"
+    assert signed.get(path).status_code == 404
+    assert signed.get("/debriefs", params={"status": "waiting"}).json() == []
+    assert signed.get(path, headers=as_analyst()).json()["waiting"] == "plan"
+
+    reviewed = signed.post(f"{path}/plan", json={"analyses": ["loss:LEC", "sc"]}, headers=as_analyst()).json()
+    decisions = [{"point": point["id"], "action": "approve"} for point in reviewed["points"]]
+    signed.post(f"{path}/review", json={"decisions": decisions}, headers=as_analyst())
+
+    assert signed.get(path).json()["status"] == "published"
+    assert [item["id"] for item in signed.get("/debriefs").json()] == [debrief["id"]]
+    assert signed.get(f"{path}/questions").json() == []
+    entries = signed.get("/decisions", headers=as_analyst()).json()
+    assert {entry["decided_by"] for entry in entries} == {"Ana Lyste"}
+
+
+def test_the_session_names_the_account_and_says_when_the_api_is_open(signed: TestClient) -> None:
+    assert signed.get("/me").json() == {"viewer": None, "open": False}
+    assert signed.get("/me", headers=as_reader()).json()["viewer"]["analyst"] is False
+    assert signed.get("/me", headers=as_analyst()).json()["viewer"]["name"] == "Ana Lyste"
 
 
 def test_questions_on_a_published_debrief_show_only_backed_answers(client: TestClient) -> None:

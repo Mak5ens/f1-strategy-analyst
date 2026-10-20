@@ -1,4 +1,5 @@
 import { cn } from "cn";
+import { AnalystOnly } from "@/components/analyst-only";
 import { FiguresText } from "@/components/figures-text";
 import { SectionTitle } from "@/components/section-title";
 import type { Debrief, QuestionReply, RaceLaps } from "@/lib/api/client";
@@ -75,7 +76,9 @@ export function QuestionThread({
         ))}
       </ol>
       {!replies.length && <p className="mb-6 text-muted-foreground text-sm">{t.empty}</p>}
-      <QuestionAsk id={debrief.id} suggestions={questionSuggestions(debrief)} />
+      <AnalystOnly back={`/debriefs/${debrief.id}`}>
+        <QuestionAsk id={debrief.id} suggestions={questionSuggestions(debrief)} />
+      </AnalystOnly>
     </section>
   );
 }
