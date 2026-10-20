@@ -28,7 +28,7 @@ class PostgresSettings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="POSTGRES_", env_file=".env", extra="ignore")
 
     host: str = "localhost"
-    port: int = 5433
+    port: int = 5435
     user: str = "f1"
     password: SecretStr = SecretStr("")
     db: str = "f1"

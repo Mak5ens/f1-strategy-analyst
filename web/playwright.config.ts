@@ -5,7 +5,7 @@ import { defineConfig, devices } from "@playwright/test";
  * web-test` builds the front and serves it; the CI starts the API first. WEB_URL tests a front already running
  * instead, e.g. the one of `just up`.
  */
-const port = Number(process.env.WEB_E2E_PORT ?? 3002);
+const port = Number(process.env.WEB_E2E_PORT ?? 3006);
 const external = process.env.WEB_URL;
 
 export default defineConfig({

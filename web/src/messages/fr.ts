@@ -19,6 +19,17 @@ export const fr = {
     duel: "Duel",
     season: "Saison",
   },
+  auth: {
+    signIn: "Se connecter",
+    signOut: "Se déconnecter",
+    analyst: "Analyste",
+    reader: "Lecteur",
+    reservedTitle: "Réservé aux analystes",
+    reservedLead:
+      "Les demandes en cours et le journal des relectures ne sont visibles que des analystes. Les débriefs publiés, les courses et la saison restent ouverts à tous.",
+    askLead: "Poser une question, lancer un débrief ou valider un point est réservé aux analystes.",
+    notAnalyst: "Votre compte n'a pas le rôle d'analyste.",
+  },
   design: {
     title: "Système de design",
     lead: "La page de référence interne : les principes, les tokens et les composants de base du site. Elle n'est pas dans la navigation.",

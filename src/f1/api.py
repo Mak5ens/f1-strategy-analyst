@@ -21,13 +21,14 @@ from datetime import datetime
 from importlib.metadata import version
 from typing import Annotated, Any, Literal
 
-from fastapi import Depends, FastAPI, HTTPException, Query
+from fastapi import Depends, FastAPI, HTTPException, Query, Request
 from pydantic import BaseModel, Field, model_validator
 
 from core.agent import Agent, Analysis, Clarification, Decision, Point, Run
 from core.agent.chat import Chat, Exchange, Reply
 from core.agent.state import AgentState, RejectReason, Result
 from core.agent.store import RequestStore
+from core.auth import COOKIE, Authenticator, Viewer
 from core.tools import ToolError
 from f1.charts import FactChart, chart_for
 from f1.display import Driver, Response, grand_prix_fr, team_colour
@@ -217,6 +218,7 @@ _grand_prix: GrandPrix | None = None
 _chat: Chat | None = None
 _free: FreeQuestions | None = None
 _free_store: FreeQuestionStore | None = None
+_auth: Authenticator | None = None
 
 
 def get_agent() -> Agent:
@@ -281,6 +283,33 @@ def get_free_store() -> FreeQuestionStore:
     return _free_store
 
 
+def get_authenticator() -> Authenticator:
+    global _auth
+    with _lock:
+        if _auth is None:
+            _auth = Authenticator()
+    return _auth
+
+
+def get_viewer(request: Request, auth: Annotated[Authenticator, Depends(get_authenticator)]) -> Viewer | None:
+    """The SSO's account of the request: a Bearer token, sent by the front's server, else the shared cookie."""
+    header = request.headers.get("authorization", "")
+    token = header[7:] if header[:7].lower() == "bearer " else request.cookies.get(COOKIE)
+    return auth.viewer(token)
+
+
+def require_analyst(viewer: Annotated[Viewer | None, Depends(get_viewer)]) -> Viewer:
+    """Only an analyst asks, answers a stop or reads what is not published: checked here, whatever the front shows."""
+    if viewer is None:
+        raise HTTPException(401, "sign in as an analyst")
+    if not viewer.analyst:
+        raise HTTPException(403, "reserved to the analysts")
+    return viewer
+
+
+ViewerDep = Annotated[Viewer | None, Depends(get_viewer)]
+AnalystDep = Annotated[Viewer, Depends(require_analyst)]
+Analyst = [Depends(require_analyst)]
 AgentDep = Annotated[Agent, Depends(get_agent)]
 ChatDep = Annotated[Chat, Depends(get_chat)]
 RequestsDep = Annotated[RequestStore, Depends(get_requests)]
@@ -299,6 +328,19 @@ def healthz() -> Health:
 def info() -> Info:
     """The service and the version of the app it runs."""
     return Info(name="f1-strategy-analyst", version=version("f1-strategy-analyst"))
+
+
+class Session(Response):
+    """Who the front shows as signed in, and whether the API checks accounts at all."""
+
+    viewer: Viewer | None = Field(None, description="None for a visitor without an account")
+    open: bool = Field(description="No SSO configured: every caller is the local analyst, there is no sign-in")
+
+
+@app.get("/me")
+def me(viewer: ViewerDep, auth: Annotated[Authenticator, Depends(get_authenticator)]) -> Session:
+    """The account of the request, read from its token."""
+    return Session(viewer=viewer, open=auth.open)
 
 
 @app.get("/seasons")
@@ -410,13 +452,18 @@ def get_race_laps(season: int, round_number: int, grand_prix: GrandPrixDep) -> R
 @app.get("/debriefs")
 def list_debriefs(
     requests: RequestsDep,
+    viewer: ViewerDep,
     status: Annotated[Status | None, Query(description="Only the requests of this status")] = None,
     season: Annotated[int | None, Query(description="Only the requests on a race of this season")] = None,
     round_number: Annotated[int | None, Query(alias="round", description="Only those on this round")] = None,
     limit: Annotated[int, Query(ge=1, le=200)] = 50,
 ) -> list[DebriefSummary]:
     """The requests, the latest first: those waiting for a person with `status=waiting`, those on a race with
-    `season` and `round`."""
+    `season` and `round`. A reader sees only the published ones."""
+    if not _analyst(viewer):
+        if status not in (None, "published"):
+            return []
+        status = "published"
     race = {key: value for key, value in (("season", season), ("round", round_number)) if value is not None}
     return [
         DebriefSummary(
@@ -432,7 +479,7 @@ def list_debriefs(
     ]
 
 
-@app.post("/questions", status_code=201)
+@app.post("/questions", status_code=201, dependencies=Analyst)
 def ask_free_question(
     body: NewFreeQuestion, questions: FreeQuestionsDep, store: FreeStoreDep, agent: AgentDep
 ) -> FreeAnswer:
@@ -447,20 +494,20 @@ def ask_free_question(
     return store.save(answer)
 
 
-@app.get("/questions")
+@app.get("/questions", dependencies=Analyst)
 def list_free_questions(store: FreeStoreDep, limit: Annotated[int, Query(ge=1, le=50)] = 10) -> list[FreeAnswer]:
     """The latest free questions first, with their answers."""
     return store.latest(limit)
 
 
-@app.get("/questions/{question_id}")
+@app.get("/questions/{question_id}", dependencies=Analyst)
 def get_free_question(question_id: int, store: FreeStoreDep) -> FreeAnswer:
     if (answer := store.get(question_id)) is None:
         raise HTTPException(404, f"no question {question_id}")
     return answer
 
 
-@app.post("/debriefs", status_code=201)
+@app.post("/debriefs", status_code=201, dependencies=Analyst)
 def start_debrief(body: NewDebrief, agent: AgentDep) -> Debrief:
     """Start a debrief: the agent runs until its first stop, usually the plan, or a clarification. A race given with
     `season` and `round` is never asked for; `question` asks for an answer first (LAB-203)."""
@@ -468,18 +515,19 @@ def start_debrief(body: NewDebrief, agent: AgentDep) -> Debrief:
 
 
 @app.get("/debriefs/{debrief_id}")
-def get_debrief(debrief_id: str, agent: AgentDep) -> Debrief:
-    return debrief(_run(agent, debrief_id))
+def get_debrief(debrief_id: str, agent: AgentDep, viewer: ViewerDep) -> Debrief:
+    """A request where it stands; a reader sees it only once published."""
+    return debrief(_run(agent, debrief_id, published_only=not _analyst(viewer)))
 
 
-@app.post("/debriefs/{debrief_id}/clarification")
+@app.post("/debriefs/{debrief_id}/clarification", dependencies=Analyst)
 def answer_clarification(debrief_id: str, body: ClarificationAnswer, agent: AgentDep) -> Debrief:
     """Choose one of the options of the open question."""
     _waiting(agent, debrief_id, "clarification")
     return debrief(agent.resume(debrief_id, body.option))
 
 
-@app.post("/debriefs/{debrief_id}/plan")
+@app.post("/debriefs/{debrief_id}/plan", dependencies=Analyst)
 def answer_plan(debrief_id: str, body: PlanAnswer, agent: AgentDep) -> Debrief:
     """Validate the plan: the analyses kept run, then the agent drafts and checks the points, up to the review."""
     _waiting(agent, debrief_id, "plan")
@@ -487,13 +535,13 @@ def answer_plan(debrief_id: str, body: PlanAnswer, agent: AgentDep) -> Debrief:
 
 
 @app.get("/debriefs/{debrief_id}/questions")
-def list_questions(debrief_id: str, agent: AgentDep, requests: RequestsDep) -> list[QuestionReply]:
+def list_questions(debrief_id: str, agent: AgentDep, requests: RequestsDep, viewer: ViewerDep) -> list[QuestionReply]:
     """The questions asked on a debrief, the first first."""
-    state = _run(agent, debrief_id).state
+    state = _run(agent, debrief_id, published_only=not _analyst(viewer)).state
     return [question_reply(row, state) for row in requests.replies(debrief_id)]
 
 
-@app.post("/debriefs/{debrief_id}/questions", status_code=201)
+@app.post("/debriefs/{debrief_id}/questions", status_code=201, dependencies=Analyst)
 def ask_question(
     debrief_id: str, body: NewQuestion, agent: AgentDep, chat: ChatDep, requests: RequestsDep
 ) -> QuestionReply:
@@ -531,22 +579,20 @@ def question_reply(row: Mapping[str, Any], state: AgentState) -> QuestionReply:
     )
 
 
-# Who decides, until the site has accounts (milestone 6): its owner, the analyst.
-REVIEWER = "analyste"
-
-
 @app.post("/debriefs/{debrief_id}/review")
-def answer_review(debrief_id: str, body: ReviewAnswer, agent: AgentDep, requests: RequestsDep) -> Debrief:
+def answer_review(
+    debrief_id: str, body: ReviewAnswer, agent: AgentDep, requests: RequestsDep, analyst: AnalystDep
+) -> Debrief:
     """One decision per point: approve, correct (with the text) or reject, with a reason unless approved. Each
     decision is logged with the agent's text, once the agent accepts the review."""
     points = _waiting(agent, debrief_id, "review").state.points
     run = agent.resume(debrief_id, [decision.model_dump() for decision in body.decisions])
     if run.waiting is None or run.waiting.kind != "review":
-        requests.log_decisions(debrief_id, points, body.decisions, by=REVIEWER)
+        requests.log_decisions(debrief_id, points, body.decisions, by=analyst.name)
     return debrief(run)
 
 
-@app.get("/decisions")
+@app.get("/decisions", dependencies=Analyst)
 def list_decisions(
     requests: RequestsDep,
     debrief_id: Annotated[str | None, Query(alias="debrief", description="Only those of this debrief")] = None,
@@ -573,11 +619,19 @@ def list_decisions(
     ]
 
 
-def _run(agent: Agent, debrief_id: str) -> Run:
+def _analyst(viewer: Viewer | None) -> bool:
+    return viewer is not None and viewer.analyst
+
+
+def _run(agent: Agent, debrief_id: str, *, published_only: bool = False) -> Run:
+    """The request; `published_only`, a reader's, it does not exist until published."""
     try:
-        return agent.get(debrief_id)
+        run = agent.get(debrief_id)
     except KeyError:
         raise HTTPException(404, f"no debrief {debrief_id}") from None
+    if published_only and run.status != "published":
+        raise HTTPException(404, f"no debrief {debrief_id}")
+    return run
 
 
 def _waiting(agent: Agent, debrief_id: str, stop: Stop) -> Run:

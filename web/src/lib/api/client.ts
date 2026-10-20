@@ -1,4 +1,6 @@
-import createClient from "openapi-fetch";
+import createClient, { type Middleware } from "openapi-fetch";
+import { cache } from "react";
+import { AUTH_COOKIE } from "@/lib/session";
 import type { components, paths } from "./schema";
 
 export type Info = components["schemas"]["Info"];
@@ -24,6 +26,8 @@ export type Simulation = components["schemas"]["SimulationOutput"];
 export type RaceSummary = components["schemas"]["RaceSummary"];
 export type FreeAnswer = components["schemas"]["FreeAnswer"];
 export type Choice = components["schemas"]["Choice"];
+export type Session = components["schemas"]["Session"];
+export type Viewer = components["schemas"]["Viewer"];
 
 /**
  * The API's client, typed by the schema generated from FastAPI's OpenAPI (`just web-gen-client`): a route or a field
@@ -33,8 +37,27 @@ export type Choice = components["schemas"]["Choice"];
  * service in compose.yaml), never sent to the browser.
  */
 export function apiClient(baseUrl: string = process.env.API_URL ?? "http://localhost:8000") {
-  return createClient<paths>({ baseUrl });
+  const client = createClient<paths>({ baseUrl });
+  client.use(forwardToken);
+  return client;
 }
+
+/**
+ * Every call carries the visitor's SSO token, read from the request being rendered (LAB-192): the API checks it
+ * and decides what the visitor may read or do. Outside a request (a test, the build), the call goes without one.
+ */
+const forwardToken: Middleware = {
+  async onRequest({ request }) {
+    try {
+      const { cookies } = await import("next/headers");
+      const token = (await cookies()).get(AUTH_COOKIE)?.value;
+      if (token) request.headers.set("authorization", `Bearer ${token}`);
+    } catch {
+      // Not rendering a request.
+    }
+    return request;
+  },
+};
 
 type Client = ReturnType<typeof apiClient>;
 
@@ -249,4 +272,24 @@ export async function fetchFreeQuestions(limit = 6, client: Client = apiClient()
   } catch {
     return null;
   }
+}
+
+const SIGNED_OUT: Session = { viewer: null, open: false };
+
+/**
+ * Who is signed in, once per request: the header and the page read the same answer. When the API does not answer,
+ * the visitor is shown as signed out, never as an analyst.
+ */
+export const fetchSession = cache(async (client: Client = apiClient()): Promise<Session> => {
+  try {
+    const { data } = await client.GET("/me", { cache: "no-store", signal: AbortSignal.timeout(3000) });
+    return data ?? SIGNED_OUT;
+  } catch {
+    return SIGNED_OUT;
+  }
+});
+
+/** Whether the visitor may ask, answer a stop and read the requests: an analyst, or anyone on an API without SSO. */
+export function isAnalyst(session: Session): boolean {
+  return session.open || session.viewer?.analyst === true;
 }

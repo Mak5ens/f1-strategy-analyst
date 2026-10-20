@@ -43,6 +43,25 @@
         }
       }
     },
+    "/me": {
+      "get": {
+        "summary": "Me",
+        "description": "The account of the request, read from its token.",
+        "operationId": "me_me_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Session"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/seasons": {
       "get": {
         "summary": "List Seasons",
@@ -505,7 +524,7 @@
     "/debriefs": {
       "get": {
         "summary": "List Debriefs",
-        "description": "The requests, the latest first: those waiting for a person with `status=waiting`, those on a race with\n`season` and `round`.",
+        "description": "The requests, the latest first: those waiting for a person with `status=waiting`, those on a race with\n`season` and `round`. A reader sees only the published ones.",
         "operationId": "list_debriefs_debriefs_get",
         "parameters": [
           {
@@ -772,6 +791,7 @@
     "/debriefs/{debrief_id}": {
       "get": {
         "summary": "Get Debrief",
+        "description": "A request where it stands; a reader sees it only once published.",
         "operationId": "get_debrief_debriefs__debrief_id__get",
         "parameters": [
           {
@@ -3670,6 +3690,33 @@
         ],
         "title": "SeasonRound"
       },
+      "Session": {
+        "properties": {
+          "viewer": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Viewer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "None for a visitor without an account"
+          },
+          "open": {
+            "type": "boolean",
+            "title": "Open",
+            "description": "No SSO configured: every caller is the local analyst, there is no sign-in"
+          }
+        },
+        "type": "object",
+        "required": [
+          "viewer",
+          "open"
+        ],
+        "title": "Session",
+        "description": "Who the front shows as signed in, and whether the API checks accounts at all."
+      },
       "ShownPoint": {
         "properties": {
           "id": {
@@ -4630,6 +4677,43 @@
           "type"
         ],
         "title": "ValidationError"
+      },
+      "Viewer": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "description": "The SSO's account id, the token's `sub`"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "First and last name, else the email"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "analyst": {
+            "type": "boolean",
+            "title": "Analyst",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name"
+        ],
+        "title": "Viewer",
+        "description": "The account behind a request."
       },
       "Weather": {
         "properties": {
