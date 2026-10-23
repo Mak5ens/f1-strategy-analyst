@@ -8,7 +8,7 @@
 
 Ce repo versionne un `.mcp.json` qui pointe sur l'espace **mak5ens** et rien d'autre. Une
 seule chose à faire par poste : exporter `LORE_TOKEN` (jeton `lore_` créé sur
-https://qg.labbtech.fr, page Jetons et MCP). Ne pas ajouter d'autre serveur `lore` au niveau utilisateur.
+<https://qg.labbtech.fr>, page Jetons et MCP). Ne pas ajouter d'autre serveur `lore` au niveau utilisateur.
 
 Cursor / Codex : même URL, même en-tête, dans leur fichier de configuration de projet.
 
