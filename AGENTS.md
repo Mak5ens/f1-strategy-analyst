@@ -36,9 +36,9 @@ En production · recette validée · MR relue par un autre que l'auteur · fiche
 
 `f1-strategy-analyst` is block 3 of a portfolio "internal AI platform", and its first client app: an agent that writes sourced Formula 1 race strategy debriefs from timing data and FIA regulations, and stops for a human analyst before publishing. Every model call goes through `llmops-gateway` with the `f1` team's key. The user cares about F1 beyond the portfolio: the front end is meant to become a polished product.
 
-Planning lives in Linear (team key `LAB`, project "Plateforme IA · Analyste stratégie F1", milestones 4.1 to 6).
+Planning lives in the mak5ens lore (MCP `lore`): tasks `MAK-<n>` in `repos/f1-strategy-analyst/todo.md`, milestones in `roadmap/`. Tasks moved over from Linear keep their former id (`LAB-<n>`, still used in this file, older commits and ADRs) in the "Historique Linear" section of `taches/MAK-<n>.md` (`search("LAB-<n>")` finds it).
 
-## Design principles (decided 2026-10-10, see the Linear issues)
+## Design principles (decided 2026-10-10, see the tasks in the lore)
 
 - Numbers never come from the LLM: deterministic, unit-tested tools compute them (LAB-144), and the agent's `verify` node checks every number and source of a draft.
 - Production retrieval (LAB-186): query rewriting (French questions, English FIA corpus), hybrid dense + sparse search with RRF, reranking through the gateway's `rerank` alias, an abstention threshold, citation checks. Each stage can be switched off to measure its gain (ablation). LAB-147 is a deliberately naive baseline.
@@ -87,7 +87,7 @@ Tasks run with [just](https://just.systems/) (`justfile`, which loads `.env`); t
 
 ## Conventions
 
-- Branch names come from Linear issues: `feature/lab-<n>-<slug>`.
+- Branch names come from the task: the branch `start_task` returns (`mak-<n>-<slug>`). Put the task id in the PR title too.
 - Commits follow Conventional Commits, enforced by a commit-msg hook. No Claude attribution in commits or PRs.
-- ADRs specific to this repo go in `docs/adr/`. ADR numbers are global to the portfolio: 011, 012 (evaluation tooling), 024 (RAG), 025 (agent) and 026 (front end) here, 013 planned for F1; the next free number is 028. Check Linear before taking a new number.
+- ADRs specific to this repo go in `docs/adr/`. ADR numbers are global to the portfolio: 011, 012 (evaluation tooling), 024 (RAG), 025 (agent) and 026 (front end) here, 013 planned for F1; the next free number is 028. Check the `docs/adr/` folders of the three repos before taking a new number.
 - Public repo: public data only. FIA documents are downloaded, never committed. No F1, FIA or team logos, fonts or brand assets.
