@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.8.0](https://github.com/Mak5ens/f1-strategy-analyst/compare/v0.7.0...v0.8.0) (2026-10-24)
+
+
+### Features
+
+* **web:** LAB-192 accounts with LabbTech Auth, analyst role checked by the API ([#48](https://github.com/Mak5ens/f1-strategy-analyst/issues/48)) ([7b5dee1](https://github.com/Mak5ens/f1-strategy-analyst/commit/7b5dee1692a0014d34379fecbb46fb0d56766675))
+
+
+### Documentation
+
+* AGENTS.md d'après le gabarit du lore ([9f3a749](https://github.com/Mak5ens/f1-strategy-analyst/commit/9f3a7499a96310da32b3293980c838cb2b0d39cb))
+* MAK-117 PR template, planning in the mak5ens lore ([#52](https://github.com/Mak5ens/f1-strategy-analyst/issues/52)) ([e25ae9f](https://github.com/Mak5ens/f1-strategy-analyst/commit/e25ae9fb6cc74322774ca5148d131eed3aff8d4d))
+
 ## [0.7.0](https://github.com/Mak5ens/f1-strategy-analyst/compare/v0.6.0...v0.7.0) (2026-10-19)
 
 
