@@ -106,6 +106,9 @@ services:
       AUTH_API_URL: ${AUTH_API_URL:+http://host.docker.internal:3003}
       AUTH_APP_URL: ${AUTH_APP_URL:-}
       APP_URL: http://localhost:${WEB_PORT:-3000}
+      # QG's « Signaler » button (MAK-124), when .env holds its key.
+      QG_SUPPORT_KEY: ${QG_SUPPORT_KEY:-}
+      APP_ENV: ${APP_ENV:-development}
     extra_hosts:
       - host.docker.internal:host-gateway
     ports:
