@@ -13,6 +13,7 @@ seule chose à faire par poste : exporter `LORE_TOKEN` (jeton `lore_` créé sur
 Cursor / Codex : même URL, même en-tête, dans leur fichier de configuration de projet.
 
 ## Avant toute tâche
+
 1. `read_file("repos/f1-strategy-analyst/f1-strategy-analyst.md")` — rôle, dépendances, sensibilité.
 2. `list_tasks(repo: "f1-strategy-analyst")` — en cours et à faire ; `start_task("<ID>")` sur celle qu'on
    traite, puis créer la branche renvoyée.
@@ -20,6 +21,7 @@ Cursor / Codex : même URL, même en-tête, dans leur fichier de configuration d
    `search("<nom>")` et lire les fiches qui le citent.
 
 ## Pendant et après
+
 - Tâches : identifiant dans le titre de la MR (elle passe seule en revue puis en fait) ;
   tâches de suite avec `create_task`.
 - Dette introduite sciemment : `open_debt`, marqueur `DEBT-xxxx` dans le code, lien dans la MR.
@@ -27,6 +29,7 @@ Cursor / Codex : même URL, même en-tête, dans leur fichier de configuration d
 - Fiche du repo fausse : la corriger (`edit_file`) dans la même MR.
 
 ## Définition de fini
+
 En production · recette validée · MR relue par un autre que l'auteur · fiche à jour · dette déclarée.
 <!-- AGENTS-TEMPLATE-END -->
 
