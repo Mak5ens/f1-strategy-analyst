@@ -16,7 +16,7 @@ Cursor / Codex : même URL, même en-tête, dans leur fichier de configuration d
 
 1. `read_file("repos/f1-strategy-analyst/f1-strategy-analyst.md")` — rôle, dépendances, sensibilité.
 2. `list_tasks(repo: "f1-strategy-analyst")` — en cours et à faire ; `start_task("<ID>")` sur celle qu'on
-   traite, puis créer la branche renvoyée.
+   traite. On reste sur `main`, sauf sujet sensible (voir Livrer).
 3. Avant de toucher un contrat (message, schéma, endpoint, librairie partagée) :
    `search("<nom>")` et lire les fiches qui le citent.
 
@@ -90,7 +90,8 @@ Tasks run with [just](https://just.systems/) (`justfile`, which loads `.env`); t
 
 ## Conventions
 
-- Branch names come from the task: the branch `start_task` returns (`mak-<n>-<slug>`). Put the task id in the PR title too.
+- Push to `main` directly by default, the task id in the commit message. For a sensitive change
+  (see Livrer): the branch `start_task` returns (`mak-<n>-<slug>`) and the task id in the PR title.
 - Commits follow Conventional Commits, enforced by a commit-msg hook. No Claude attribution in commits or PRs.
 - ADRs specific to this repo go in `docs/adr/`. ADR numbers are global to the portfolio: 011, 012 (evaluation tooling), 024 (RAG), 025 (agent) and 026 (front end) here, 013 planned for F1; the next free number is 028. Check the `docs/adr/` folders of the three repos before taking a new number.
 - Public repo: public data only. FIA documents are downloaded, never committed. No F1, FIA or team logos, fonts or brand assets.
